@@ -78,7 +78,7 @@ function App() {
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
         {/* Icon Pattern Overlay */}
-        <div className="absolute inset-0 opacity-[0.08] pointer-events-none z-0" 
+        <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
              style={{ 
                backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
              }}
@@ -162,13 +162,13 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f8f8] relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900">
+    <div className="min-h-screen bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 animate-gradient relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900">
       
       {/* Noise Texture Overlay */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
       {/* Icon Pattern Overlay */}
-      <div className="absolute inset-0 opacity-[0.08] pointer-events-none z-0" 
+      <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
            style={{ 
              backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
            }}
@@ -232,8 +232,9 @@ function App() {
       {/* Main Content: Split Layout */}
       <main className="h-screen flex relative overflow-hidden">
         {/* Background Blobs for Main Screen */}
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-rose-100/40 rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob pointer-events-none"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-sky-100/40 rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob animation-delay-2000 pointer-events-none"></div>
+        <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob animation-delay-2000 pointer-events-none"></div>
+        <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none"></div>
         
         {/* Loading Overlay */}
         {isLoading && (

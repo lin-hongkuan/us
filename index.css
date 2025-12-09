@@ -57,3 +57,24 @@
   background-size: 200% 100%;
   animation: shimmer 3s infinite;
 }
+
+@keyframes moveBackground {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(100px, 100px, 0); }
+}
+
+.animate-moveBackground {
+  animation: moveBackground 20s linear infinite;
+  will-change: transform;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient {
+  background-size: 400% 400%;
+  animation: gradient 8s ease infinite;
+}

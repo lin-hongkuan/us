@@ -71,7 +71,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, curren
       </div>
       
       {/* Watermark Icon */}
-      <div className="absolute bottom-4 right-4 text-6xl opacity-[0.03] pointer-events-none select-none filter grayscale transition-opacity duration-500 group-hover:opacity-[0.06]">
+      <div className="absolute bottom-4 right-4 text-6xl opacity-[0.03] pointer-events-none select-none transition-opacity duration-500 group-hover:opacity-[0.40]">
          {isHer ? '🐱' : '🐶'}
       </div>
     </div>
