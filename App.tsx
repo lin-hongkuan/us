@@ -73,112 +73,158 @@ function App() {
   // Authentication Modal
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full bg-white rounded-[2rem] shadow-2xl shadow-rose-100/50 p-10 text-center border border-white/50 relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-rose-400 to-sky-400" />
+      <div className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-[#f8f8f8]">
+        {/* Noise Texture Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+
+        {/* Abstract Background Art */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-rose-200/20 rounded-full blur-[120px] animate-blob" />
+           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-200/20 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+           <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] bg-purple-100/20 rounded-full blur-[100px] animate-blob animation-delay-4000" />
+        </div>
+
+        <div className="max-w-3xl w-full bg-white/60 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
           
-          <div className="mb-8 flex justify-center">
-             <div className="w-20 h-20 bg-gradient-to-tr from-rose-100 to-sky-100 rounded-full flex items-center justify-center shadow-inner">
-                <Heart className="text-rose-500 drop-shadow-sm" fill="currentColor" size={32} />
+          {/* Left Side: Brand */}
+          <div className="flex-1 text-center md:text-left relative z-10 flex flex-col justify-center">
+             <h1 className="font-serif text-[8rem] md:text-[11rem] text-slate-800 tracking-tighter leading-[0.8] select-none mb-8 md:mb-12">
+               Us<span className="text-rose-400">.</span>
+             </h1>
+             
+             <div className="space-y-8 md:pl-4 border-l-0 md:border-l border-slate-200">
+                <div className="flex flex-col gap-1.5">
+                   <span className="text-slate-400 text-[10px] font-bold tracking-[0.4em] uppercase">Shared Memory</span>
+                   <span className="text-slate-400 text-[10px] font-bold tracking-[0.4em] uppercase">Journal</span>
+                </div>
+
+                <p className="font-serif text-xl text-slate-600 italic leading-relaxed opacity-80">
+                  "我们共享的每一刻，<br />
+                  都是故事里的一页。"
+                </p>
              </div>
           </div>
-          <h1 className="font-serif text-5xl mb-3 text-slate-800 tracking-tight">Us</h1>
-          <p className="text-slate-400 mb-12 font-light tracking-wide text-sm uppercase">A Shared Journey</p>
-          
-          <div className="grid grid-cols-2 gap-5">
-            <button 
-              onClick={() => setCurrentUser(UserType.HER)}
-              className="group p-6 rounded-2xl border border-rose-100 bg-rose-50/30 hover:bg-rose-50 hover:border-rose-200 transition-all duration-300 hover:shadow-lg hover:shadow-rose-100/50 flex flex-col items-center"
-            >
-              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="font-serif text-xl italic font-bold">Her</span>
-              </div>
-              <span className="text-rose-900/80 font-medium text-sm">I am Her</span>
-            </button>
-            
-            <button 
-              onClick={() => setCurrentUser(UserType.HIM)}
-              className="group p-6 rounded-2xl border border-sky-100 bg-sky-50/30 hover:bg-sky-50 hover:border-sky-200 transition-all duration-300 hover:shadow-lg hover:shadow-sky-100/50 flex flex-col items-center"
-            >
-              <div className="w-12 h-12 rounded-full bg-sky-100 text-sky-500 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
-                <span className="font-serif text-xl italic font-bold">Him</span>
-              </div>
-              <span className="text-sky-900/80 font-medium text-sm">I am Him</span>
-            </button>
+
+          {/* Right Side: Selection */}
+          <div className="flex-1 w-full max-w-xs md:max-w-none">
+            <div className="grid grid-cols-2 gap-6">
+               {/* Her Button */}
+               <button 
+                 onClick={() => setCurrentUser(UserType.HER)}
+                 className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
+               >
+                 <div className="absolute inset-0 bg-gradient-to-b from-rose-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 
+                 {/* Decorative Corner Lines */}
+                 <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+
+                 <div className="relative z-10 w-20 h-20 rounded-full bg-rose-50 border-4 border-white shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
+                    🐱
+                 </div>
+                 <span className="relative z-10 font-serif font-bold text-lg text-rose-900/60 group-hover:text-rose-600 transition-colors">她</span>
+               </button>
+
+               {/* Him Button */}
+               <button 
+                 onClick={() => setCurrentUser(UserType.HIM)}
+                 className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
+               >
+                 <div className="absolute inset-0 bg-gradient-to-b from-sky-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 
+                 {/* Decorative Corner Lines */}
+                 <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+
+                 <div className="relative z-10 w-20 h-20 rounded-full bg-sky-50 border-4 border-white shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
+                    🐶
+                 </div>
+                 <span className="relative z-10 font-serif font-bold text-lg text-sky-900/60 group-hover:text-sky-600 transition-colors">他</span>
+               </button>
+            </div>
+            <p className="text-center text-slate-300 text-[10px] mt-8 font-bold tracking-[0.3em] uppercase">选择身份</p>
           </div>
+
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900">
+    <div className="min-h-screen bg-[#f8f8f8] relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900">
       
-      {/* Elegant Header - Auto-hiding */}
+      {/* Noise Texture Overlay */}
+      <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+
+      {/* Elegant Header - Minimal & Floating */}
       <header 
         className={`
-          fixed top-0 left-0 right-0 h-20 z-40 px-6 md:px-12 
-          flex items-center justify-between
-          transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]
-          ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}
+          fixed top-0 left-0 right-0 h-24 z-40 px-8 md:px-16 
+          flex items-center justify-between pointer-events-none
+          transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
+          ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}
         `}
       >
-        {/* Glassmorphism Background */}
-        <div className="absolute inset-0 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-[0_4px_30px_rgba(0,0,0,0.03)]" />
-
-        {/* Logo Area */}
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-50 to-sky-50 border border-white shadow-sm flex items-center justify-center">
-             <span className="font-serif text-lg font-bold bg-gradient-to-r from-rose-500 to-sky-500 bg-clip-text text-transparent italic pr-0.5">Us</span>
+        {/* Logo Area - Floating */}
+        <div className="pointer-events-auto">
+          <div className="flex items-center gap-3 group cursor-pointer">
+             <h1 className="font-serif text-4xl font-bold text-slate-800 tracking-tighter relative select-none">
+               Us
+               <span className="text-rose-400 absolute -right-3 -top-1 text-5xl animate-pulse">.</span>
+             </h1>
           </div>
-          <span className="hidden md:inline text-slate-400 text-[10px] font-bold tracking-[0.25em] uppercase mt-1">
-            Journal
-          </span>
         </div>
 
-        {/* Mobile Toggle (Pill) - Elegant & Minimal */}
-        <div className="relative z-10 flex md:hidden bg-white/60 backdrop-blur-md p-1 rounded-full border border-white/60 shadow-inner">
+        {/* Mobile Toggle (Pill) - Floating Island */}
+        <div className="pointer-events-auto md:hidden bg-white/80 backdrop-blur-xl p-1.5 rounded-full border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
            <button 
              onClick={() => setActiveTab(UserType.HER)}
-             className={`px-5 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all duration-300 ${activeTab === UserType.HER ? 'bg-white shadow-sm text-rose-500' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 text-rose-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
            >
-             HER
+             她
            </button>
            <button 
              onClick={() => setActiveTab(UserType.HIM)}
-             className={`px-5 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all duration-300 ${activeTab === UserType.HIM ? 'bg-white shadow-sm text-sky-500' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 text-sky-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
            >
-             HIM
+             他
            </button>
         </div>
 
-        {/* Actions */}
-        <div className="relative z-10 flex items-center gap-3 md:gap-4">
+        {/* Actions - Floating */}
+        <div className="pointer-events-auto flex items-center gap-4">
           <button 
             onClick={() => setIsComposerOpen(true)}
-            className="group flex items-center gap-2 bg-gradient-to-r from-rose-400 to-sky-400 text-white px-5 py-2.5 rounded-full hover:shadow-lg hover:shadow-rose-100/80 transition-all duration-300 transform active:scale-95"
+            className="group flex items-center gap-3 bg-slate-900 text-white px-6 py-3 rounded-full hover:shadow-[0_20px_40px_-12px_rgba(15,23,42,0.3)] hover:-translate-y-1 transition-all duration-500"
           >
-            <PenTool size={14} className="group-hover:-rotate-12 transition-transform duration-300" />
-            <span className="text-sm font-medium tracking-wide">Record</span>
+            <PenTool size={16} className="group-hover:-rotate-12 transition-transform duration-500" />
+            <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
           </button>
           
           <button 
              onClick={() => setCurrentUser(null)}
-             className="w-10 h-10 rounded-full border border-slate-100 bg-white/50 hover:bg-white flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all hover:shadow-md hover:border-slate-200"
-             title="Switch User"
+             className="w-12 h-12 rounded-full bg-white/80 backdrop-blur-md border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-white transition-all duration-500 hover:rotate-180"
+             title="切换用户"
           >
-            <User size={16} />
+            <User size={18} />
           </button>
         </div>
       </header>
 
       {/* Main Content: Split Layout */}
-      <main className="h-screen flex relative">
+      <main className="h-screen flex relative overflow-hidden">
+        {/* Background Blobs for Main Screen */}
+        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-rose-100/40 rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob pointer-events-none"></div>
+        <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-sky-100/40 rounded-full mix-blend-multiply filter blur-[120px] opacity-60 animate-blob animation-delay-2000 pointer-events-none"></div>
         
         {/* Loading Overlay */}
         {isLoading && (
-          <div className="absolute inset-0 z-30 bg-white flex items-center justify-center">
-            <Loader2 className="animate-spin text-rose-400" size={32} />
+          <div className="absolute inset-0 z-30 bg-white/80 backdrop-blur-sm flex items-center justify-center">
+            <Loader2 className="animate-spin text-slate-800" size={32} />
           </div>
         )}
 
@@ -186,30 +232,39 @@ function App() {
         <div 
           onScroll={(e) => handleScroll(e, UserType.HER)}
           className={`
-            flex-1 h-full overflow-y-auto no-scrollbar
-            bg-her-bg transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
+            flex-1 h-full overflow-y-auto no-scrollbar relative z-10
+            bg-gradient-to-br from-rose-100/40 via-rose-50/40 to-transparent
+            transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             ${activeTab === UserType.HER ? 'translate-x-0 block' : '-translate-x-full hidden md:block'}
-            border-r border-rose-100/50
           `}
         >
           {/* Spacer */}
-          <div className="h-28 w-full" />
+          <div className="h-32 w-full" />
           
-          <div className="max-w-xl mx-auto px-6 pb-20">
-            <div className="text-center mb-12 animate-[fadeIn_0.5s_ease-out]">
-              <span className="text-[10px] font-bold tracking-[0.3em] text-rose-300 uppercase block mb-3">She said</span>
-              <h2 className="font-serif text-4xl md:text-5xl text-her-text">Her Appreciation</h2>
-              <div className="w-12 h-1 bg-gradient-to-r from-rose-200 to-rose-100 mx-auto mt-6 rounded-full"></div>
+          <div className="max-w-xl mx-auto px-8 pb-32">
+            <div className="text-center mb-20 animate-[fadeIn_0.8s_ease-out]">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 mb-6 text-3xl shadow-inner">
+                🐱
+              </div>
+              <h2 className="font-serif text-5xl md:text-6xl text-slate-800 mb-4 tracking-tight">Her Journal</h2>
+              <p className="font-serif text-rose-400 italic text-lg">"她的每一个瞬间"</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-12 relative">
+              {/* Timeline Line */}
+              <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-rose-200/50 via-rose-200/30 to-transparent hidden md:block"></div>
+
               {!isLoading && herMemories.length === 0 ? (
-                <div className="text-center text-rose-300/70 py-10 italic font-serif">
-                   Empty pages waiting for love...
+                <div className="text-center text-slate-300 py-20 italic font-serif text-xl">
+                   Waiting for her story...
                 </div>
               ) : (
-                herMemories.map(m => (
-                  <MemoryCard key={m.id} memory={m} onDelete={handleDelete} currentUser={currentUser} />
+                herMemories.map((m, i) => (
+                  <div key={m.id} className="md:pl-20 relative group">
+                    {/* Timeline Dot */}
+                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-rose-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500"></div>
+                    <MemoryCard memory={m} onDelete={handleDelete} currentUser={currentUser} />
+                  </div>
                 ))
               )}
             </div>
@@ -217,10 +272,10 @@ function App() {
         </div>
 
         {/* Center Divider for Desktop */}
-        <div className="hidden md:flex absolute left-1/2 top-0 bottom-0 w-px bg-transparent -ml-px z-20 flex-col items-center justify-center pointer-events-none">
-            <div className="absolute top-20 bottom-20 w-px bg-gradient-to-b from-transparent via-slate-200/50 to-transparent"></div>
-            <div className="w-10 h-10 bg-white/80 backdrop-blur-sm rounded-full shadow-sm border border-white flex items-center justify-center text-rose-400 z-20">
-               <Heart size={16} fill="currentColor" className="opacity-80" />
+        <div className="hidden md:flex absolute left-1/2 top-0 bottom-0 w-px -ml-px z-20 flex-col items-center justify-center pointer-events-none">
+            <div className="absolute top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-slate-200 to-transparent opacity-50"></div>
+            <div className="w-12 h-12 bg-[#f8f8f8] rounded-full border border-slate-100 flex items-center justify-center text-slate-300 z-20">
+               <span className="font-serif italic text-sm">&</span>
             </div>
         </div>
 
@@ -228,29 +283,39 @@ function App() {
         <div 
            onScroll={(e) => handleScroll(e, UserType.HIM)}
            className={`
-            flex-1 h-full overflow-y-auto no-scrollbar
-            bg-him-bg transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
+            flex-1 h-full overflow-y-auto no-scrollbar relative z-10
+            bg-gradient-to-bl from-sky-100/40 via-sky-50/40 to-transparent
+            transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             ${activeTab === UserType.HIM ? 'translate-x-0 block' : 'translate-x-full hidden md:block'}
           `}
         >
            {/* Spacer */}
-           <div className="h-28 w-full" />
+           <div className="h-32 w-full" />
 
-           <div className="max-w-xl mx-auto px-6 pb-20">
-            <div className="text-center mb-12 animate-[fadeIn_0.5s_ease-out]">
-              <span className="text-[10px] font-bold tracking-[0.3em] text-sky-300 uppercase block mb-3">He said</span>
-              <h2 className="font-serif text-4xl md:text-5xl text-him-text">His Appreciation</h2>
-              <div className="w-12 h-1 bg-gradient-to-r from-sky-200 to-sky-100 mx-auto mt-6 rounded-full"></div>
+           <div className="max-w-xl mx-auto px-8 pb-32">
+            <div className="text-center mb-20 animate-[fadeIn_0.8s_ease-out]">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 mb-6 text-3xl shadow-inner">
+                🐶
+              </div>
+              <h2 className="font-serif text-5xl md:text-6xl text-slate-800 mb-4 tracking-tight">His Journal</h2>
+              <p className="font-serif text-sky-400 italic text-lg">"他的每一份感动"</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-12 relative">
+              {/* Timeline Line */}
+              <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-sky-200/50 via-sky-200/30 to-transparent hidden md:block"></div>
+
               {!isLoading && hisMemories.length === 0 ? (
-                <div className="text-center text-sky-300/70 py-10 italic font-serif">
-                   No stories told yet...
+                <div className="text-center text-slate-300 py-20 italic font-serif text-xl">
+                   Waiting for his story...
                 </div>
               ) : (
-                hisMemories.map(m => (
-                  <MemoryCard key={m.id} memory={m} onDelete={handleDelete} currentUser={currentUser} />
+                hisMemories.map((m, i) => (
+                  <div key={m.id} className="md:pl-20 relative group">
+                    {/* Timeline Dot */}
+                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-sky-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500"></div>
+                    <MemoryCard memory={m} onDelete={handleDelete} currentUser={currentUser} />
+                  </div>
                 ))
               )}
             </div>

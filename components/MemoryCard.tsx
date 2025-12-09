@@ -16,30 +16,45 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, curren
 
   // Format date manually to avoid date-fns locale import issues
   const date = new Date(memory.createdAt);
-  const dateStr = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  const dateStr = `${date.getFullYear()} . ${date.getMonth() + 1} . ${date.getDate()}`;
 
   return (
     <div 
       className={`
-        relative group p-6 mb-6 rounded-2xl border transition-all duration-500 hover:shadow-lg
+        relative group p-8 mb-12 rounded-3xl border transition-all duration-700
+        hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] hover:-translate-y-2
         ${isHer 
-          ? 'bg-white/80 border-rose-100 hover:border-rose-200 text-her-text' 
-          : 'bg-white/80 border-sky-100 hover:border-sky-200 text-him-text'
+          ? 'bg-white/80 border-rose-100/50 hover:border-rose-200' 
+          : 'bg-white/80 border-sky-100/50 hover:border-sky-200'
         }
+        backdrop-blur-md
       `}
     >
-      <div className="absolute -top-3 left-6 bg-white px-2 py-1 rounded-full border shadow-sm">
-        <Quote size={16} className={isHer ? 'text-rose-400' : 'text-sky-400'} />
+      {/* Decorative Tape/Pin Effect */}
+      <div className={`absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-4 rotate-[-2deg] backdrop-blur-sm border border-white/50 shadow-sm opacity-60 ${isHer ? 'bg-rose-100/30' : 'bg-sky-100/30'}`}></div>
+
+      {/* Quote Icon */}
+      <div className={`absolute -left-3 top-8 w-8 h-8 rounded-full bg-white border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${isHer ? 'text-rose-300 border-rose-100' : 'text-sky-300 border-sky-100'}`}>
+        <Quote size={12} fill="currentColor" className="opacity-60" />
       </div>
 
-      <p className="font-serif text-lg leading-relaxed mb-4 mt-2">
-        {memory.content}
-      </p>
+      {/* Content */}
+      <div className="relative z-10">
+        <p className="font-serif text-lg md:text-xl leading-loose text-slate-700 tracking-wide whitespace-pre-wrap">
+          {memory.content}
+        </p>
+      </div>
 
-      <div className="flex justify-between items-end border-t border-gray-100 pt-3 mt-2">
-        <span className="text-xs font-sans text-gray-400 uppercase tracking-widest">
-          {dateStr}
-        </span>
+      {/* Footer */}
+      <div className="flex justify-between items-end mt-8 pt-6 border-t border-slate-100">
+        <div className="flex flex-col gap-1">
+           <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${isHer ? 'text-rose-400' : 'text-sky-400'}`}>
+             {isHer ? 'Her Memory' : 'His Memory'}
+           </span>
+           <span className="font-sans text-[10px] font-bold text-slate-500 tracking-[0.15em] mt-1">
+             {dateStr}
+           </span>
+        </div>
         
         {canDelete && (
           <button 
@@ -47,11 +62,17 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, curren
               e.stopPropagation();
               onDelete(memory.id);
             }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-red-500"
+            className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-rose-50 text-slate-300 hover:text-rose-500 transform hover:scale-110"
+            title="删除回忆"
           >
             <Trash2 size={14} />
           </button>
         )}
+      </div>
+      
+      {/* Watermark Icon */}
+      <div className="absolute bottom-4 right-4 text-6xl opacity-[0.03] pointer-events-none select-none filter grayscale transition-opacity duration-500 group-hover:opacity-[0.06]">
+         {isHer ? '🐱' : '🐶'}
       </div>
     </div>
   );
