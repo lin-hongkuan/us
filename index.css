@@ -9,6 +9,10 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
+  .animate-gradient {
+    background-size: 400% 400%;
+    animation: gradient 8s ease infinite;
+  }
 }
 
 @keyframes float {
@@ -72,9 +76,4 @@
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
-}
-
-.animate-gradient {
-  background-size: 400% 400%;
-  animation: gradient 8s ease infinite;
 }

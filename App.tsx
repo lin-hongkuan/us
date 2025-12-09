@@ -264,7 +264,7 @@ function App() {
         <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
           <button 
             onClick={() => setIsComposerOpen(true)}
-            className="group flex items-center gap-3 bg-slate-900 text-white w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full hover:shadow-[0_20px_40px_-12px_rgba(15,23,42,0.3)] hover:-translate-y-1 active:scale-95 transition-all duration-500 justify-center"
+            className="group flex items-center gap-3 bg-gradient-to-r from-rose-400 via-purple-400 to-sky-400 text-white w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full shadow-[0_10px_30px_-10px_rgba(168,85,247,0.4)] hover:shadow-[0_20px_40px_-12px_rgba(168,85,247,0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-500 justify-center bg-[length:200%_auto] hover:bg-right"
           >
             <PenTool size={16} className="group-hover:-rotate-12 transition-transform duration-500" />
             <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
@@ -284,9 +284,9 @@ function App() {
       <main className="h-screen flex relative overflow-hidden">
         {/* Background Blobs for Main Screen */}
         <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none transition-transform duration-100 ease-out">
-          <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob pointer-events-none"></div>
-          <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob animation-delay-2000 pointer-events-none"></div>
-          <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none"></div>
+          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
         </div>
         
         {/* Loading Overlay */}
