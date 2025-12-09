@@ -75,7 +75,14 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-[#f8f8f8]">
         {/* Noise Texture Overlay */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+
+        {/* Icon Pattern Overlay */}
+        <div className="absolute inset-0 opacity-[0.00] pointer-events-none z-0 grayscale" 
+             style={{ 
+               backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='10' y='35' font-size='24'%3E🐱%3C/text%3E%3Ctext x='60' y='85' font-size='24'%3E🐶%3C/text%3E%3C/svg%3E")` 
+             }}
+        ></div>
 
         {/* Abstract Background Art */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -160,10 +167,17 @@ function App() {
       {/* Noise Texture Overlay */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
+      {/* Icon Pattern Overlay */}
+      <div className="absolute inset-0 opacity-[0.05] pointer-events-none z-0 grayscale" 
+           style={{ 
+             backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='10' y='35' font-size='24'%3E🐱%3C/text%3E%3Ctext x='60' y='85' font-size='24'%3E🐶%3C/text%3E%3C/svg%3E")` 
+           }}
+      ></div>
+
       {/* Elegant Header - Minimal & Floating */}
       <header 
         className={`
-          fixed top-0 left-0 right-0 h-24 z-40 px-8 md:px-16 
+          fixed top-0 left-0 right-0 h-20 md:h-24 z-40 px-4 md:px-16 
           flex items-center justify-between pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
           ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}
@@ -172,34 +186,34 @@ function App() {
         {/* Logo Area - Floating */}
         <div className="pointer-events-auto">
           <div className="flex items-center gap-3 group cursor-pointer">
-             <h1 className="font-serif text-4xl font-bold text-slate-800 tracking-tighter relative select-none">
+             <h1 className="font-serif text-2xl md:text-4xl font-bold text-slate-800 tracking-tighter relative select-none transition-all duration-500 group-hover:tracking-widest">
                Us
-               <span className="text-rose-400 absolute -right-3 -top-1 text-5xl animate-pulse">.</span>
+               <span className="text-rose-400 absolute -right-2 md:-right-3 -top-1 text-3xl md:text-5xl animate-pulse">.</span>
              </h1>
           </div>
         </div>
 
         {/* Mobile Toggle (Pill) - Floating Island */}
-        <div className="pointer-events-auto md:hidden bg-white/80 backdrop-blur-xl p-1.5 rounded-full border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+        <div className="pointer-events-auto md:hidden bg-white/80 backdrop-blur-xl p-1 rounded-full border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2">
            <button 
              onClick={() => setActiveTab(UserType.HER)}
-             className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 text-rose-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 text-rose-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
            >
              她
            </button>
            <button 
              onClick={() => setActiveTab(UserType.HIM)}
-             className={`px-6 py-2 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 text-sky-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 text-sky-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
            >
              他
            </button>
         </div>
 
         {/* Actions - Floating */}
-        <div className="pointer-events-auto flex items-center gap-4">
+        <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
           <button 
             onClick={() => setIsComposerOpen(true)}
-            className="group flex items-center gap-3 bg-slate-900 text-white px-6 py-3 rounded-full hover:shadow-[0_20px_40px_-12px_rgba(15,23,42,0.3)] hover:-translate-y-1 transition-all duration-500"
+            className="group flex items-center gap-3 bg-slate-900 text-white w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full hover:shadow-[0_20px_40px_-12px_rgba(15,23,42,0.3)] hover:-translate-y-1 active:scale-95 transition-all duration-500 justify-center"
           >
             <PenTool size={16} className="group-hover:-rotate-12 transition-transform duration-500" />
             <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
@@ -207,10 +221,10 @@ function App() {
           
           <button 
              onClick={() => setCurrentUser(null)}
-             className="w-12 h-12 rounded-full bg-white/80 backdrop-blur-md border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-white transition-all duration-500 hover:rotate-180"
+             className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 backdrop-blur-md border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-white transition-all duration-500 hover:rotate-180"
              title="切换用户"
           >
-            <User size={18} />
+            <User size={16} className="md:w-[18px] md:h-[18px]" />
           </button>
         </div>
       </header>
@@ -242,8 +256,8 @@ function App() {
           <div className="h-32 w-full" />
           
           <div className="max-w-xl mx-auto px-8 pb-32">
-            <div className="text-center mb-20 animate-[fadeIn_0.8s_ease-out]">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 mb-6 text-3xl shadow-inner">
+            <div className="text-center mb-20 animate-fadeInUp">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
                 🐱
               </div>
               <h2 className="font-serif text-5xl md:text-6xl text-slate-800 mb-4 tracking-tight">Her Journal</h2>
@@ -255,14 +269,18 @@ function App() {
               <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-rose-200/50 via-rose-200/30 to-transparent hidden md:block"></div>
 
               {!isLoading && herMemories.length === 0 ? (
-                <div className="text-center text-slate-300 py-20 italic font-serif text-xl">
+                <div className="text-center text-slate-300 py-20 italic font-serif text-xl animate-fadeInUp">
                    Waiting for her story...
                 </div>
               ) : (
                 herMemories.map((m, i) => (
-                  <div key={m.id} className="md:pl-20 relative group">
+                  <div 
+                    key={m.id} 
+                    className="md:pl-20 relative group animate-fadeInUp"
+                    style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
+                  >
                     {/* Timeline Dot */}
-                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-rose-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-rose-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(253,164,175,0.2)]"></div>
                     <MemoryCard memory={m} onDelete={handleDelete} currentUser={currentUser} />
                   </div>
                 ))
@@ -293,8 +311,8 @@ function App() {
            <div className="h-32 w-full" />
 
            <div className="max-w-xl mx-auto px-8 pb-32">
-            <div className="text-center mb-20 animate-[fadeIn_0.8s_ease-out]">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 mb-6 text-3xl shadow-inner">
+            <div className="text-center mb-20 animate-fadeInUp">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
                 🐶
               </div>
               <h2 className="font-serif text-5xl md:text-6xl text-slate-800 mb-4 tracking-tight">His Journal</h2>
@@ -306,14 +324,18 @@ function App() {
               <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-sky-200/50 via-sky-200/30 to-transparent hidden md:block"></div>
 
               {!isLoading && hisMemories.length === 0 ? (
-                <div className="text-center text-slate-300 py-20 italic font-serif text-xl">
+                <div className="text-center text-slate-300 py-20 italic font-serif text-xl animate-fadeInUp">
                    Waiting for his story...
                 </div>
               ) : (
                 hisMemories.map((m, i) => (
-                  <div key={m.id} className="md:pl-20 relative group">
+                  <div 
+                    key={m.id} 
+                    className="md:pl-20 relative group animate-fadeInUp"
+                    style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
+                  >
                     {/* Timeline Dot */}
-                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-sky-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-sky-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(186,230,253,0.2)]"></div>
                     <MemoryCard memory={m} onDelete={handleDelete} currentUser={currentUser} />
                   </div>
                 ))
