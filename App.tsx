@@ -16,6 +16,51 @@ function App() {
   const [showHeader, setShowHeader] = useState(true);
   const scrollPositions = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
 
+  // Mouse movement effect for background
+  const loginBackgroundRef = useRef<HTMLDivElement>(null);
+  const mainBackgroundRef = useRef<HTMLDivElement>(null);
+  const mousePos = useRef({ x: 0, y: 0 });
+  const currentPos = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      mousePos.current = {
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: (e.clientY / window.innerHeight) * 2 - 1
+      };
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    
+    let frameId: number;
+    const animate = () => {
+      // Smooth lerp with very low easing for "slow" feel
+      const ease = 0.015; 
+      currentPos.current.x += (mousePos.current.x - currentPos.current.x) * ease;
+      currentPos.current.y += (mousePos.current.y - currentPos.current.y) * ease;
+      
+      // Movement range in pixels
+      const xOffset = currentPos.current.x * 60; 
+      const yOffset = currentPos.current.y * 60;
+      
+      if (loginBackgroundRef.current) {
+        loginBackgroundRef.current.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
+      }
+      if (mainBackgroundRef.current) {
+        mainBackgroundRef.current.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
+      }
+      
+      frameId = requestAnimationFrame(animate);
+    };
+    
+    animate();
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(frameId);
+    };
+  }, []);
+
   // Initial Data Fetch
   useEffect(() => {
     const fetchData = async () => {
@@ -73,7 +118,7 @@ function App() {
   // Authentication Modal
   if (!currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-[#f8f8f8]">
+      <div className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 animate-gradient">
         {/* Noise Texture Overlay */}
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
@@ -85,10 +130,10 @@ function App() {
         ></div>
 
         {/* Abstract Background Art */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-           <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-rose-200/20 rounded-full blur-[120px] animate-blob" />
-           <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-sky-200/20 rounded-full blur-[120px] animate-blob animation-delay-2000" />
-           <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] bg-purple-100/20 rounded-full blur-[100px] animate-blob animation-delay-4000" />
+        <div ref={loginBackgroundRef} className="absolute -inset-[100px] overflow-hidden pointer-events-none transition-transform duration-100 ease-out">
+           <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob" />
+           <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob animation-delay-2000" />
+           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000" />
         </div>
 
         <div className="max-w-3xl w-full bg-white/60 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
@@ -232,9 +277,11 @@ function App() {
       {/* Main Content: Split Layout */}
       <main className="h-screen flex relative overflow-hidden">
         {/* Background Blobs for Main Screen */}
-        <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob pointer-events-none"></div>
-        <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob animation-delay-2000 pointer-events-none"></div>
-        <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none"></div>
+        <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none transition-transform duration-100 ease-out">
+          <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob pointer-events-none"></div>
+          <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob animation-delay-2000 pointer-events-none"></div>
+          <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none"></div>
+        </div>
         
         {/* Loading Overlay */}
         {isLoading && (

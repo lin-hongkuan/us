@@ -31,7 +31,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, curren
       `}
     >
       {/* Decorative Tape/Pin Effect */}
-      <div className={`absolute -top-2 left-1/2 -translate-x-1/2 w-16 h-4 rotate-[-2deg] backdrop-blur-sm border border-white/50 shadow-sm opacity-60 ${isHer ? 'bg-rose-100/30' : 'bg-sky-100/30'}`}></div>
+      <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-24 h-6 rotate-[-2deg] backdrop-blur-md border border-white/60 shadow-sm ${isHer ? 'bg-rose-200/60' : 'bg-sky-200/60'}`}></div>
 
       {/* Quote Icon */}
       <div className={`absolute -left-3 top-8 w-8 h-8 rounded-full bg-white border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${isHer ? 'text-rose-300 border-rose-100' : 'text-sky-300 border-sky-100'}`}>
