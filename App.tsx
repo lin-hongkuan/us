@@ -162,7 +162,10 @@ function App() {
             <div className="grid grid-cols-2 gap-6">
                {/* Her Button */}
                <button 
-                 onClick={() => setCurrentUser(UserType.HER)}
+                 onClick={() => {
+                   setCurrentUser(UserType.HER);
+                   setActiveTab(UserType.HER);
+                 }}
                  className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
                >
                  <div className="absolute inset-0 bg-gradient-to-b from-rose-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -181,7 +184,10 @@ function App() {
 
                {/* Him Button */}
                <button 
-                 onClick={() => setCurrentUser(UserType.HIM)}
+                 onClick={() => {
+                   setCurrentUser(UserType.HIM);
+                   setActiveTab(UserType.HIM);
+                 }}
                  className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
                >
                  <div className="absolute inset-0 bg-gradient-to-b from-sky-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
