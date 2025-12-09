@@ -207,7 +207,12 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 animate-gradient relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900">
+    <div className={`min-h-screen animate-gradient relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900 transition-colors duration-1000
+      ${activeTab === UserType.HER 
+        ? 'bg-gradient-to-br from-rose-100 via-rose-50 to-rose-200 md:from-rose-100 md:via-purple-50 md:to-sky-100' 
+        : 'bg-gradient-to-br from-sky-100 via-sky-50 to-sky-200 md:from-rose-100 md:via-purple-50 md:to-sky-100'
+      }
+    `}>
       
       {/* Noise Texture Overlay */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
@@ -295,7 +300,7 @@ function App() {
           onScroll={(e) => handleScroll(e, UserType.HER)}
           className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
-            bg-gradient-to-br from-rose-100/40 via-rose-50/40 to-transparent
+            bg-gradient-to-r from-rose-100/30 via-rose-50/10 to-transparent
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             ${activeTab === UserType.HER ? 'translate-x-0 block' : '-translate-x-full hidden md:block'}
           `}
@@ -337,20 +342,14 @@ function App() {
           </div>
         </div>
 
-        {/* Center Divider for Desktop */}
-        <div className="hidden md:flex absolute left-1/2 top-0 bottom-0 w-px -ml-px z-20 flex-col items-center justify-center pointer-events-none">
-            <div className="absolute top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-slate-200 to-transparent opacity-50"></div>
-            <div className="w-12 h-12 bg-[#f8f8f8] rounded-full border border-slate-100 flex items-center justify-center text-slate-300 z-20">
-               <span className="font-serif italic text-sm">&</span>
-            </div>
-        </div>
+
 
         {/* Right: His Side */}
         <div 
            onScroll={(e) => handleScroll(e, UserType.HIM)}
            className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
-            bg-gradient-to-bl from-sky-100/40 via-sky-50/40 to-transparent
+            bg-gradient-to-l from-sky-100/30 via-sky-50/10 to-transparent
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             ${activeTab === UserType.HIM ? 'translate-x-0 block' : 'translate-x-full hidden md:block'}
           `}
