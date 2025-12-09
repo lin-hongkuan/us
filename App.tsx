@@ -207,10 +207,11 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen animate-gradient relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900 transition-colors duration-1000
+    <div className={`min-h-screen relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900 transition-colors duration-1000
+      md:animate-gradient
       ${activeTab === UserType.HER 
-        ? 'bg-gradient-to-br from-rose-100 via-rose-50 to-rose-200 md:from-rose-100 md:via-purple-50 md:to-sky-100' 
-        : 'bg-gradient-to-br from-sky-100 via-sky-50 to-sky-200 md:from-rose-100 md:via-purple-50 md:to-sky-100'
+        ? 'bg-rose-50 md:bg-gradient-to-br md:from-rose-100 md:via-purple-50 md:to-sky-100' 
+        : 'bg-sky-50 md:bg-gradient-to-br md:from-rose-100 md:via-purple-50 md:to-sky-100'
       }
     `}>
       
