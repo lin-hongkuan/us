@@ -11,6 +11,7 @@ export default {
       fontFamily: {
         serif: ['"Playfair Display"', 'serif'],
         sans: ['"Inter"', 'sans-serif'],
+        display: ['"Skranji"', 'cursive'],
       },
       colors: {
         her: {

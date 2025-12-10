@@ -140,7 +140,7 @@ function App() {
           
           {/* Left Side: Brand */}
           <div className="flex-1 text-center md:text-left relative z-10 flex flex-col justify-center">
-             <h1 className="font-serif text-[8rem] md:text-[11rem] text-slate-800 tracking-tighter leading-[0.8] select-none mb-8 md:mb-12">
+             <h1 className="font-display text-[8rem] md:text-[11rem] font-normal text-slate-800 tracking-tighter leading-[0.8] select-none mb-8 md:mb-12">
                Us<span className="text-rose-400">.</span>
              </h1>
              
@@ -243,9 +243,15 @@ function App() {
         {/* Logo Area - Floating */}
         <div className="pointer-events-auto">
           <div className="flex items-center gap-3 group cursor-pointer">
-             <h1 className="font-serif text-2xl md:text-4xl font-bold text-slate-800 tracking-tighter relative select-none transition-all duration-500 group-hover:tracking-widest">
+             {/* Logo Icon: Interlocking Circles (Venn Diagram) */}
+             <div className="relative w-8 h-6 md:w-10 md:h-8 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                <div className="absolute left-0 w-6 h-6 md:w-7 md:h-7 rounded-full bg-rose-400 mix-blend-multiply opacity-80 animate-interlock-left"></div>
+                <div className="absolute right-0 w-6 h-6 md:w-7 md:h-7 rounded-full bg-sky-400 mix-blend-multiply opacity-80 animate-interlock-right"></div>
+             </div>
+
+             <h1 className="font-display text-2xl md:text-3xl font-normal text-slate-700 tracking-tight relative select-none">
                Us
-               <span className="text-rose-400 absolute -right-2 md:-right-3 -top-1 text-3xl md:text-5xl animate-pulse">.</span>
+               <span className="text-rose-400">.</span>
              </h1>
           </div>
         </div>
