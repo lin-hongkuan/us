@@ -31,6 +31,7 @@ function App() {
   const [activeTab, setActiveTab] = useState<UserType>(UserType.HER); // Mobile only
   const [isLoading, setIsLoading] = useState(true);
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
+  const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const [stars, setStars] = useState<Star[]>([]);
   const [ambientStars] = useState<AmbientStar[]>(() => {
     const spots = [
@@ -268,7 +269,10 @@ function App() {
   // Authentication Modal
   if (phase === 'login' || !currentUser) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 animate-gradient">
+      <div 
+        onClick={handleGlobalClick}
+        className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 animate-gradient"
+      >
         {/* Noise Texture Overlay */}
         <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
@@ -361,6 +365,19 @@ function App() {
             <p className="text-center text-slate-300 text-[10px] mt-8 font-bold tracking-[0.3em] uppercase">选择身份</p>
           </div>
 
+        </div>
+
+        {/* Click Stars Effect */}
+        <div className="pointer-events-none fixed inset-0 z-50">
+          {stars.map(star => (
+            <div
+              key={star.id}
+              className="pointer-events-none absolute text-yellow-300 text-xl select-none star-pop drop-shadow-[0_0_6px_rgba(250,204,21,0.8)]"
+              style={{ left: star.x, top: star.y }}
+            >
+              ★
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -498,13 +515,30 @@ function App() {
           </div>
         )}
 
+        {/* Interactive Backgrounds (Desktop Only) - Smooth Transitions */}
+        <div className="absolute inset-0 pointer-events-none z-0 hidden md:flex">
+          {/* Left Background */}
+          <div className={`flex-1 relative transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HIM ? 'opacity-40' : 'opacity-100'}`}>
+             <div className="absolute inset-0 bg-gradient-to-r from-rose-100/30 via-rose-50/10 to-transparent" />
+             <div className={`absolute inset-0 bg-gradient-to-r from-rose-200/50 via-rose-100/30 to-transparent transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HER ? 'opacity-100' : 'opacity-0'}`} />
+          </div>
+          
+          {/* Right Background */}
+          <div className={`flex-1 relative transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HER ? 'opacity-40' : 'opacity-100'}`}>
+             <div className="absolute inset-0 bg-gradient-to-l from-sky-100/30 via-sky-50/10 to-transparent" />
+             <div className={`absolute inset-0 bg-gradient-to-l from-sky-200/50 via-sky-100/30 to-transparent transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HIM ? 'opacity-100' : 'opacity-0'}`} />
+          </div>
+        </div>
+
         {/* Left: Her Side */}
         <div 
           onScroll={(e) => handleScroll(e, UserType.HER)}
+          onMouseEnter={() => setHoveredSide(UserType.HER)}
+          onMouseLeave={() => setHoveredSide(null)}
           className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
-            bg-gradient-to-r from-rose-100/30 via-rose-50/10 to-transparent
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
+            bg-gradient-to-r from-rose-100/30 via-rose-50/10 to-transparent md:bg-none
             ${activeTab === UserType.HER ? 'translate-x-0 block' : '-translate-x-full hidden md:block'}
           `}
         >
@@ -570,10 +604,12 @@ function App() {
         {/* Right: His Side */}
         <div 
            onScroll={(e) => handleScroll(e, UserType.HIM)}
+           onMouseEnter={() => setHoveredSide(UserType.HIM)}
+           onMouseLeave={() => setHoveredSide(null)}
            className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
-            bg-gradient-to-l from-sky-100/30 via-sky-50/10 to-transparent
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
+            bg-gradient-to-l from-sky-100/30 via-sky-50/10 to-transparent md:bg-none
             ${activeTab === UserType.HIM ? 'translate-x-0 block' : 'translate-x-full hidden md:block'}
           `}
         >
