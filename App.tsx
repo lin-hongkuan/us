@@ -3,12 +3,25 @@ import { UserType, Memory } from './types';
 import { getMemories, saveMemory, deleteMemory, seedDataIfEmpty } from './services/storageService';
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
+import { TypewriterText } from './components/TypewriterText';
 import { PenTool, User, Loader2 } from 'lucide-react';
 
 interface Star {
   id: number;
   x: number;
   y: number;
+}
+
+interface AmbientStar {
+  id: number;
+  top?: string;
+  left?: string;
+  right?: string;
+  bottom?: string;
+  size: number;
+  delay: number;
+  duration: number;
+  opacity: number;
 }
 
 function App() {
@@ -19,6 +32,25 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
   const [stars, setStars] = useState<Star[]>([]);
+  const [ambientStars] = useState<AmbientStar[]>(() => {
+    const spots = [
+      { top: '4%', left: '6%' },
+      { top: '12%', right: '8%' },
+      { bottom: '10%', left: '8%' },
+      { bottom: '6%', right: '6%' },
+      { top: '48%', left: '3%' },
+      { bottom: '46%', right: '4%' }
+    ];
+
+    return spots.map((spot, idx) => ({
+      id: idx,
+      size: 5 + Math.random() * 6,
+      delay: Math.random() * 18,
+      duration: 14 + Math.random() * 8,
+      opacity: 0.18 + Math.random() * 0.18,
+      ...spot
+    }));
+  });
   const starIdRef = useRef(0);
 
   // Cute click sound effect
@@ -337,9 +369,30 @@ function App() {
       {/* Icon Pattern Overlay */}
       <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
            style={{ 
-             backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
+           backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
            }}
       ></div>
+
+      {/* Ambient Corner Starlight */}
+      <div className="absolute inset-0 pointer-events-none z-10 mix-blend-screen">
+        {ambientStars.map(star => (
+          <span
+            key={star.id}
+            className="absolute rounded-full bg-white/80 shadow-[0_0_18px_rgba(255,255,255,0.35)] twinkle-star"
+            style={{
+              top: star.top,
+              left: star.left,
+              right: star.right,
+              bottom: star.bottom,
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              opacity: star.opacity,
+              animationDelay: `${star.delay}s`,
+              animationDuration: `${star.duration}s`
+            }}
+          />
+        ))}
+      </div>
 
       {/* Elegant Header - Minimal & Floating */}
       <header 
@@ -460,7 +513,12 @@ function App() {
               >
                 Her Journal
               </h2>
-              <p className="font-serif text-rose-400 italic text-lg">"她的每一个瞬间"</p>
+              <TypewriterText 
+                text="&quot;她的每一个瞬间&quot;" 
+                className="font-serif text-rose-400 italic text-lg" 
+                delay={150}
+                startDelay={500}
+              />
             </div>
 
             <div className="space-y-12 relative">
@@ -519,7 +577,12 @@ function App() {
               >
                 His Journal
               </h2>
-              <p className="font-serif text-sky-400 italic text-lg">"他的每一份感动"</p>
+              <TypewriterText 
+                text="&quot;他的每一份感动&quot;" 
+                className="font-serif text-sky-400 italic text-lg" 
+                delay={150}
+                startDelay={1500}
+              />
             </div>
 
             <div className="space-y-12 relative">
