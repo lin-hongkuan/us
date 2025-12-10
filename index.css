@@ -1,4 +1,4 @@
-Ôªø@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -12,6 +12,17 @@
   .animate-gradient {
     background-size: 400% 400%;
     animation: gradient 8s ease infinite;
+  }
+
+  .texture-text {
+    filter: drop-shadow(0 2px 0px rgba(255,255,255,0.5)) drop-shadow(0 4px 8px rgba(var(--shadow-rgb), 0.2));
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  .texture-text:hover {
+    filter: drop-shadow(0 2px 0px rgba(255,255,255,0.6)) drop-shadow(0 15px 25px rgba(var(--shadow-rgb), 0.4)) brightness(1.1);
+    transform: scale(1.05) translateY(-5px) rotate(-2deg);
+    background-size: cover, 120px 120px !important; /* Œ∆¿Ì∑≈¥Û */
   }
 }
 
@@ -95,3 +106,6 @@
 .animate-interlock-right {
   animation: interlock-right 4s ease-in-out infinite;
 }
+
+
+

@@ -3,7 +3,7 @@ import { UserType, Memory } from './types';
 import { getMemories, saveMemory, deleteMemory, seedDataIfEmpty } from './services/storageService';
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
-import { Heart, PenTool, User, Loader2 } from 'lucide-react';
+import { PenTool, User, Loader2 } from 'lucide-react';
 
 function App() {
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -140,8 +140,16 @@ function App() {
           
           {/* Left Side: Brand */}
           <div className="flex-1 text-center md:text-left relative z-10 flex flex-col justify-center">
-             <h1 className="font-display text-[8rem] md:text-[11rem] font-normal text-slate-800 tracking-tighter leading-[0.8] select-none mb-8 md:mb-12">
-               Us<span className="text-rose-400">.</span>
+             <h1 
+               className="font-display text-[8rem] md:text-[11rem] font-normal tracking-tighter leading-[0.8] select-none mb-8 md:mb-12 text-transparent bg-clip-text bg-cover texture-text"
+               style={{
+                 backgroundImage: `linear-gradient(135deg, #fb7185 0%, #a855f7 50%, #38bdf8 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                 backgroundBlendMode: 'hard-light',
+                 backgroundSize: 'cover, 100px 100px',
+                 '--shadow-rgb': '168, 85, 247'
+               } as React.CSSProperties}
+             >
+               Us.
              </h1>
              
              <div className="space-y-8 md:pl-4 border-l-0 md:border-l border-slate-200">
@@ -242,18 +250,24 @@ function App() {
       >
         {/* Logo Area - Floating */}
         <div className="pointer-events-auto">
-          <div className="flex items-center gap-3 group cursor-pointer">
-             {/* Logo Icon: Interlocking Circles (Venn Diagram) */}
-             <div className="relative w-8 h-6 md:w-10 md:h-8 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
-                <div className="absolute left-0 w-6 h-6 md:w-7 md:h-7 rounded-full bg-rose-400 mix-blend-multiply opacity-80 animate-interlock-left"></div>
-                <div className="absolute right-0 w-6 h-6 md:w-7 md:h-7 rounded-full bg-sky-400 mix-blend-multiply opacity-80 animate-interlock-right"></div>
-             </div>
-
-             <h1 className="font-display text-2xl md:text-3xl font-normal text-slate-700 tracking-tight relative select-none">
-               Us
-               <span className="text-rose-400">.</span>
+          <a 
+            href="https://github.com/lin-hongkuan/us"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center group cursor-pointer select-none"
+          >
+             <h1 
+               className="font-display text-2xl md:text-3xl font-normal tracking-tight relative transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 origin-center text-transparent bg-clip-text bg-cover texture-text"
+               style={{
+                 backgroundImage: `linear-gradient(135deg, #fb7185 0%, #a855f7 50%, #38bdf8 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                 backgroundBlendMode: 'hard-light',
+                 backgroundSize: 'cover, 100px 100px',
+                 '--shadow-rgb': '168, 85, 247'
+               } as React.CSSProperties}
+             >
+               Us.
              </h1>
-          </div>
+          </a>
         </div>
 
         {/* Mobile Toggle (Pill) - Floating Island */}
@@ -326,7 +340,17 @@ function App() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
                 🐱
               </div>
-              <h2 className="font-serif text-5xl md:text-6xl text-slate-800 mb-4 tracking-tight">Her Journal</h2>
+              <h2 
+                className="font-display font-normal text-5xl md:text-6xl mb-4 tracking-tight text-transparent bg-clip-text bg-cover texture-text cursor-default"
+                style={{
+                  backgroundImage: `linear-gradient(180deg, #fb7185 0%, #e11d48 45%, #881337 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                  backgroundBlendMode: 'hard-light',
+                  backgroundSize: 'cover, 100px 100px',
+                  '--shadow-rgb': '136, 19, 55'
+                } as React.CSSProperties}
+              >
+                Her Journal
+              </h2>
               <p className="font-serif text-rose-400 italic text-lg">"她的每一个瞬间"</p>
             </div>
 
@@ -375,7 +399,17 @@ function App() {
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
                 🐶
               </div>
-              <h2 className="font-serif text-5xl md:text-6xl text-slate-800 mb-4 tracking-tight">His Journal</h2>
+              <h2 
+                className="font-display font-normal text-5xl md:text-6xl mb-4 tracking-tight text-transparent bg-clip-text bg-cover texture-text cursor-default"
+                style={{
+                  backgroundImage: `linear-gradient(180deg, #38bdf8 0%, #0284c7 45%, #0c4a6e 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+                  backgroundBlendMode: 'hard-light',
+                  backgroundSize: 'cover, 100px 100px',
+                  '--shadow-rgb': '3, 105, 161'
+                } as React.CSSProperties}
+              >
+                His Journal
+              </h2>
               <p className="font-serif text-sky-400 italic text-lg">"他的每一份感动"</p>
             </div>
 
