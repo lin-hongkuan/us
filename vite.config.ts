@@ -6,9 +6,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-      // 如果你的仓库名是 "my-repo"，请将 base 设置为 "/my-repo/"
-      // 如果是用户主页 (username.github.io)，则保持 "/"
-      base: './', 
+      // 如果你的仓库名是 "us"，请将 base 设置为 "/us/"
+      base: '/us/', 
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -28,18 +27,20 @@ export default defineConfig(({ mode }) => {
             theme_color: '#fff1f2',
             background_color: '#ffffff',
             display: 'standalone',
+            scope: '/us/',
+            start_url: '/us/',
             icons: [
               {
                 src: 'favicon.svg',
                 sizes: '192x192',
                 type: 'image/svg+xml',
-                purpose: 'any maskable'
+                purpose: 'any'
               },
               {
                 src: 'favicon.svg',
                 sizes: '512x512',
                 type: 'image/svg+xml',
-                purpose: 'any maskable'
+                purpose: 'any'
               }
             ]
           }
