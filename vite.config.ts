@@ -17,9 +17,13 @@ export default defineConfig(({ mode }) => {
         react(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['favicon.svg'],
+          includeAssets: ['icon.png'],
           devOptions: {
             enabled: true
+          },
+          workbox: {
+            globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+            cleanupOutdatedCaches: true
           },
           manifest: {
             name: 'Us - Shared Memory Journal',
@@ -28,18 +32,19 @@ export default defineConfig(({ mode }) => {
             theme_color: '#fff1f2',
             background_color: '#ffffff',
             display: 'standalone',
+            orientation: 'portrait',
+            scope: './',
+            start_url: './',
             icons: [
               {
-                src: 'favicon.svg',
+                src: 'icon.png',
                 sizes: '192x192',
-                type: 'image/svg+xml',
-                purpose: 'any'
+                type: 'image/png'
               },
               {
-                src: 'favicon.svg',
+                src: 'icon.png',
                 sizes: '512x512',
-                type: 'image/svg+xml',
-                purpose: 'any'
+                type: 'image/png'
               }
             ]
           }

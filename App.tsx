@@ -23,6 +23,10 @@ function App() {
   const currentPos = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    // Only enable mouse parallax on devices with a fine pointer (mouse)
+    const isDesktop = window.matchMedia('(pointer: fine)').matches;
+    if (!isDesktop) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       mousePos.current = {
         x: (e.clientX / window.innerWidth) * 2 - 1,
@@ -131,12 +135,12 @@ function App() {
 
         {/* Abstract Background Art */}
         <div ref={loginBackgroundRef} className="absolute -inset-[100px] overflow-hidden pointer-events-none transition-transform duration-100 ease-out">
-           <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob" />
-           <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-80 animate-blob animation-delay-2000" />
-           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000" />
+           <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-80 animate-blob" />
+           <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-80 animate-blob animation-delay-2000" />
+           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000" />
         </div>
 
-        <div className="max-w-3xl w-full bg-white/60 backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
+        <div className="max-w-3xl w-full bg-white/60 backdrop-blur-md md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
           
           {/* Left Side: Brand */}
           <div className="flex-1 text-center md:text-left relative z-10 flex flex-col justify-center">
@@ -310,9 +314,9 @@ function App() {
       <main className="h-screen flex relative overflow-hidden">
         {/* Background Blobs for Main Screen */}
         <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none transition-transform duration-100 ease-out">
-          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
-          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
-          <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
+          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
         </div>
         
         {/* Loading Overlay */}
