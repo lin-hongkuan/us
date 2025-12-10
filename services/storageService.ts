@@ -99,6 +99,41 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
   }
 };
 
+export const updateMemory = async (id: string, content: string): Promise<Memory | null> => {
+  // Fallback to Local Storage
+  if (!supabase) {
+    const current = getLocalMemories();
+    const index = current.findIndex(m => m.id === id);
+    if (index !== -1) {
+      current[index].content = content;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+      return current[index];
+    }
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('memories')
+      .update({ content })
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      console.warn("Update returned 0 rows. Possible RLS issue.");
+      alert("更新失败：无法修改云端数据。可能是因为数据库未开启 UPDATE 权限 (RLS Policy)。请在 Supabase SQL Editor 中运行允许 UPDATE 的策略。");
+      return null;
+    }
+
+    return mapRowToMemory(data[0]);
+  } catch (e) {
+    console.error("Failed to update memory", e);
+    return null;
+  }
+};
+
 export const deleteMemory = async (id: string): Promise<boolean> => {
   // Fallback to Local Storage
   if (!supabase) {

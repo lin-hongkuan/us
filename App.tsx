@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserType, Memory } from './types';
-import { getMemories, saveMemory, deleteMemory, seedDataIfEmpty } from './services/storageService';
+import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
 import { TypewriterText } from './components/TypewriterText';
@@ -137,10 +137,13 @@ function App() {
     if (!isDesktop) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      mousePos.current = {
-        x: (e.clientX / window.innerWidth) * 2 - 1,
-        y: (e.clientY / window.innerHeight) * 2 - 1
-      };
+      // Use requestAnimationFrame to throttle mouse move events
+      requestAnimationFrame(() => {
+        mousePos.current = {
+          x: (e.clientX / window.innerWidth) * 2 - 1,
+          y: (e.clientY / window.innerHeight) * 2 - 1
+        };
+      });
     };
     
     window.addEventListener('mousemove', handleMouseMove);
@@ -156,6 +159,7 @@ function App() {
       const xOffset = currentPos.current.x * 60; 
       const yOffset = currentPos.current.y * 60;
       
+      // Use transform3d for hardware acceleration
       if (loginBackgroundRef.current) {
         loginBackgroundRef.current.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
       }
@@ -222,6 +226,16 @@ function App() {
         alert("删除失败");
       }
     }
+  };
+
+  const handleUpdateMemory = async (id: string, content: string) => {
+    const updated = await updateMemory(id, content);
+    if (updated) {
+      setMemories(prev => prev.map(m => m.id === id ? updated : m));
+      playClickSound('action');
+      return true;
+    }
+    return false;
   };
 
   const handleChooseUser = (type: UserType) => {
@@ -538,7 +552,12 @@ function App() {
                   >
                     {/* Timeline Dot */}
                     <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-rose-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(253,164,175,0.2)]"></div>
-                    <MemoryCard memory={m} onDelete={handleDelete} currentUser={currentUser} />
+                    <MemoryCard 
+                      memory={m} 
+                      onDelete={handleDelete} 
+                      onUpdate={handleUpdateMemory}
+                      currentUser={currentUser} 
+                    />
                   </div>
                 ))
               )}
@@ -602,7 +621,12 @@ function App() {
                   >
                     {/* Timeline Dot */}
                     <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-sky-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(186,230,253,0.2)]"></div>
-                    <MemoryCard memory={m} onDelete={handleDelete} currentUser={currentUser} />
+                    <MemoryCard 
+                      memory={m} 
+                      onDelete={handleDelete} 
+                      onUpdate={handleUpdateMemory}
+                      currentUser={currentUser} 
+                    />
                   </div>
                 ))
               )}

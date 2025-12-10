@@ -33,3 +33,11 @@ on public.memories
 for delete
 to public
 using (true);
+
+-- 6. 创建允许所有用户更新的策略
+create policy "Enable update access for all users"
+on public.memories
+for update
+to public
+using (true)
+with check (true);

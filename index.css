@@ -9,12 +9,11 @@
   .animation-delay-4000 {
     animation-delay: 4s;
   }
-  .animate-gradient {
-    background-size: 400% 400%;
-    animation: gradient 8s ease infinite;
-  }
-
-  .texture-text {
+.animate-gradient {
+  background-size: 400% 400%;
+  animation: gradient 8s ease infinite;
+  will-change: background-position;
+}  .texture-text {
     filter: drop-shadow(0 2px 0px rgba(255,255,255,0.5)) drop-shadow(0 4px 8px rgba(var(--shadow-rgb), 0.2));
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
@@ -45,6 +44,7 @@
 
 .animate-blob {
   animation: blob 7s infinite;
+  will-change: transform;
 }
 
 @keyframes fadeInUp {
@@ -184,5 +184,22 @@
   animation: interlock-right 4s ease-in-out infinite;
 }
 
+.twinkle-star {
+  animation: soft-twinkle 16s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.35));
+}
 
-
+@keyframes soft-twinkle {
+  0%, 72%, 100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  10% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  16% {
+    opacity: 0.25;
+    transform: scale(0.92);
+  }
+}
