@@ -23,6 +23,12 @@ interface AmbientStar {
   duration: number;
   opacity: number;
 }
+const QUOTES: string[] = [
+  '“我们共享的每一刻，\n都是故事里的一页。”',
+  '“人生中最好的事情\n就是彼此拥有。”',
+  '“你知道墙壁，眼睛，膝盖，的英文怎么说吗？”',
+  "“我有超能力，\n超喜欢你。”"
+];
 
 function App() {
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -33,6 +39,19 @@ function App() {
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const [stars, setStars] = useState<Star[]>([]);
+  const [quoteIndex, setQuoteIndex] = useState<number>(() => {
+    if (typeof window === 'undefined' || QUOTES.length === 0) return 0;
+    try {
+      const stored = window.localStorage.getItem('login_quote_index');
+      const lastIndex = stored != null ? parseInt(stored, 10) : -1;
+      const nextIndex = Number.isNaN(lastIndex) ? 0 : (lastIndex + 1) % QUOTES.length;
+      window.localStorage.setItem('login_quote_index', String(nextIndex));
+      return nextIndex;
+    } catch {
+      return 0;
+    }
+  });
+  const currentQuote = QUOTES[quoteIndex] || '我们共享的每一刻，都是故事里的一页。';
   const [ambientStars] = useState<AmbientStar[]>(() => {
     const spots = [
       { top: '4%', left: '6%' },
@@ -53,6 +72,20 @@ function App() {
     }));
   });
   const starIdRef = useRef(0);
+
+  const handleQuoteClick = (e: React.MouseEvent<HTMLParagraphElement>) => {
+    e.stopPropagation();
+    if (!QUOTES.length) return;
+    setQuoteIndex(prev => {
+      const next = (prev + 1) % QUOTES.length;
+      try {
+        window.localStorage.setItem('login_quote_index', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Cute click sound effect
   const playClickSound = (type: 'default' | 'her' | 'him' | 'action' = 'default') => {
@@ -312,9 +345,16 @@ function App() {
                    <span className="text-slate-400 text-[10px] font-bold tracking-[0.4em] uppercase">Journal</span>
                 </div>
 
-                <p className="font-serif text-xl text-slate-600 italic leading-relaxed opacity-80">
-                  "我们共享的每一刻，<br />
-                  都是故事里的一页。"
+                <p
+                  className="font-serif text-xl text-slate-600 italic leading-relaxed opacity-80 cursor-pointer select-none"
+                  onClick={handleQuoteClick}
+                >
+                  {currentQuote.split('\n').map((line, idx) => (
+                    <React.Fragment key={idx}>
+                      {idx > 0 && <br />}
+                      {line}
+                    </React.Fragment>
+                  ))}
                 </p>
              </div>
           </div>
