@@ -5,12 +5,89 @@ import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
 import { PenTool, User, Loader2 } from 'lucide-react';
 
+interface Star {
+  id: number;
+  x: number;
+  y: number;
+}
+
 function App() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<UserType>(UserType.HER); // Mobile only
   const [isLoading, setIsLoading] = useState(true);
+  const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
+  const [stars, setStars] = useState<Star[]>([]);
+  const starIdRef = useRef(0);
+
+  // Cute click sound effect
+  const playClickSound = (type: 'default' | 'her' | 'him' | 'action' = 'default') => {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+
+    const audioCtx = new AudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    if (type === 'her') {
+      // High pitched, sparkly (Her)
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, now);
+      oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.1, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+    } else if (type === 'him') {
+      // Lower pitched, solid (Him)
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(300, now);
+      oscillator.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.15, now + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      oscillator.start(now);
+      oscillator.stop(now + 0.15);
+    } else if (type === 'action') {
+      // Quick swipe/switch (Action)
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(500, now);
+      oscillator.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.1, now + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      oscillator.start(now);
+      oscillator.stop(now + 0.15);
+    } else {
+      // Default Bubble
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(400, now);
+      oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.15, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      oscillator.start(now);
+      oscillator.stop(now + 0.15);
+    }
+  };
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const soundElement = target.closest('[data-sound]');
+      const type = soundElement ? soundElement.getAttribute('data-sound') : 'default';
+      playClickSound(type as any);
+    };
+    window.addEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, []);
   
   // Header visibility logic
   const [showHeader, setShowHeader] = useState(true);
@@ -115,12 +192,35 @@ function App() {
     }
   };
 
+  const handleChooseUser = (type: UserType) => {
+    setCurrentUser(type);
+    setActiveTab(type);
+    setPhase('transition');
+    window.setTimeout(() => {
+      setPhase('main');
+    }, 900);
+  };
+
+  const handleGlobalClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // 在点击位置生成一颗小星星
+    const id = starIdRef.current++;
+    const x = e.clientX;
+    const y = e.clientY;
+
+    setStars(prev => [...prev, { id, x, y }]);
+
+    // 一段时间后移除这颗星星
+    window.setTimeout(() => {
+      setStars(prev => prev.filter(star => star.id !== id));
+    }, 700);
+  };
+
   // Filter memories
   const herMemories = memories.filter(m => m.author === UserType.HER);
   const hisMemories = memories.filter(m => m.author === UserType.HIM);
 
   // Authentication Modal
-  if (!currentUser) {
+  if (phase === 'login' || !currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 animate-gradient">
         {/* Noise Texture Overlay */}
@@ -174,10 +274,8 @@ function App() {
             <div className="grid grid-cols-2 gap-6">
                {/* Her Button */}
                <button 
-                 onClick={() => {
-                   setCurrentUser(UserType.HER);
-                   setActiveTab(UserType.HER);
-                 }}
+                 onClick={() => handleChooseUser(UserType.HER)}
+                 data-sound="her"
                  className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
                >
                  <div className="absolute inset-0 bg-gradient-to-b from-rose-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -196,10 +294,8 @@ function App() {
 
                {/* Him Button */}
                <button 
-                 onClick={() => {
-                   setCurrentUser(UserType.HIM);
-                   setActiveTab(UserType.HIM);
-                 }}
+                 onClick={() => handleChooseUser(UserType.HIM)}
+                 data-sound="him"
                  className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
                >
                  <div className="absolute inset-0 bg-gradient-to-b from-sky-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -225,7 +321,9 @@ function App() {
   }
 
   return (
-    <div className={`min-h-screen relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900 transition-colors duration-1000
+    <div 
+      onClick={handleGlobalClick}
+      className={`min-h-screen relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900 transition-colors duration-1000
       md:animate-gradient
       ${activeTab === UserType.HER 
         ? 'bg-rose-50 md:bg-gradient-to-br md:from-rose-100 md:via-purple-50 md:to-sky-100' 
@@ -278,12 +376,14 @@ function App() {
         <div className="pointer-events-auto md:hidden bg-white/80 backdrop-blur-xl p-1 rounded-full border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2">
            <button 
              onClick={() => setActiveTab(UserType.HER)}
+             data-sound="her"
              className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 text-rose-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
            >
              她
            </button>
            <button 
              onClick={() => setActiveTab(UserType.HIM)}
+             data-sound="him"
              className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 text-sky-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
            >
              他
@@ -294,6 +394,7 @@ function App() {
         <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
           <button 
             onClick={() => setIsComposerOpen(true)}
+            data-sound="action"
             className="group flex items-center gap-3 bg-gradient-to-r from-rose-400 via-purple-400 to-sky-400 text-white w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full shadow-[0_10px_30px_-10px_rgba(168,85,247,0.4)] hover:shadow-[0_20px_40px_-12px_rgba(168,85,247,0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-500 justify-center bg-[length:200%_auto] hover:bg-right"
           >
             <PenTool size={16} className="group-hover:-rotate-12 transition-transform duration-500" />
@@ -301,7 +402,11 @@ function App() {
           </button>
           
           <button 
-             onClick={() => setCurrentUser(null)}
+            onClick={() => {
+              setCurrentUser(null);
+              setPhase('login');
+            }}
+             data-sound="action"
              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 backdrop-blur-md border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-white transition-all duration-500 hover:rotate-180"
              title="切换用户"
           >
@@ -450,6 +555,44 @@ function App() {
           onSave={handleSave} 
           onClose={() => setIsComposerOpen(false)} 
         />
+      )}
+
+      {/* Click Stars Effect */}
+      <div className="pointer-events-none fixed inset-0 z-50">
+        {stars.map(star => (
+          <div
+            key={star.id}
+            className="pointer-events-none absolute text-yellow-300 text-xl select-none star-pop drop-shadow-[0_0_6px_rgba(250,204,21,0.8)]"
+            style={{ left: star.x, top: star.y }}
+          >
+            ★
+          </div>
+        ))}
+      </div>
+
+      {/* Login -> Main Transition Overlay */}
+      {phase === 'transition' && currentUser && (
+        <div className="fixed inset-0 z-40 pointer-events-none overflow-hidden flex items-center justify-center">
+          <div
+            className={`absolute inset-0 overlay-bloom bg-gradient-to-br ${
+              currentUser === UserType.HER
+                ? 'from-rose-200/80 via-purple-200/70 to-sky-200/80'
+                : 'from-sky-200/80 via-purple-200/70 to-rose-200/80'
+            }`}
+          />
+          <div className="relative z-10 flex flex-col items-center gap-4 overlay-emoji">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full border border-white/80 overlay-ring" />
+
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_18px_45px_rgba(15,23,42,0.18)] flex items-center justify-center text-5xl md:text-6xl relative z-10">
+                {currentUser === UserType.HER ? '🐱' : '🐶'}
+              </div>
+            </div>
+            <span className="font-display text-5xl md:text-6xl tracking-tight text-slate-800/90">
+              Us.
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );

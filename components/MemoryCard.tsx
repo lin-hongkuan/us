@@ -20,6 +20,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, curren
 
   return (
     <div 
+      data-sound={isHer ? 'her' : 'him'}
       className={`
         relative group p-8 mb-12 rounded-3xl border transition-all duration-700
         hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] hover:-translate-y-2
@@ -35,7 +36,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, curren
 
       {/* Quote Icon */}
       <div className={`absolute -left-3 top-8 w-8 h-8 rounded-full bg-white border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${isHer ? 'text-rose-300 border-rose-100' : 'text-sky-300 border-sky-100'}`}>
-        <Quote size={12} fill="currentColor" className="opacity-60" />
+        <Quote size={12} fill="currentColor" className="opacity-60 rotate-180" />
       </div>
 
       {/* Content */}
@@ -62,6 +63,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, curren
               e.stopPropagation();
               onDelete(memory.id);
             }}
+            data-sound="action"
             className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-rose-50 text-slate-300 hover:text-rose-500 transform hover:scale-110"
             title="删除回忆"
           >
