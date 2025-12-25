@@ -132,25 +132,35 @@ export const compressImage = (file: File, maxWidth: number = 1200, quality: numb
   });
 };
 
-// Upload image to Supabase Storage
+// Convert file to base64 (no compression, original quality)
+export const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
+// Upload image to Supabase Storage (original quality, no compression)
 export const uploadImage = async (file: File): Promise<string | null> => {
   // Fallback to base64 for local storage
   if (!supabase) {
-    return compressImage(file, 1200, 0.8);
+    return fileToBase64(file);
   }
 
   try {
-    // Compress image first
-    const compressedBlob = await compressImageToBlob(file, 1200, 0.8);
+    // Get file extension
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     
-    // Generate unique filename
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`;
+    // Generate unique filename with original extension
+    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
     
-    // Upload to Supabase Storage
+    // Upload original file to Supabase Storage (no compression)
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(filename, compressedBlob, {
-        contentType: 'image/jpeg',
+      .upload(filename, file, {
+        contentType: file.type,
         cacheControl: '31536000', // Cache for 1 year
       });
 
@@ -169,7 +179,7 @@ export const uploadImage = async (file: File): Promise<string | null> => {
     console.error('Image upload failed:', e);
     // Fallback to base64 if storage upload fails
     console.warn('Falling back to base64 storage');
-    return compressImage(file, 1200, 0.8);
+    return fileToBase64(file);
   }
 };
 

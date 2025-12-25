@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Memory, UserType } from '../types';
-import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash } from 'lucide-react';
+import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash, Download } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
 
 interface MemoryCardProps {
@@ -144,14 +144,13 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
                 if (!isEditing) setIsImageExpanded(!isImageExpanded);
               }}
             />
-            {isEditing && (
+            {isEditing ? (
               <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover/image:opacity-100 transition-all duration-300">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     fileInputRef.current?.click();
                   }}
-                  disabled={isCompressing}
                   className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white"
                   title="更换图片"
                 >
@@ -167,6 +166,18 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
                 >
                   <Trash size={16} />
                 </button>
+              </div>
+            ) : (
+              <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover/image:opacity-100 transition-all duration-300">
+                <a
+                  href={memory.imageUrl}
+                  download={`memory-${memory.id}.jpg`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white"
+                  title="下载图片"
+                >
+                  <Download size={16} />
+                </a>
               </div>
             )}
           </div>
