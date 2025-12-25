@@ -720,7 +720,7 @@ function App() {
         ))}
       </div>
 
-      {/* 顶部 Header：悬浮渐隐 */}
+      {/* 顶部 Header：悬浮渐隐 左右边距*/}
       <header 
         className={`
           fixed top-0 left-0 right-0 h-20 md:h-24 z-40 px-4 md:px-16 
@@ -729,13 +729,13 @@ function App() {
           ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}
         `}
       >
-        {/* Logo Area - Floating */}
-        <div className="pointer-events-auto">
+        {/* Left Area: Logo + Left Actions */}
+        <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
           <a 
             href="https://github.com/lin-hongkuan/us"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center group cursor-pointer select-none"
+            className="flex items-center group cursor-pointer select-none mr-2"
           >
              <h1 
                className="font-display text-2xl md:text-3xl font-normal tracking-tight relative transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 origin-center text-transparent bg-clip-text bg-cover texture-text"
@@ -749,28 +749,7 @@ function App() {
                Us.
              </h1>
           </a>
-        </div>
 
-        {/* Mobile Toggle (Pill) - Floating Island */}
-        <div className="pointer-events-auto md:hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-1 rounded-full border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2">
-           <button 
-             onClick={() => setActiveTab(UserType.HER)}
-             data-sound="her"
-             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 dark:bg-rose-900/50 text-rose-500 dark:text-rose-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
-           >
-             她
-           </button>
-           <button 
-             onClick={() => setActiveTab(UserType.HIM)}
-             data-sound="him"
-             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 dark:bg-sky-900/50 text-sky-500 dark:text-sky-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
-           >
-             他
-           </button>
-        </div>
-
-        {/* Actions - Floating */}
-        <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
           {/* 深夜彩蛋：凌晨 1-6 点出现猫头鹰，点击弹出提示 */}
           {isLateNight && (
             <div className="relative">
@@ -779,29 +758,20 @@ function App() {
                     className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500 animate-pulse-soft"
                     title="深夜模式"
                 >
-                    <span className="text-lg">🦉</span>
+                    <span className="text-lg md:text-lg">🦉</span>
                 </button>
                 {showSleepMessage && (
-                    <div className="absolute top-full right-0 mt-4 w-48 p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
+                    <div className="absolute top-full left-0 mt-4 w-48 p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
                         <div className="text-2xl mb-2">🌙</div>
                         <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
                             还没睡吗？<br/>要注意身体哦。
                         </p>
                         {/* Speech bubble triangle */}
-                        <div className="absolute -top-2 right-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
+                        <div className="absolute -top-2 left-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
                     </div>
                 )}
             </div>
           )}
-
-          <button 
-            onClick={() => setIsComposerOpen(true)}
-            data-sound="action"
-            className="group flex items-center gap-3 bg-gradient-to-r from-rose-400 via-purple-400 to-sky-400 text-white w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full shadow-[0_10px_30px_-10px_rgba(168,85,247,0.4)] hover:shadow-[0_20px_40px_-12px_rgba(168,85,247,0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-500 justify-center bg-[length:200%_auto] hover:bg-right"
-          >
-            <PenTool size={16} className="group-hover:-rotate-12 transition-transform duration-500" />
-            <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
-          </button>
 
           {/* Notice Button */}
           <div className="relative">
@@ -818,11 +788,11 @@ function App() {
               className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-yellow-400 hover:text-yellow-500 hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
               title="公告"
             >
-              <StarIcon size={16} className="md:w-[18px] md:h-[18px] fill-current" />
+              <StarIcon size={18} className="md:w-[18px] md:h-[18px] fill-current" />
             </button>
 
             {isNoticeOpen && (
-              <div className="absolute top-full right-0 mt-4 w-72 p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
+              <div className="absolute top-full left-0 mt-4 w-72 p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
                 <div className="flex flex-col items-center">
                   {noticeStep === 'question' && (
                     <>
@@ -875,10 +845,40 @@ function App() {
                 </div>
 
                 {/* Speech bubble triangle */}
-                <div className="absolute -top-2 right-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
+                <div className="absolute -top-2 left-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
               </div>
             )}
           </div>
+        </div>
+
+        {/* Mobile Toggle (Pill) - Floating Island */}
+        <div className="pointer-events-auto md:hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-1 rounded-full border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2 z-50">
+           <button 
+             onClick={() => setActiveTab(UserType.HER)}
+             data-sound="her"
+             className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 dark:bg-rose-900/50 text-rose-500 dark:text-rose-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
+           >
+             她
+           </button>
+           <button 
+             onClick={() => setActiveTab(UserType.HIM)}
+             data-sound="him"
+             className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 dark:bg-sky-900/50 text-sky-500 dark:text-sky-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
+           >
+             他
+           </button>
+        </div>
+
+        {/* Right Actions */}
+        <div className="pointer-events-auto flex items-center gap-1 md:gap-4">
+          <button 
+            onClick={() => setIsComposerOpen(true)}
+            data-sound="action"
+            className="group flex items-center gap-2 md:gap-3 bg-gradient-to-r from-rose-400 via-purple-400 to-sky-400 text-white w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full shadow-[0_10px_30px_-10px_rgba(168,85,247,0.4)] hover:shadow-[0_20px_40px_-12px_rgba(168,85,247,0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-500 justify-center bg-[length:200%_auto] hover:bg-right"
+          >
+            <PenTool size={18} className="md:w-4 md:h-4 group-hover:-rotate-12 transition-transform duration-500" />
+            <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
+          </button>
 
           {/* Dark Mode Toggle */}
           <button
@@ -887,9 +887,10 @@ function App() {
             className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
             title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
           >
-            {darkMode ? <Sun size={16} className="md:w-[18px] md:h-[18px]" /> : <Moon size={16} className="md:w-[18px] md:h-[18px]" />}
+            {darkMode ? <Sun size={18} className="md:w-[18px] md:h-[18px]" /> : <Moon size={18} className="md:w-[18px] md:h-[18px]" />}
           </button>
           
+          {/* User Switch */}
           <button 
             onClick={() => {
               setCurrentUser(null);
@@ -899,7 +900,7 @@ function App() {
              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500 hover:rotate-180"
              title="切换用户"
           >
-            <User size={16} className="md:w-[18px] md:h-[18px]" />
+            <User size={18} className="md:w-[18px] md:h-[18px]" />
           </button>
         </div>
       </header>
@@ -948,7 +949,7 @@ function App() {
           `}
         >
           {/* Spacer */}
-          <div className="h-32 w-full" />
+          <div className="h-48 md:h-32 w-full" />
           
           <div className="max-w-xl mx-auto px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp relative">
@@ -1036,7 +1037,7 @@ function App() {
           `}
         >
            {/* Spacer */}
-           <div className="h-32 w-full" />
+           <div className="h-48 md:h-32 w-full" />
 
            <div className="max-w-xl mx-auto px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp relative">
