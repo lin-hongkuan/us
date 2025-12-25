@@ -240,11 +240,11 @@ function App() {
     scrollPositions.current[type] = current;
   };
 
-  const handleSave = async (content: string) => {
+  const handleSave = async (content: string, imageUrl?: string) => {
     if (!currentUser) return;
     
     // Optimistic update (optional, but let's wait for server for simplicity/reliability)
-    const newMem = await saveMemory({ content, author: currentUser });
+    const newMem = await saveMemory({ content, author: currentUser, imageUrl });
     if (newMem) {
       setMemories([newMem, ...memories]);
       setIsComposerOpen(false);
@@ -262,8 +262,8 @@ function App() {
     }
   };
 
-  const handleUpdateMemory = async (id: string, content: string) => {
-    const updated = await updateMemory(id, content);
+  const handleUpdateMemory = async (id: string, content: string, imageUrl?: string | null) => {
+    const updated = await updateMemory(id, content, imageUrl);
     if (updated) {
       setMemories(prev => prev.map(m => m.id === id ? updated : m));
       playClickSound('action');

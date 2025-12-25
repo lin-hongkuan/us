@@ -35,8 +35,170 @@ const mapRowToMemory = (row: any): Memory => ({
   content: row.content,
   author: row.author as UserType,
   createdAt: new Date(row.created_at).getTime(), // Convert ISO string to timestamp
-  tags: row.tags
+  tags: row.tags,
+  imageUrl: row.image_url
 });
+
+// ==========================================
+// IMAGE HANDLING UTILITIES
+// ==========================================
+
+const STORAGE_BUCKET = 'memory-images';
+
+// Compress and resize image, return as Blob for upload
+export const compressImageToBlob = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        
+        // Calculate new dimensions while maintaining aspect ratio
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Cannot get canvas context'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to Blob
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create blob'));
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
+// Legacy function for local storage fallback (returns base64)
+export const compressImage = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+        
+        // Calculate new dimensions while maintaining aspect ratio
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Cannot get canvas context'));
+          return;
+        }
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64 with compression
+        const base64 = canvas.toDataURL('image/jpeg', quality);
+        resolve(base64);
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
+// Upload image to Supabase Storage
+export const uploadImage = async (file: File): Promise<string | null> => {
+  // Fallback to base64 for local storage
+  if (!supabase) {
+    return compressImage(file, 1200, 0.8);
+  }
+
+  try {
+    // Compress image first
+    const compressedBlob = await compressImageToBlob(file, 1200, 0.8);
+    
+    // Generate unique filename
+    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.jpg`;
+    
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(filename, compressedBlob, {
+        contentType: 'image/jpeg',
+        cacheControl: '31536000', // Cache for 1 year
+      });
+
+    if (error) {
+      console.error('Failed to upload image:', error);
+      throw error;
+    }
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(data.path);
+
+    return urlData.publicUrl;
+  } catch (e) {
+    console.error('Image upload failed:', e);
+    // Fallback to base64 if storage upload fails
+    console.warn('Falling back to base64 storage');
+    return compressImage(file, 1200, 0.8);
+  }
+};
+
+// Delete image from Supabase Storage
+export const deleteImage = async (imageUrl: string): Promise<boolean> => {
+  if (!supabase || !imageUrl) return true;
+  
+  // Skip if it's a base64 image
+  if (imageUrl.startsWith('data:')) return true;
+  
+  try {
+    // Extract filename from URL
+    const urlParts = imageUrl.split('/');
+    const filename = urlParts[urlParts.length - 1];
+    
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([filename]);
+
+    if (error) {
+      console.error('Failed to delete image:', error);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('Image deletion failed:', e);
+    return false;
+  }
+};
 
 export const getMemories = async (): Promise<Memory[]> => {
   // Fallback to Local Storage if Supabase is not configured
@@ -65,6 +227,7 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
   const newEntryBase = {
     content: dto.content,
     author: dto.author,
+    image_url: dto.imageUrl || null,
     // created_at will be handled by default value in DB or we can send ISO string
     // created_at: new Date().toISOString(), 
   };
@@ -76,7 +239,8 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
       id: crypto.randomUUID(),
       content: dto.content,
       createdAt: Date.now(),
-      author: dto.author
+      author: dto.author,
+      imageUrl: dto.imageUrl
     };
     const current = getLocalMemories();
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([newMemory, ...current]));
@@ -99,13 +263,19 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
   }
 };
 
-export const updateMemory = async (id: string, content: string): Promise<Memory | null> => {
+export const updateMemory = async (id: string, content: string, imageUrl?: string | null): Promise<Memory | null> => {
   // Fallback to Local Storage
   if (!supabase) {
     const current = getLocalMemories();
     const index = current.findIndex(m => m.id === id);
     if (index !== -1) {
       current[index].content = content;
+      // Update imageUrl - if null, remove it; if undefined, keep existing
+      if (imageUrl === null) {
+        delete current[index].imageUrl;
+      } else if (imageUrl !== undefined) {
+        current[index].imageUrl = imageUrl;
+      }
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
       return current[index];
     }
@@ -113,9 +283,15 @@ export const updateMemory = async (id: string, content: string): Promise<Memory 
   }
 
   try {
+    const updateData: any = { content };
+    // Only update image_url if explicitly provided (including null for deletion)
+    if (imageUrl !== undefined) {
+      updateData.image_url = imageUrl;
+    }
+    
     const { data, error } = await supabase
       .from('memories')
-      .update({ content })
+      .update(updateData)
       .eq('id', id)
       .select();
 

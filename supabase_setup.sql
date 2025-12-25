@@ -7,6 +7,7 @@ create table public.memories (
   author text not null,
   created_at timestamp with time zone not null default now(),
   tags text[] null,
+  image_url text null,
   constraint memories_pkey primary key (id)
 );
 

@@ -1,25 +1,89 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { UserType } from '../types';
-import { Send, X } from 'lucide-react';
+import { Send, X, ImagePlus, Trash2 } from 'lucide-react';
+import { uploadImage } from '../services/storageService';
 
 interface ComposerProps {
   currentUser: UserType;
-  onSave: (content: string) => void;
+  onSave: (content: string, imageUrl?: string) => Promise<void>;
   onClose: () => void;
 }
 
 export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose }) => {
   const [text, setText] = useState('');
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isHer = currentUser === UserType.HER;
   const btnGradient = isHer 
     ? 'bg-gradient-to-r from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-rose-200' 
     : 'bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 shadow-sky-200';
 
-  const handleSubmit = () => {
-    if (!text.trim()) return;
-    onSave(text);
-    setText('');
+  const handleSubmit = async () => {
+    if (!text.trim() && !imageFile) return;
+    
+    setIsProcessing(true);
+    try {
+      let imageUrl: string | undefined;
+      
+      // Upload image if selected
+      if (imageFile) {
+        const uploadedUrl = await uploadImage(imageFile);
+        imageUrl = uploadedUrl || undefined;
+      }
+      
+      await onSave(text, imageUrl);
+      setText('');
+      setImagePreview(null);
+      setImageFile(null);
+    } catch (error) {
+      console.error('Failed to save:', error);
+      alert('保存失败，请重试');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      alert('请选择图片文件');
+      return;
+    }
+
+    // Check file size (max 10MB before compression)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('图片大小不能超过10MB');
+      return;
+    }
+
+    // Store the file for later upload
+    setImageFile(file);
+    
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setImageFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -60,17 +124,61 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={isHer ? "他今天做了什么让你感动的事？" : "她今天有什么让你心动的瞬间？"}
-              className="relative w-full h-48 p-6 bg-slate-50/80 rounded-2xl border-2 border-transparent focus:border-white focus:bg-white focus:ring-0 outline-none transition-all duration-300 resize-none text-lg font-serif placeholder:font-sans placeholder:text-slate-300 mb-6 shadow-inner focus:shadow-none"
+              className="relative w-full h-48 p-6 bg-slate-50/80 rounded-2xl border-2 border-transparent focus:border-white focus:bg-white focus:ring-0 outline-none transition-all duration-300 resize-none text-lg font-serif placeholder:font-sans placeholder:text-slate-300 mb-4 shadow-inner focus:shadow-none"
             />
           </div>
 
-          <div className="flex gap-3 justify-end items-center">
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="relative mb-4 rounded-2xl overflow-hidden group/image">
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                className="w-full max-h-48 object-cover rounded-2xl"
+              />
+              <button
+                onClick={handleRemoveImage}
+                className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white opacity-0 group-hover/image:opacity-100 transition-all duration-300"
+                title="删除图片"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+
+          <div className="flex gap-3 justify-between items-center">
+            {/* Image Upload Button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessing}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full border-2 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
+                isHer 
+                  ? 'border-rose-200 text-rose-500 hover:bg-rose-50' 
+                  : 'border-sky-200 text-sky-500 hover:bg-sky-50'
+              }`}
+              title="添加照片"
+            >
+              <ImagePlus size={18} />
+              <span className="text-sm font-medium">
+                {imagePreview ? '更换照片' : '添加照片'}
+              </span>
+            </button>
+
             <button
               onClick={handleSubmit}
-              disabled={!text.trim()}
+              disabled={isProcessing || (!text.trim() && !imageFile)}
               className={`flex items-center gap-2 px-8 py-3 rounded-full text-white shadow-lg transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:hover:translate-y-0 ${btnGradient}`}
             >
-              <span className="font-medium tracking-wide">记录美好</span>
+              <span className="font-medium tracking-wide">{isProcessing ? '上传中...' : '记录美好'}</span>
               <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
             </button>
           </div>
