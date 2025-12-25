@@ -27,7 +27,42 @@ const QUOTES: string[] = [
   '“我们共享的每一刻，\n都是故事里的一页。”',
   '“人生中最好的事情\n就是彼此拥有。”',
   '“你知道墙壁，眼睛，膝盖，的英文怎么说吗？”',
-  "“我有超能力，\n超喜欢你。”"
+  "“我有超能力，\n超喜欢你。”",
+  "“不要抱怨，\n抱我。”",
+  "“你能不能帮我洗个东西？\n喜欢我。”",
+  "“你可以帮我指一下路吗？\n去你心里的路。”",
+  '“你猜我想吃什么？\n我想痴痴地望着你。”',
+  "“你会变魔术吗？\n变着法地让我开心。”",
+  "“我们可以交换礼物吗？\n我是你的，你是我的。”",
+  "“你一定是碳酸饮料，\n不然我怎么一见到你就开心得冒泡？”",
+  "“我想买一块地，\n你的死心塌地。”",
+  "“你属什么？\n我属于你。”",
+  "“你会游泳吗？\n不会的话你要坠入爱河了。”",
+  "“我觉得你今天有点怪，\n怪可爱的。”",
+  "“你为什么要害我？\n害我那么喜欢你。”",
+  '“你累不累啊？\n你在我脑子里跑了一整天了。”',
+  "“我想送你一只口红，\n然后每天还我一点点。”",
+  "“你闻到空气中有什么味道吗？\n是你出现后，空气都变甜了。”",
+  "“这世界上的风景很多，\n但我眼里只有你这一处。”",
+  "“我没什么特长，\n就是喜欢你的时间特长。”",
+  "“你是最好的，\n如果有人比你好，我就装作没看见。”",
+  "“你平时是不是很宅？\n不然你怎么一直住在我心里不出去？”",
+  "“你以后走路能不能看着点？\n你都撞到我心尖上了。”",
+  "“你不要总是冷冰冰的，\n来我怀里，我给你捂暖。”",
+  "“苦海无边，\n回头是我。”",
+  "“最近手头有点紧，\n能不能借你的手牵一下？”",
+  '“你闻到烧焦的味道了吗？\n那是我的心在为你燃烧。”',
+  '“我有两个心愿：\n你在身边，在你身边。”',
+  "“你知不知道你适合穿什么衣服？\n被我收服。”",
+  "“你最近是不是胖了？\n不然你在我心里的分量怎么变重了？”",
+  "“你知道你和冰淇淋的区别吗？\n它会化在嘴里，你会化在我心里。”",
+  '“我可以跟你借个吻吗？\n我保证会还给你的。”',
+  "“你的眼睛里有海，\n而我刚好是那个想溺水的船长。”",
+  "“我数到三，\n我们就一起掉进爱河好不好？”",
+  "“你知道你适合什么季节吗？\n适合跟我过每一个季节。”",
+  '“你猜我的心在哪边？\n左边？不，在你那边。”',
+  "“我想和你打个赌，\n输了你就当我女朋友，赢了我就当你男朋友。”"
+
 ];
 
 function App() {
@@ -51,6 +86,7 @@ function App() {
       return 0;
     }
   });
+  const [showSecondLine, setShowSecondLine] = useState(false); // 控制第二句延迟出现
   const currentQuote = QUOTES[quoteIndex] || '我们共享的每一刻，都是故事里的一页。';
   const [ambientStars] = useState<AmbientStar[]>(() => {
     const spots = [
@@ -86,6 +122,13 @@ function App() {
       return next;
     });
   };
+
+  // 当文案切换时，第二句延迟 1s 出现，制造“反转”感
+  useEffect(() => {
+    setShowSecondLine(false);
+    const timer = window.setTimeout(() => setShowSecondLine(true), 1000);
+    return () => window.clearTimeout(timer);
+  }, [currentQuote, quoteIndex]);
 
   // Cute click sound effect
   const playClickSound = (type: 'default' | 'her' | 'him' | 'action' = 'default') => {
@@ -352,7 +395,17 @@ function App() {
                   {currentQuote.split('\n').map((line, idx) => (
                     <React.Fragment key={idx}>
                       {idx > 0 && <br />}
-                      {line}
+                      {idx === 1 ? (
+                        <span
+                          className={`inline-block transition-opacity duration-300 ${showSecondLine ? 'opacity-100' : 'opacity-0'}`}
+                          style={{ visibility: showSecondLine ? 'visible' : 'hidden' }}
+                          aria-hidden={!showSecondLine}
+                        >
+                          {line}
+                        </span>
+                      ) : (
+                        line
+                      )}
                     </React.Fragment>
                   ))}
                 </p>
