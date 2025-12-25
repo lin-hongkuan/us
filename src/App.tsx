@@ -758,7 +758,7 @@ function App() {
                     className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500 animate-pulse-soft"
                     title="深夜模式"
                 >
-                    <span className="text-sm md:text-lg">🦉</span>
+                    <span className="text-xs md:text-lg">🦉</span>
                 </button>
                 {showSleepMessage && (
                     <div className="absolute top-full left-0 mt-4 w-48 p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
@@ -788,7 +788,7 @@ function App() {
               className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-yellow-400 hover:text-yellow-500 hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
               title="公告"
             >
-              <StarIcon size={14} className="md:w-[18px] md:h-[18px] fill-current" />
+              <StarIcon size={12} className="md:w-[18px] md:h-[18px] fill-current" />
             </button>
 
             {isNoticeOpen && (
@@ -876,7 +876,7 @@ function App() {
             data-sound="action"
             className="group flex items-center gap-2 md:gap-3 bg-gradient-to-r from-rose-400 via-purple-400 to-sky-400 text-white w-10 h-10 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full shadow-[0_10px_30px_-10px_rgba(168,85,247,0.4)] hover:shadow-[0_20px_40px_-12px_rgba(168,85,247,0.6)] hover:-translate-y-1 active:scale-95 transition-all duration-500 justify-center bg-[length:200%_auto] hover:bg-right"
           >
-            <PenTool size={14} className="md:w-4 md:h-4 group-hover:-rotate-12 transition-transform duration-500" />
+            <PenTool size={12} className="md:w-4 md:h-4 group-hover:-rotate-12 transition-transform duration-500" />
             <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
           </button>
 
@@ -887,7 +887,7 @@ function App() {
             className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
             title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
           >
-            {darkMode ? <Sun size={14} className="md:w-[18px] md:h-[18px]" /> : <Moon size={14} className="md:w-[18px] md:h-[18px]" />}
+            {darkMode ? <Sun size={12} className="md:w-[18px] md:h-[18px]" /> : <Moon size={12} className="md:w-[18px] md:h-[18px]" />}
           </button>
           
           {/* User Switch */}
@@ -900,7 +900,7 @@ function App() {
              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500 hover:rotate-180"
              title="切换用户"
           >
-            <User size={14} className="md:w-[18px] md:h-[18px]" />
+            <User size={12} className="md:w-[18px] md:h-[18px]" />
           </button>
         </div>
       </header>
