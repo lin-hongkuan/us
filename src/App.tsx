@@ -66,7 +66,7 @@ const QUOTES: string[] = [
 ];
 
 function App() {
-  // Calculate days together (Start date: 2024-08-20)
+  // 纪念日计数：从 2024-08-20 开始计算在一起的天数，供首页计时器展示
   const [daysTogether] = useState(() => {
     const startDate = new Date('2024-08-20');
     const today = new Date();
@@ -74,19 +74,30 @@ function App() {
     return Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
   });
   const [displayDays, setDisplayDays] = useState(0);
+  // 深夜彩蛋状态：是否处于 1-6 点，以及提示气泡是否展示
+  const [isLateNight, setIsLateNight] = useState(false);
+  const [showSleepMessage, setShowSleepMessage] = useState(false);
+
+  useEffect(() => {
+    // 进入页面时检查本地时间：凌晨 1-6 点出现猫头鹰提示按钮
+    const hour = new Date().getHours();
+    if (hour >= 1 && hour < 6) {
+      setIsLateNight(true);
+    }
+  }, []);
 
   useEffect(() => {
     let start = 0;
     const end = daysTogether;
     if (start === end) return;
 
-    const duration = 2000;
+    const duration = 2000; // 数字滚动时长 2s
     const startTime = performance.now();
 
     const animate = (currentTime: number) => {
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 4); // Ease out quart
+      const ease = 1 - Math.pow(1 - progress, 4); // 四次缓出，让数字滚动更柔和
       
       const current = Math.floor(start + (end - start) * ease);
       setDisplayDays(current);
@@ -107,12 +118,14 @@ function App() {
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const [stars, setStars] = useState<Star[]>([]);
+  // 主题状态：优先读本地存储，其次跟随系统；用于 Tailwind dark 模式
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const stored = window.localStorage.getItem('dark_mode');
     if (stored !== null) return stored === 'true';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+  // 登陆页文案索引：用 localStorage 轮流展示情话
   const [quoteIndex, setQuoteIndex] = useState<number>(() => {
     if (typeof window === 'undefined' || QUOTES.length === 0) return 0;
     try {
@@ -127,6 +140,7 @@ function App() {
   });
   const [showSecondLine, setShowSecondLine] = useState(false); // 控制第二句延迟出现
   const currentQuote = QUOTES[quoteIndex] || '我们共享的每一刻，都是故事里的一页。';
+  // 角落星光：预生成一组星点参数，交给 CSS 做缓动闪烁
   const [ambientStars] = useState<AmbientStar[]>(() => {
     const spots = [
       { top: '4%', left: '6%' },
@@ -148,7 +162,7 @@ function App() {
   });
   const starIdRef = useRef(0);
 
-  // Dark mode effect
+  // Dark mode effect：在 <html> 注入/移除 dark class，并持久化到 localStorage
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -183,7 +197,7 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [currentQuote, quoteIndex]);
 
-  // Cute click sound effect
+  // 可爱的点击音效：根据按钮类型（她/他/动作/默认）生成不同音高的合成器短音
   const playClickSound = (type: 'default' | 'her' | 'him' | 'action' = 'default') => {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
@@ -241,6 +255,7 @@ function App() {
   };
 
   useEffect(() => {
+    // 全局捕获带 data-sound 的元素，统一触发点击音效
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const soundElement = target.closest('[data-sound]');
@@ -262,12 +277,11 @@ function App() {
   const currentPos = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // Only enable mouse parallax on devices with a fine pointer (mouse)
+    // 背景视差：桌面端监听鼠标，缓动平移登录/主背景，营造空间感
     const isDesktop = window.matchMedia('(pointer: fine)').matches;
     if (!isDesktop) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      // Use requestAnimationFrame to throttle mouse move events
       requestAnimationFrame(() => {
         mousePos.current = {
           x: (e.clientX / window.innerWidth) * 2 - 1,
@@ -280,16 +294,13 @@ function App() {
     
     let frameId: number;
     const animate = () => {
-      // Smooth lerp with very low easing for "slow" feel
-      const ease = 0.015; 
+      const ease = 0.015; // 小步长 Lerp，慢速跟随
       currentPos.current.x += (mousePos.current.x - currentPos.current.x) * ease;
       currentPos.current.y += (mousePos.current.y - currentPos.current.y) * ease;
       
-      // Movement range in pixels
       const xOffset = currentPos.current.x * 60; 
       const yOffset = currentPos.current.y * 60;
       
-      // Use transform3d for hardware acceleration
       if (loginBackgroundRef.current) {
         loginBackgroundRef.current.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
       }
@@ -310,6 +321,7 @@ function App() {
 
   // Initial Data Fetch
   useEffect(() => {
+    // 初始化数据：若为空则种子数据填充，再读取本地存储
     const fetchData = async () => {
       setIsLoading(true);
       await seedDataIfEmpty();
@@ -320,6 +332,7 @@ function App() {
     fetchData();
   }, []);
 
+  // 滚动时隐藏/显示顶部 Header，避免占屏空间
   const handleScroll = (e: React.UIEvent<HTMLDivElement>, type: UserType) => {
     const current = e.currentTarget.scrollTop;
     const last = scrollPositions.current[type];
@@ -336,10 +349,9 @@ function App() {
     scrollPositions.current[type] = current;
   };
 
+  // 保存记忆：写入存储并更新列表，成功后关闭弹窗
   const handleSave = async (content: string, imageUrl?: string) => {
     if (!currentUser) return;
-    
-    // Optimistic update (optional, but let's wait for server for simplicity/reliability)
     const newMem = await saveMemory({ content, author: currentUser, imageUrl });
     if (newMem) {
       setMemories([newMem, ...memories]);
@@ -347,6 +359,7 @@ function App() {
     }
   };
 
+  // 删除记忆：确认后删除存储并更新列表
   const handleDelete = async (id: string) => {
     if (window.confirm('确定要删除这条记忆吗？')) {
       const success = await deleteMemory(id);
@@ -358,6 +371,7 @@ function App() {
     }
   };
 
+  // 更新记忆：成功后替换列表项，并播放动作音效
   const handleUpdateMemory = async (id: string, content: string, imageUrl?: string | null) => {
     const updated = await updateMemory(id, content, imageUrl);
     if (updated) {
@@ -368,6 +382,7 @@ function App() {
     return false;
   };
 
+  // 选择身份：先进入 transition 慢动画，再切换到主界面
   const handleChooseUser = (type: UserType) => {
     setCurrentUser(type);
     setActiveTab(type);
@@ -377,25 +392,25 @@ function App() {
     }, 900);
   };
 
+  // 全局点击生成小星星：用于登录页与主页面的点击反馈
   const handleGlobalClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // 在点击位置生成一颗小星星
     const id = starIdRef.current++;
     const x = e.clientX;
     const y = e.clientY;
 
     setStars(prev => [...prev, { id, x, y }]);
 
-    // 一段时间后移除这颗星星
+    // 700ms 后移除，避免内存累积
     window.setTimeout(() => {
       setStars(prev => prev.filter(star => star.id !== id));
     }, 700);
   };
 
-  // Filter memories
+  // 过滤两侧列表
   const herMemories = memories.filter(m => m.author === UserType.HER);
   const hisMemories = memories.filter(m => m.author === UserType.HIM);
 
-  // Authentication Modal
+  // 登录阶段：身份选择与欢迎界面
   if (phase === 'login' || !currentUser) {
     return (
       <div 
@@ -414,17 +429,17 @@ function App() {
           {darkMode ? <Sun size={18} /> : <Moon size={18} />}
         </button>
 
-        {/* Noise Texture Overlay */}
+        {/* 底噪纹理遮罩 */}
         <div className="absolute inset-0 opacity-[0.02] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
-        {/* Icon Pattern Overlay */}
+        {/* ICON 图案遮罩 */}
         <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
              style={{ 
                backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
              }}
         ></div>
 
-        {/* Abstract Background Art */}
+        {/* 抽象背景光团 */}
         <div ref={loginBackgroundRef} className="absolute -inset-[100px] overflow-hidden pointer-events-none transition-transform duration-100 ease-out">
            <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-80 animate-blob" />
            <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-80 animate-blob animation-delay-2000" />
@@ -532,7 +547,7 @@ function App() {
 
         </div>
 
-        {/* Click Stars Effect */}
+        {/* 点击星星特效 */}
         <div className="pointer-events-none fixed inset-0 z-50">
           {stars.map(star => (
             <div
@@ -559,17 +574,17 @@ function App() {
       }
     `}>
       
-      {/* Noise Texture Overlay */}
+      {/* 主界面噪点遮罩 */}
       <div className="absolute inset-0 opacity-[0.03] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
-      {/* Icon Pattern Overlay */}
+      {/* ICON 遮罩层 */}
       <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
            style={{ 
            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
            }}
       ></div>
 
-      {/* Ambient Corner Starlight */}
+      {/* 角落星光常亮 */}
       <div className="absolute inset-0 pointer-events-none z-10 mix-blend-screen">
         {ambientStars.map(star => (
           <span
@@ -590,7 +605,7 @@ function App() {
         ))}
       </div>
 
-      {/* Elegant Header - Minimal & Floating */}
+      {/* 顶部 Header：悬浮渐隐 */}
       <header 
         className={`
           fixed top-0 left-0 right-0 h-20 md:h-24 z-40 px-4 md:px-16 
@@ -641,6 +656,29 @@ function App() {
 
         {/* Actions - Floating */}
         <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
+          {/* 深夜彩蛋：凌晨 1-6 点出现猫头鹰，点击弹出提示 */}
+          {isLateNight && (
+            <div className="relative">
+                <button
+                    onClick={() => setShowSleepMessage(!showSleepMessage)}
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500 animate-pulse-soft"
+                    title="深夜模式"
+                >
+                    <span className="text-lg">🦉</span>
+                </button>
+                {showSleepMessage && (
+                    <div className="absolute top-full right-0 mt-4 w-48 p-4 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
+                        <div className="text-2xl mb-2">🌙</div>
+                        <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">
+                            还没睡吗？<br/>要注意身体哦。
+                        </p>
+                        {/* Speech bubble triangle */}
+                        <div className="absolute -top-2 right-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
+                    </div>
+                )}
+            </div>
+          )}
+
           <button 
             onClick={() => setIsComposerOpen(true)}
             data-sound="action"
@@ -674,23 +712,23 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content: Split Layout */}
+      {/* 主体：左右分栏记忆流 */}
       <main className="h-screen flex relative overflow-hidden">
-        {/* Background Blobs for Main Screen */}
+        {/* 主屏背景光团 */}
         <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none transition-transform duration-100 ease-out">
           <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
           <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 dark:bg-purple-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
         </div>
         
-        {/* Loading Overlay */}
+        {/* 加载遮罩 */}
         {isLoading && (
           <div className="absolute inset-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
             <Loader2 className="animate-spin text-slate-800 dark:text-slate-200" size={32} />
           </div>
         )}
 
-        {/* Interactive Backgrounds (Desktop Only) - Smooth Transitions */}
+        {/* 交互背景：桌面端 hover 淡出 */}
         <div className="absolute inset-0 pointer-events-none z-0 hidden md:flex">
           {/* Left Background */}
           <div className={`flex-1 relative transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HIM ? 'opacity-40' : 'opacity-100'}`}>
@@ -705,7 +743,7 @@ function App() {
           </div>
         </div>
 
-        {/* Left: Her Side */}
+        {/* 左侧：她的时间轴 */}
         <div 
           onScroll={(e) => handleScroll(e, UserType.HER)}
           onMouseEnter={() => setHoveredSide(UserType.HER)}
@@ -745,7 +783,7 @@ function App() {
             </div>
 
             <div className="space-y-12 relative">
-              {/* Timeline Line */}
+              {/* 时间轴线条 */}
               <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-rose-200/50 dark:from-rose-500/30 via-rose-200/30 dark:via-rose-500/15 to-transparent hidden md:block"></div>
 
               {!isLoading && herMemories.length === 0 ? (
@@ -759,7 +797,7 @@ function App() {
                     className="md:pl-20 relative group animate-fadeInUp"
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
-                    {/* Timeline Dot */}
+                    {/* 时间轴节点 */}
                     <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-rose-300 dark:bg-rose-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(253,164,175,0.2)] dark:shadow-[0_0_0_4px_rgba(244,63,94,0.2)]"></div>
                     <MemoryCard 
                       memory={m} 
@@ -816,7 +854,7 @@ function App() {
             </div>
 
             <div className="space-y-12 relative">
-              {/* Timeline Line */}
+              {/* 时间轴线条 */}
               <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-sky-200/50 dark:from-sky-500/30 via-sky-200/30 dark:via-sky-500/15 to-transparent hidden md:block"></div>
 
               {!isLoading && hisMemories.length === 0 ? (
@@ -830,7 +868,7 @@ function App() {
                     className="md:pl-20 relative group animate-fadeInUp"
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
-                    {/* Timeline Dot */}
+                    {/* 时间轴节点 */}
                     <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-sky-300 dark:bg-sky-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(186,230,253,0.2)] dark:shadow-[0_0_0_4px_rgba(56,189,248,0.2)]"></div>
                     <MemoryCard 
                       memory={m} 

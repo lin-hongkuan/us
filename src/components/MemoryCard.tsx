@@ -10,6 +10,7 @@ interface MemoryCardProps {
   currentUser: UserType;
 }
 
+// 单条记忆卡片：支持查看、编辑、删除、图片上传/下载
 export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpdate, currentUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -21,20 +22,21 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
 
   const isHer = memory.author === UserType.HER;
   
-  // Sync editContent and editImageUrl with memory when it changes
+  // 同步外部传入的记忆内容与图片到本地编辑状态
   useEffect(() => {
     setEditContent(memory.content);
     setEditImageUrl(memory.imageUrl);
     setEditImageFile(null);
   }, [memory.content, memory.imageUrl]);
   
-  // Only allow deletion/editing if the current user is the author
+  // 只有作者本人才能编辑/删除
   const canModify = currentUser === memory.author;
 
-  // Format date manually to avoid date-fns locale import issues
+  // 手动格式化日期，避免引入额外 locale 体积
   const date = new Date(memory.createdAt);
   const dateStr = `${date.getFullYear()} . ${date.getMonth() + 1} . ${date.getDate()}`;
 
+  // 选择图片：校验类型/大小，生成本地预览，并保留文件以便上传
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -64,11 +66,13 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
     }
   };
 
+  // 删除已选图片（本地编辑状态）
   const handleRemoveImage = () => {
     setEditImageUrl(null);
     setEditImageFile(null);
   };
 
+  // 取消编辑：恢复原内容与图片
   const handleCancelEdit = () => {
     setEditContent(memory.content);
     setEditImageUrl(memory.imageUrl);
@@ -76,6 +80,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
     setIsEditing(false);
   };
 
+  // 保存编辑：如内容/图片有变化则调用外部更新
   const handleSaveEdit = async () => {
     const contentChanged = editContent.trim() !== memory.content;
     const imageChanged = editImageUrl !== memory.imageUrl || editImageFile !== null;

@@ -9,6 +9,7 @@ interface ComposerProps {
   onClose: () => void;
 }
 
+// 记忆编辑弹窗：支持文字与图片上传，区分她/他配色
 export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose }) => {
   const [text, setText] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -16,11 +17,13 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // UI 配色：根据身份切换主色
   const isHer = currentUser === UserType.HER;
   const btnGradient = isHer 
     ? 'bg-gradient-to-r from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-rose-200' 
     : 'bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 shadow-sky-200';
 
+  // 提交保存：先上传图片（如有），再调用外部 onSave
   const handleSubmit = async () => {
     if (!text.trim() && !imageFile) return;
     
@@ -28,7 +31,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
     try {
       let imageUrl: string | undefined;
       
-      // Upload image if selected
+      // 如选择了图片，先上传获取地址
       if (imageFile) {
         const uploadedUrl = await uploadImage(imageFile);
         imageUrl = uploadedUrl || undefined;
@@ -46,6 +49,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
     }
   };
 
+  // 选择图片：校验类型/大小，生成预览并存储文件
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -78,6 +82,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
     }
   };
 
+  // 移除已选图片
   const handleRemoveImage = () => {
     setImagePreview(null);
     setImageFile(null);
