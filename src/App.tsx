@@ -4,7 +4,7 @@ import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } 
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
 import { TypewriterText } from './components/TypewriterText';
-import { PenTool, User, Loader2 } from 'lucide-react';
+import { PenTool, User, Loader2, Moon, Sun } from 'lucide-react';
 
 interface Star {
   id: number;
@@ -74,6 +74,12 @@ function App() {
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const [stars, setStars] = useState<Star[]>([]);
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const stored = window.localStorage.getItem('dark_mode');
+    if (stored !== null) return stored === 'true';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
   const [quoteIndex, setQuoteIndex] = useState<number>(() => {
     if (typeof window === 'undefined' || QUOTES.length === 0) return 0;
     try {
@@ -108,6 +114,20 @@ function App() {
     }));
   });
   const starIdRef = useRef(0);
+
+  // Dark mode effect
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    window.localStorage.setItem('dark_mode', String(darkMode));
+  }, [darkMode]);
+
+  const toggleDarkMode = () => {
+    setDarkMode(prev => !prev);
+  };
 
   const handleQuoteClick = (e: React.MouseEvent<HTMLParagraphElement>) => {
     e.stopPropagation();
@@ -347,10 +367,22 @@ function App() {
     return (
       <div 
         onClick={handleGlobalClick}
-        className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 animate-gradient"
+        className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 animate-gradient"
       >
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleDarkMode();
+          }}
+          className="fixed top-6 right-6 z-50 w-10 h-10 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
+          title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
+        >
+          {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
+
         {/* Noise Texture Overlay */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+        <div className="absolute inset-0 opacity-[0.02] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
         {/* Icon Pattern Overlay */}
         <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
@@ -361,12 +393,12 @@ function App() {
 
         {/* Abstract Background Art */}
         <div ref={loginBackgroundRef} className="absolute -inset-[100px] overflow-hidden pointer-events-none transition-transform duration-100 ease-out">
-           <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-80 animate-blob" />
-           <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-80 animate-blob animation-delay-2000" />
-           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000" />
+           <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-80 animate-blob" />
+           <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-80 animate-blob animation-delay-2000" />
+           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 dark:bg-purple-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000" />
         </div>
 
-        <div className="max-w-3xl w-full bg-white/60 backdrop-blur-md md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-white/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
+        <div className="max-w-3xl w-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-md md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/60 dark:border-slate-700/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
           
           {/* Left Side: Brand */}
           <div className="flex-1 text-center md:text-left relative z-10 flex flex-col justify-center">
@@ -382,14 +414,14 @@ function App() {
                Us.
              </h1>
              
-             <div className="space-y-8 md:pl-4 border-l-0 md:border-l border-slate-200">
+             <div className="space-y-8 md:pl-4 border-l-0 md:border-l border-slate-200 dark:border-slate-600">
                 <div className="flex flex-col gap-1.5">
-                   <span className="text-slate-400 text-[10px] font-bold tracking-[0.4em] uppercase">Shared Memory</span>
-                   <span className="text-slate-400 text-[10px] font-bold tracking-[0.4em] uppercase">Journal</span>
+                   <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">Shared Memory</span>
+                   <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">Journal</span>
                 </div>
 
                 <p
-                  className="font-serif text-xl text-slate-600 italic leading-relaxed opacity-80 cursor-pointer select-none"
+                  className="font-serif text-xl text-slate-600 dark:text-slate-300 italic leading-relaxed opacity-80 cursor-pointer select-none"
                   onClick={handleQuoteClick}
                 >
                   {currentQuote.split('\n').map((line, idx) => (
@@ -419,43 +451,43 @@ function App() {
                <button 
                  onClick={() => handleChooseUser(UserType.HER)}
                  data-sound="her"
-                 className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
+                 className="group relative aspect-[3/4] rounded-3xl bg-white dark:bg-slate-700 border border-white dark:border-slate-600 shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.3)] dark:hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.2)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
                >
-                 <div className="absolute inset-0 bg-gradient-to-b from-rose-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 <div className="absolute inset-0 bg-gradient-to-b from-rose-50/80 dark:from-rose-900/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                  
                  {/* Decorative Corner Lines */}
-                 <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                 <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                 <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                 <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-rose-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-rose-200 dark:border-rose-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-rose-200 dark:border-rose-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-rose-200 dark:border-rose-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-rose-200 dark:border-rose-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
 
-                 <div className="relative z-10 w-20 h-20 rounded-full bg-rose-50 border-4 border-white shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
+                 <div className="relative z-10 w-20 h-20 rounded-full bg-rose-50 dark:bg-rose-900/30 border-4 border-white dark:border-slate-600 shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
                     🐱
                  </div>
-                 <span className="relative z-10 font-serif font-bold text-lg text-rose-900/60 group-hover:text-rose-600 transition-colors">她</span>
+                 <span className="relative z-10 font-serif font-bold text-lg text-rose-900/60 dark:text-rose-300 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">她</span>
                </button>
 
                {/* Him Button */}
                <button 
                  onClick={() => handleChooseUser(UserType.HIM)}
                  data-sound="him"
-                 className="group relative aspect-[3/4] rounded-3xl bg-white border border-white shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.3)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
+                 className="group relative aspect-[3/4] rounded-3xl bg-white dark:bg-slate-700 border border-white dark:border-slate-600 shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.3)] dark:hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.2)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
                >
-                 <div className="absolute inset-0 bg-gradient-to-b from-sky-50/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                 <div className="absolute inset-0 bg-gradient-to-b from-sky-50/80 dark:from-sky-900/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                  
                  {/* Decorative Corner Lines */}
-                 <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                 <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                 <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
-                 <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-sky-200 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-sky-200 dark:border-sky-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-sky-200 dark:border-sky-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-sky-200 dark:border-sky-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
+                 <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-sky-200 dark:border-sky-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
 
-                 <div className="relative z-10 w-20 h-20 rounded-full bg-sky-50 border-4 border-white shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
+                 <div className="relative z-10 w-20 h-20 rounded-full bg-sky-50 dark:bg-sky-900/30 border-4 border-white dark:border-slate-600 shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
                     🐶
                  </div>
-                 <span className="relative z-10 font-serif font-bold text-lg text-sky-900/60 group-hover:text-sky-600 transition-colors">他</span>
+                 <span className="relative z-10 font-serif font-bold text-lg text-sky-900/60 dark:text-sky-300 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">他</span>
                </button>
             </div>
-            <p className="text-center text-slate-300 text-[10px] mt-8 font-bold tracking-[0.3em] uppercase">选择身份</p>
+            <p className="text-center text-slate-300 dark:text-slate-500 text-[10px] mt-8 font-bold tracking-[0.3em] uppercase">选择身份</p>
           </div>
 
         </div>
@@ -479,16 +511,16 @@ function App() {
   return (
     <div 
       onClick={handleGlobalClick}
-      className={`min-h-screen relative overflow-hidden font-sans text-slate-600 selection:bg-rose-100 selection:text-rose-900 transition-colors duration-1000
+      className={`min-h-screen relative overflow-hidden font-sans text-slate-600 dark:text-slate-300 selection:bg-rose-100 dark:selection:bg-rose-900/50 selection:text-rose-900 dark:selection:text-rose-200 transition-colors duration-1000
       md:animate-gradient
       ${activeTab === UserType.HER 
-        ? 'bg-rose-50 md:bg-gradient-to-br md:from-rose-100 md:via-purple-50 md:to-sky-100' 
-        : 'bg-sky-50 md:bg-gradient-to-br md:from-rose-100 md:via-purple-50 md:to-sky-100'
+        ? 'bg-rose-50 dark:bg-slate-900 md:bg-gradient-to-br md:from-rose-100 md:via-purple-50 md:to-sky-100 md:dark:from-slate-900 md:dark:via-slate-800 md:dark:to-slate-900' 
+        : 'bg-sky-50 dark:bg-slate-900 md:bg-gradient-to-br md:from-rose-100 md:via-purple-50 md:to-sky-100 md:dark:from-slate-900 md:dark:via-slate-800 md:dark:to-slate-900'
       }
     `}>
       
       {/* Noise Texture Overlay */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
       {/* Icon Pattern Overlay */}
       <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
@@ -550,18 +582,18 @@ function App() {
         </div>
 
         {/* Mobile Toggle (Pill) - Floating Island */}
-        <div className="pointer-events-auto md:hidden bg-white/80 backdrop-blur-xl p-1 rounded-full border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2">
+        <div className="pointer-events-auto md:hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-1 rounded-full border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2">
            <button 
              onClick={() => setActiveTab(UserType.HER)}
              data-sound="her"
-             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 text-rose-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 dark:bg-rose-900/50 text-rose-500 dark:text-rose-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
            >
              她
            </button>
            <button 
              onClick={() => setActiveTab(UserType.HIM)}
              data-sound="him"
-             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 text-sky-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-4 py-1.5 rounded-full text-xs font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 dark:bg-sky-900/50 text-sky-500 dark:text-sky-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
            >
              他
            </button>
@@ -577,6 +609,16 @@ function App() {
             <PenTool size={16} className="group-hover:-rotate-12 transition-transform duration-500" />
             <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
           </button>
+
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={toggleDarkMode}
+            data-sound="action"
+            className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
+            title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
+          >
+            {darkMode ? <Sun size={16} className="md:w-[18px] md:h-[18px]" /> : <Moon size={16} className="md:w-[18px] md:h-[18px]" />}
+          </button>
           
           <button 
             onClick={() => {
@@ -584,7 +626,7 @@ function App() {
               setPhase('login');
             }}
              data-sound="action"
-             className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 backdrop-blur-md border border-white/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 hover:text-slate-800 hover:bg-white transition-all duration-500 hover:rotate-180"
+             className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500 hover:rotate-180"
              title="切换用户"
           >
             <User size={16} className="md:w-[18px] md:h-[18px]" />
@@ -596,15 +638,15 @@ function App() {
       <main className="h-screen flex relative overflow-hidden">
         {/* Background Blobs for Main Screen */}
         <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none transition-transform duration-100 ease-out">
-          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
-          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
-          <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 rounded-full mix-blend-multiply filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
+          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 dark:bg-purple-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
         </div>
         
         {/* Loading Overlay */}
         {isLoading && (
-          <div className="absolute inset-0 z-30 bg-white/80 backdrop-blur-sm flex items-center justify-center">
-            <Loader2 className="animate-spin text-slate-800" size={32} />
+          <div className="absolute inset-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
+            <Loader2 className="animate-spin text-slate-800 dark:text-slate-200" size={32} />
           </div>
         )}
 
@@ -612,14 +654,14 @@ function App() {
         <div className="absolute inset-0 pointer-events-none z-0 hidden md:flex">
           {/* Left Background */}
           <div className={`flex-1 relative transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HIM ? 'opacity-40' : 'opacity-100'}`}>
-             <div className="absolute inset-0 bg-gradient-to-r from-rose-100/30 via-rose-50/10 to-transparent" />
-             <div className={`absolute inset-0 bg-gradient-to-r from-rose-200/50 via-rose-100/30 to-transparent transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HER ? 'opacity-100' : 'opacity-0'}`} />
+             <div className="absolute inset-0 bg-gradient-to-r from-rose-100/30 dark:from-rose-900/20 via-rose-50/10 dark:via-rose-900/5 to-transparent" />
+             <div className={`absolute inset-0 bg-gradient-to-r from-rose-200/50 dark:from-rose-800/30 via-rose-100/30 dark:via-rose-900/15 to-transparent transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HER ? 'opacity-100' : 'opacity-0'}`} />
           </div>
           
           {/* Right Background */}
           <div className={`flex-1 relative transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HER ? 'opacity-40' : 'opacity-100'}`}>
-             <div className="absolute inset-0 bg-gradient-to-l from-sky-100/30 via-sky-50/10 to-transparent" />
-             <div className={`absolute inset-0 bg-gradient-to-l from-sky-200/50 via-sky-100/30 to-transparent transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HIM ? 'opacity-100' : 'opacity-0'}`} />
+             <div className="absolute inset-0 bg-gradient-to-l from-sky-100/30 dark:from-sky-900/20 via-sky-50/10 dark:via-sky-900/5 to-transparent" />
+             <div className={`absolute inset-0 bg-gradient-to-l from-sky-200/50 dark:from-sky-800/30 via-sky-100/30 dark:via-sky-900/15 to-transparent transition-opacity duration-[3000ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${hoveredSide === UserType.HIM ? 'opacity-100' : 'opacity-0'}`} />
           </div>
         </div>
 
@@ -631,7 +673,7 @@ function App() {
           className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
-            bg-gradient-to-r from-rose-100/30 via-rose-50/10 to-transparent md:bg-none
+            bg-gradient-to-r from-rose-100/30 dark:from-rose-900/10 via-rose-50/10 dark:via-transparent to-transparent md:bg-none
             ${activeTab === UserType.HER ? 'translate-x-0 block' : '-translate-x-full hidden md:block'}
           `}
         >
@@ -640,7 +682,7 @@ function App() {
           
           <div className="max-w-xl mx-auto px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-900/30 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
                 🐱
               </div>
               <h2 
@@ -664,10 +706,10 @@ function App() {
 
             <div className="space-y-12 relative">
               {/* Timeline Line */}
-              <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-rose-200/50 via-rose-200/30 to-transparent hidden md:block"></div>
+              <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-rose-200/50 dark:from-rose-500/30 via-rose-200/30 dark:via-rose-500/15 to-transparent hidden md:block"></div>
 
               {!isLoading && herMemories.length === 0 ? (
-                <div className="text-center text-slate-300 py-20 italic font-serif text-xl animate-fadeInUp">
+                <div className="text-center text-slate-300 dark:text-slate-600 py-20 italic font-serif text-xl animate-fadeInUp">
                    Waiting for her story...
                 </div>
               ) : (
@@ -678,7 +720,7 @@ function App() {
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
                     {/* Timeline Dot */}
-                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-rose-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(253,164,175,0.2)]"></div>
+                    <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-rose-300 dark:bg-rose-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(253,164,175,0.2)] dark:shadow-[0_0_0_4px_rgba(244,63,94,0.2)]"></div>
                     <MemoryCard 
                       memory={m} 
                       onDelete={handleDelete} 
@@ -702,7 +744,7 @@ function App() {
            className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
-            bg-gradient-to-l from-sky-100/30 via-sky-50/10 to-transparent md:bg-none
+            bg-gradient-to-l from-sky-100/30 dark:from-sky-900/10 via-sky-50/10 dark:via-transparent to-transparent md:bg-none
             ${activeTab === UserType.HIM ? 'translate-x-0 block' : 'translate-x-full hidden md:block'}
           `}
         >
@@ -711,7 +753,7 @@ function App() {
 
            <div className="max-w-xl mx-auto px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 dark:bg-sky-900/30 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
                 🐶
               </div>
               <h2 
@@ -735,10 +777,10 @@ function App() {
 
             <div className="space-y-12 relative">
               {/* Timeline Line */}
-              <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-sky-200/50 via-sky-200/30 to-transparent hidden md:block"></div>
+              <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-sky-200/50 dark:from-sky-500/30 via-sky-200/30 dark:via-sky-500/15 to-transparent hidden md:block"></div>
 
               {!isLoading && hisMemories.length === 0 ? (
-                <div className="text-center text-slate-300 py-20 italic font-serif text-xl animate-fadeInUp">
+                <div className="text-center text-slate-300 dark:text-slate-600 py-20 italic font-serif text-xl animate-fadeInUp">
                    Waiting for his story...
                 </div>
               ) : (
@@ -749,7 +791,7 @@ function App() {
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
                     {/* Timeline Dot */}
-                    <div className="absolute left-[31px] top-8 w-2 h-2 rounded-full bg-sky-300 border-4 border-[#f8f8f8] hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(186,230,253,0.2)]"></div>
+                    <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-sky-300 dark:bg-sky-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(186,230,253,0.2)] dark:shadow-[0_0_0_4px_rgba(56,189,248,0.2)]"></div>
                     <MemoryCard 
                       memory={m} 
                       onDelete={handleDelete} 

@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --color-bg-primary: 255 255 255;
+    --color-bg-secondary: 248 250 252;
+    --color-text-primary: 51 65 85;
+    --color-text-secondary: 100 116 139;
+    --color-border: 226 232 240;
+    --color-glass: 255 255 255;
+  }
+
+  .dark {
+    --color-bg-primary: 15 23 42;
+    --color-bg-secondary: 30 41 59;
+    --color-text-primary: 226 232 240;
+    --color-text-secondary: 148 163 184;
+    --color-border: 51 65 85;
+    --color-glass: 30 41 59;
+  }
+}
+
 @layer utilities {
   .animation-delay-2000 {
     animation-delay: 2s;

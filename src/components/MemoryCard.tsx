@@ -112,19 +112,19 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
       data-sound={isHer ? 'her' : 'him'}
       className={`
         relative group p-8 mb-12 rounded-3xl border transition-all duration-700
-        hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] hover:-translate-y-2
+        hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:-translate-y-2
         ${isHer 
-          ? 'bg-white/80 border-rose-100/50 hover:border-rose-200' 
-          : 'bg-white/80 border-sky-100/50 hover:border-sky-200'
+          ? 'bg-white/80 dark:bg-slate-800/80 border-rose-100/50 dark:border-rose-900/50 hover:border-rose-200 dark:hover:border-rose-700' 
+          : 'bg-white/80 dark:bg-slate-800/80 border-sky-100/50 dark:border-sky-900/50 hover:border-sky-200 dark:hover:border-sky-700'
         }
         backdrop-blur-md
       `}
     >
       {/* Decorative Tape/Pin Effect */}
-      <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-24 h-6 rotate-[-2deg] backdrop-blur-md border border-white/60 shadow-sm ${isHer ? 'bg-rose-200/60' : 'bg-sky-200/60'}`}></div>
+      <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-24 h-6 rotate-[-2deg] backdrop-blur-md border border-white/60 dark:border-slate-600/60 shadow-sm ${isHer ? 'bg-rose-200/60 dark:bg-rose-800/60' : 'bg-sky-200/60 dark:bg-sky-800/60'}`}></div>
 
       {/* Quote Icon */}
-      <div className={`absolute -left-3 top-8 w-8 h-8 rounded-full bg-white border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${isHer ? 'text-rose-300 border-rose-100' : 'text-sky-300 border-sky-100'}`}>
+      <div className={`absolute -left-3 top-8 w-8 h-8 rounded-full bg-white dark:bg-slate-700 border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${isHer ? 'text-rose-300 dark:text-rose-400 border-rose-100 dark:border-rose-800' : 'text-sky-300 dark:text-sky-400 border-sky-100 dark:border-sky-800'}`}>
         <Quote size={12} fill="currentColor" className="opacity-60 rotate-180" />
       </div>
 
@@ -193,8 +193,8 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
             disabled={isSaving}
             className={`w-full mb-4 p-4 border-2 border-dashed rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${
               isHer 
-                ? 'border-rose-200 text-rose-400 hover:bg-rose-50 hover:border-rose-300' 
-                : 'border-sky-200 text-sky-400 hover:bg-sky-50 hover:border-sky-300'
+                ? 'border-rose-200 dark:border-rose-700 text-rose-400 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:border-rose-300 dark:hover:border-rose-600' 
+                : 'border-sky-200 dark:border-sky-700 text-sky-400 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/30 hover:border-sky-300 dark:hover:border-sky-600'
             }`}
           >
             <ImagePlus size={20} />
@@ -217,25 +217,25 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full bg-transparent border-b border-slate-200 focus:border-slate-400 focus:ring-0 p-0 font-serif text-lg md:text-xl leading-loose text-slate-700 tracking-wide resize-none outline-none"
+            className="w-full bg-transparent border-b border-slate-200 dark:border-slate-600 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-0 p-0 font-serif text-lg md:text-xl leading-loose text-slate-700 dark:text-slate-200 tracking-wide resize-none outline-none"
             rows={Math.max(3, editContent.split('\n').length)}
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <p className="font-serif text-lg md:text-xl leading-loose text-slate-700 tracking-wide whitespace-pre-wrap">
+          <p className="font-serif text-lg md:text-xl leading-loose text-slate-700 dark:text-slate-200 tracking-wide whitespace-pre-wrap">
             {memory.content}
           </p>
         )}
       </div>
 
       {/* Footer */}
-      <div className="flex justify-between items-end mt-8 pt-6 border-t border-slate-100">
+      <div className="flex justify-between items-end mt-8 pt-6 border-t border-slate-100 dark:border-slate-700">
         <div className="flex flex-col gap-1">
-           <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${isHer ? 'text-rose-400' : 'text-sky-400'}`}>
+           <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${isHer ? 'text-rose-400 dark:text-rose-300' : 'text-sky-400 dark:text-sky-300'}`}>
              {isHer ? 'Her Memory' : 'His Memory'}
            </span>
-           <span className="font-sans text-[10px] font-bold text-slate-500 tracking-[0.15em] mt-1">
+           <span className="font-sans text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-[0.15em] mt-1">
              {dateStr}
            </span>
         </div>
@@ -250,7 +250,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
                     handleCancelEdit();
                   }}
                   disabled={isSaving}
-                  className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50"
+                  className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
                   title="取消"
                 >
                   <X size={14} />
@@ -261,7 +261,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
                     handleSaveEdit();
                   }}
                   disabled={isSaving}
-                  className={`p-2 rounded-full transition-colors ${isHer ? 'hover:bg-rose-50 text-rose-400 hover:text-rose-600' : 'hover:bg-sky-50 text-sky-400 hover:text-sky-600'} disabled:opacity-50`}
+                  className={`p-2 rounded-full transition-colors ${isHer ? 'hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-400 dark:text-rose-300 hover:text-rose-600 dark:hover:text-rose-400' : 'hover:bg-sky-50 dark:hover:bg-sky-900/30 text-sky-400 dark:text-sky-300 hover:text-sky-600 dark:hover:text-sky-400'} disabled:opacity-50`}
                   title="保存"
                 >
                   {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
@@ -275,7 +275,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
                     setIsEditing(true);
                   }}
                   data-sound="action"
-                  className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-slate-50 text-slate-300 hover:text-slate-500 transform hover:scale-110"
+                  className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 transform hover:scale-110"
                   title="编辑回忆"
                 >
                   <Edit2 size={14} />
@@ -286,7 +286,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
                     onDelete(memory.id);
                   }}
                   data-sound="action"
-                  className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-rose-50 text-slate-300 hover:text-rose-500 transform hover:scale-110"
+                  className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-300 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transform hover:scale-110"
                   title="删除回忆"
                 >
                   <Trash2 size={14} />
@@ -298,7 +298,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
       </div>
       
       {/* Watermark Icon */}
-      <div className="absolute bottom-4 right-4 text-6xl opacity-[0.03] pointer-events-none select-none transition-opacity duration-500 group-hover:opacity-[0.40]">
+      <div className="absolute bottom-4 right-4 text-6xl opacity-[0.03] dark:opacity-[0.05] pointer-events-none select-none transition-opacity duration-500 group-hover:opacity-[0.40] dark:group-hover:opacity-[0.30]">
          {isHer ? '🐱' : '🐶'}
       </div>
     </div>

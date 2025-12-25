@@ -87,11 +87,11 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm md:backdrop-blur-md p-4 transition-all duration-500">
-      <div className="bg-white/90 backdrop-blur-md md:backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] w-full max-w-lg overflow-hidden animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] border border-white/60 relative group">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 dark:bg-slate-950/50 backdrop-blur-sm md:backdrop-blur-md p-4 transition-all duration-500">
+      <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md md:backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] w-full max-w-lg overflow-hidden animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] border border-white/60 dark:border-slate-700/60 relative group">
         
         {/* Decorative Noise Overlay */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
         <div className={`h-2 w-full bg-gradient-to-r ${isHer ? 'from-rose-300 via-rose-400 to-rose-500' : 'from-sky-300 via-sky-400 to-sky-500'}`} />
         
@@ -112,19 +112,19 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
             </h2>
             <button 
               onClick={onClose} 
-              className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all duration-300 hover:rotate-90 active:scale-90"
+              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-300 hover:rotate-90 active:scale-90"
             >
               <X size={24} />
             </button>
           </div>
 
           <div className="relative group/input">
-            <div className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r ${isHer ? 'from-rose-200 to-rose-100' : 'from-sky-200 to-sky-100'} opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-500 blur`}></div>
+            <div className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r ${isHer ? 'from-rose-200 dark:from-rose-700 to-rose-100 dark:to-rose-800' : 'from-sky-200 dark:from-sky-700 to-sky-100 dark:to-sky-800'} opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-500 blur`}></div>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder={isHer ? "他今天做了什么让你感动的事？" : "她今天有什么让你心动的瞬间？"}
-              className="relative w-full h-48 p-6 bg-slate-50/80 rounded-2xl border-2 border-transparent focus:border-white focus:bg-white focus:ring-0 outline-none transition-all duration-300 resize-none text-lg font-serif placeholder:font-sans placeholder:text-slate-300 mb-4 shadow-inner focus:shadow-none"
+              className="relative w-full h-48 p-6 bg-slate-50/80 dark:bg-slate-700/80 rounded-2xl border-2 border-transparent focus:border-white dark:focus:border-slate-600 focus:bg-white dark:focus:bg-slate-700 focus:ring-0 outline-none transition-all duration-300 resize-none text-lg font-serif text-slate-700 dark:text-slate-200 placeholder:font-sans placeholder:text-slate-300 dark:placeholder:text-slate-500 mb-4 shadow-inner focus:shadow-none"
             />
           </div>
 
@@ -162,8 +162,8 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
               disabled={isProcessing}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-full border-2 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
                 isHer 
-                  ? 'border-rose-200 text-rose-500 hover:bg-rose-50' 
-                  : 'border-sky-200 text-sky-500 hover:bg-sky-50'
+                  ? 'border-rose-200 dark:border-rose-700 text-rose-500 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30' 
+                  : 'border-sky-200 dark:border-sky-700 text-sky-500 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/30'
               }`}
               title="添加照片"
             >
