@@ -723,7 +723,7 @@ function App() {
       {/* 顶部 Header：悬浮渐隐 左右边距*/}
       <header 
         className={`
-          fixed top-0 left-0 right-0 h-20 md:h-24 z-40 px-4 md:px-16 
+          fixed top-0 left-0 right-0 h-20 md:h-24 z-40 px-2 md:px-16 
           flex items-center justify-between pointer-events-none
           transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
           ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}
