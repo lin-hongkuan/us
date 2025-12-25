@@ -238,3 +238,54 @@
     transform: scale(0.92);
   }
 }
+
+@keyframes coin-drop {
+  0% { transform: translateY(-50px) scale(0.5); opacity: 0; }
+  20% { opacity: 1; }
+  90% { transform: translateY(0) scale(0.8); opacity: 1; }
+  100% { transform: translateY(10px) scale(0.5); opacity: 0; }
+}
+
+@keyframes piggy-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2) rotate(5deg); }
+}
+
+.animate-coin-drop {
+  animation: coin-drop 1s ease-in forwards;
+}
+
+.animate-piggy-bounce {
+  animation: piggy-bounce 0.3s ease-out;
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  20% { opacity: 1; transform: translateY(-10px) scale(1.1); }
+  100% { transform: translateY(-50px) scale(1); opacity: 0; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px) rotate(-5deg); }
+  75% { transform: translateX(5px) rotate(5deg); }
+}
+
+.animate-float-up {
+  animation: float-up 1.5s ease-out forwards;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes stamp-in {
+  0% { transform: scale(3); opacity: 0; }
+  60% { transform: scale(0.8); opacity: 1; }
+  80% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-stamp-in {
+  animation: stamp-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}

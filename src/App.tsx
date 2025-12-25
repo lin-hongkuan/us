@@ -4,7 +4,10 @@ import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } 
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
 import { TypewriterText } from './components/TypewriterText';
-import { PenTool, User, Loader2, Moon, Sun } from 'lucide-react';
+import { PiggyBank } from './components/PiggyBank';
+import { GravityMode } from './components/GravityMode';
+import { Game2048 } from './components/Game2048';
+import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown } from 'lucide-react';
 
 interface Star {
   id: number;
@@ -77,6 +80,11 @@ function App() {
   // 深夜彩蛋状态：是否处于 1-6 点，以及提示气泡是否展示
   const [isLateNight, setIsLateNight] = useState(false);
   const [showSleepMessage, setShowSleepMessage] = useState(false);
+  const [isNoticeOpen, setIsNoticeOpen] = useState(false);
+  const [noticeStep, setNoticeStep] = useState<'question' | 'yes' | 'no'>('question');
+  const [showStamp, setShowStamp] = useState(false);
+  const [isGravityMode, setIsGravityMode] = useState(false);
+  const [isGame2048Open, setIsGame2048Open] = useState(false);
 
   useEffect(() => {
     // 进入页面时检查本地时间：凌晨 1-6 点出现猫头鹰提示按钮
@@ -198,7 +206,7 @@ function App() {
   }, [currentQuote, quoteIndex]);
 
   // 可爱的点击音效：根据按钮类型（她/他/动作/默认）生成不同音高的合成器短音
-  const playClickSound = (type: 'default' | 'her' | 'him' | 'action' = 'default') => {
+  const playClickSound = (type: 'default' | 'her' | 'him' | 'action' | 'stamp' = 'default') => {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContext) return;
 
@@ -241,6 +249,16 @@ function App() {
       gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
       oscillator.start(now);
       oscillator.stop(now + 0.15);
+    } else if (type === 'stamp') {
+      // Heavy thud (Stamp)
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(150, now);
+      oscillator.frequency.exponentialRampToValueAtTime(50, now + 0.1);
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+      oscillator.start(now);
+      oscillator.stop(now + 0.2);
     } else {
       // Default Bubble
       oscillator.type = 'sine';
@@ -269,6 +287,83 @@ function App() {
   // Header visibility logic
   const [showHeader, setShowHeader] = useState(true);
   const scrollPositions = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
+
+  // Avatar Long Press Logic
+  const [avatarQuote, setAvatarQuote] = useState<{ type: UserType, text: string } | null>(null);
+  const [isQuoteVisible, setIsQuoteVisible] = useState(false);
+  const longPressTimer = useRef<number | null>(null);
+  const isLongPress = useRef(false);
+  const pressStartTime = useRef<number>(0);
+
+  const handleAvatarPressStart = (type: UserType) => {
+    isLongPress.current = false;
+    pressStartTime.current = Date.now();
+    
+    // Reset state
+    setAvatarQuote(null);
+    setIsQuoteVisible(false);
+
+    const startTime = Date.now();
+    
+    const vibrateLoop = () => {
+      const elapsed = Date.now() - startTime;
+      
+      // 5 seconds threshold
+      if (elapsed >= 5000) {
+        isLongPress.current = true;
+        if (navigator.vibrate) navigator.vibrate([200]); // Success vibration
+        
+        const randomQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+        setAvatarQuote({ type, text: randomQuote });
+        
+        // Smooth fade in
+        requestAnimationFrame(() => setIsQuoteVisible(true));
+        
+        // Auto hide after 5s
+        setTimeout(() => {
+          setIsQuoteVisible(false);
+          setTimeout(() => setAvatarQuote(null), 500); // Wait for fade out
+        }, 5000);
+        
+        return;
+      }
+
+      // Calculate delay: 500ms -> 50ms
+      const progress = elapsed / 5000;
+      const delay = 500 - (progress * 450); 
+      
+      if (navigator.vibrate) navigator.vibrate(30);
+      
+      longPressTimer.current = window.setTimeout(vibrateLoop, delay);
+    };
+
+    vibrateLoop();
+  };
+
+  const handleAvatarPressEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    // Stop vibration if released early
+    if (!isLongPress.current) {
+       // navigator.vibrate(0) cancels vibration on some devices
+       if (navigator.vibrate) navigator.vibrate(0);
+    }
+  };
+
+  const handleAvatarClickWrapper = (type: UserType, e: React.MouseEvent) => {
+    const pressDuration = Date.now() - pressStartTime.current;
+    
+    // If it was a long press event, or held for > 500ms (but less than 5s), block the click
+    if (isLongPress.current || pressDuration > 500) {
+      e.preventDefault();
+      e.stopPropagation();
+      isLongPress.current = false;
+      return;
+    }
+    handleChooseUser(type);
+  };
 
   // Mouse movement effect for background
   const loginBackgroundRef = useRef<HTMLDivElement>(null);
@@ -351,11 +446,31 @@ function App() {
 
   // 保存记忆：写入存储并更新列表，成功后关闭弹窗
   const handleSave = async (content: string, imageUrl?: string) => {
+    const trimmed = content.trim();
+    if (trimmed === '1104') {
+      setIsGravityMode(true);
+      setIsComposerOpen(false);
+      return;
+    }
+    if (trimmed === '2005') {
+      setIsGame2048Open(true);
+      setIsComposerOpen(false);
+      return;
+    }
+
     if (!currentUser) return;
     const newMem = await saveMemory({ content, author: currentUser, imageUrl });
     if (newMem) {
       setMemories([newMem, ...memories]);
       setIsComposerOpen(false);
+      
+      // Trigger Stamp Effect
+      setShowStamp(true);
+      playClickSound('stamp');
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+      setTimeout(() => setShowStamp(false), 1500);
     }
   };
 
@@ -688,6 +803,83 @@ function App() {
             <span className="text-sm font-medium tracking-widest uppercase hidden md:inline">Record</span>
           </button>
 
+          {/* Notice Button */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                if (isNoticeOpen) {
+                  setIsNoticeOpen(false);
+                } else {
+                  setNoticeStep('question');
+                  setIsNoticeOpen(true);
+                }
+              }}
+              data-sound="action"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-yellow-400 hover:text-yellow-500 hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
+              title="公告"
+            >
+              <StarIcon size={16} className="md:w-[18px] md:h-[18px] fill-current" />
+            </button>
+
+            {isNoticeOpen && (
+              <div className="absolute top-full right-0 mt-4 w-72 p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
+                <div className="flex flex-col items-center">
+                  {noticeStep === 'question' && (
+                    <>
+                      <div className="text-2xl mb-2">✨</div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
+                        婷婷你今天想我了没
+                      </p>
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={() => setNoticeStep('yes')}
+                          className="flex-1 py-2 px-3 bg-rose-500 hover:bg-rose-600 text-white text-xs rounded-lg font-medium transition-colors active:scale-95"
+                        >
+                          想你了
+                        </button>
+                        <button
+                          onClick={() => setNoticeStep('no')}
+                          className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg font-medium transition-colors active:scale-95"
+                        >
+                          不想你
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {noticeStep === 'yes' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
+                      <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
+                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={16} style={{ animationDelay: '0s' }} />
+                        <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={12} style={{ animationDelay: '0.2s' }} />
+                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={20} style={{ animationDelay: '0.4s' }} />
+                      </div>
+                      <p className="text-base text-rose-500 font-bold mb-1 animate-bounce">太好了 ❤️</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">
+                        我也想婷婷
+                      </p>
+                    </div>
+                  )}
+
+                  {noticeStep === 'no' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 w-full">
+                      <div className="flex justify-center mb-2 animate-shake text-slate-400 dark:text-slate-500">
+                        <Frown size={32} />
+                      </div>
+                      <p className="text-base text-slate-500 font-medium mb-1">💔</p>
+                      <p className="text-sm text-slate-600 dark:text-slate-300">
+                        呜呜呜婷婷你居然不想我
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Speech bubble triangle */}
+                <div className="absolute -top-2 right-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
+              </div>
+            )}
+          </div>
+
           {/* Dark Mode Toggle */}
           <button
             onClick={toggleDarkMode}
@@ -759,8 +951,25 @@ function App() {
           <div className="h-32 w-full" />
           
           <div className="max-w-xl mx-auto px-8 pb-32">
-            <div className="text-center mb-20 animate-fadeInUp">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-900/30 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
+            <div className="text-center mb-20 animate-fadeInUp relative">
+              {avatarQuote?.type === UserType.HER && (
+                 <div 
+                   className={`absolute -top-24 left-1/2 -translate-x-1/2 w-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-4 rounded-2xl shadow-xl border border-rose-100 dark:border-slate-600 z-50 origin-bottom transition-all duration-500 ease-in-out ${isQuoteVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4'}`}
+                 >
+                   <p className="text-xs text-slate-600 dark:text-slate-300 font-serif text-center leading-relaxed whitespace-pre-wrap">
+                     {avatarQuote.text}
+                   </p>
+                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/90 dark:bg-slate-800/90 rotate-45 border-b border-r border-rose-100 dark:border-slate-600"></div>
+                 </div>
+              )}
+              <div 
+                onMouseDown={() => handleAvatarPressStart(UserType.HER)}
+                onMouseUp={handleAvatarPressEnd}
+                onMouseLeave={handleAvatarPressEnd}
+                onTouchStart={() => handleAvatarPressStart(UserType.HER)}
+                onTouchEnd={handleAvatarPressEnd}
+                className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-900/30 mb-6 text-3xl shadow-inner transition-transform duration-500 cursor-pointer select-none ${avatarQuote?.type === UserType.HER ? 'scale-125 animate-bounce' : 'hover:scale-110'}`}
+              >
                 🐱
               </div>
               <h2 
@@ -830,8 +1039,25 @@ function App() {
            <div className="h-32 w-full" />
 
            <div className="max-w-xl mx-auto px-8 pb-32">
-            <div className="text-center mb-20 animate-fadeInUp">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 dark:bg-sky-900/30 mb-6 text-3xl shadow-inner hover:scale-110 transition-transform duration-500 cursor-default">
+            <div className="text-center mb-20 animate-fadeInUp relative">
+              {avatarQuote?.type === UserType.HIM && (
+                 <div 
+                   className={`absolute -top-24 left-1/2 -translate-x-1/2 w-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-4 rounded-2xl shadow-xl border border-sky-100 dark:border-slate-600 z-50 origin-bottom transition-all duration-500 ease-in-out ${isQuoteVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4'}`}
+                 >
+                   <p className="text-xs text-slate-600 dark:text-slate-300 font-serif text-center leading-relaxed whitespace-pre-wrap">
+                     {avatarQuote.text}
+                   </p>
+                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/90 dark:bg-slate-800/90 rotate-45 border-b border-r border-sky-100 dark:border-slate-600"></div>
+                 </div>
+              )}
+              <div 
+                onMouseDown={() => handleAvatarPressStart(UserType.HIM)}
+                onMouseUp={handleAvatarPressEnd}
+                onMouseLeave={handleAvatarPressEnd}
+                onTouchStart={() => handleAvatarPressStart(UserType.HIM)}
+                onTouchEnd={handleAvatarPressEnd}
+                className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 dark:bg-sky-900/30 mb-6 text-3xl shadow-inner transition-transform duration-500 cursor-pointer select-none ${avatarQuote?.type === UserType.HIM ? 'scale-125 animate-bounce' : 'hover:scale-110'}`}
+              >
                 🐶
               </div>
               <h2 
@@ -927,6 +1153,62 @@ function App() {
             <span className="font-display text-5xl md:text-6xl tracking-tight text-slate-800/90">
               Us.
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* Gravity Mode */}
+      {isGravityMode && (
+        <GravityMode memories={memories} onClose={() => setIsGravityMode(false)} />
+      )}
+
+      {/* 2048 Game */}
+      {isGame2048Open && (
+        <Game2048 onClose={() => setIsGame2048Open(false)} />
+      )}
+
+      {/* Piggy Bank Feature */}
+      {phase === 'main' && (
+        <PiggyBank count={memories.length} />
+      )}
+
+      {/* Wax Seal Animation */}
+      {showStamp && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
+          <div className="relative animate-stamp-in">
+            {/* Wax Seal Body - Irregular Shape */}
+            <div 
+              className="w-56 h-56 bg-gradient-to-br from-red-700 via-red-800 to-red-950 rounded-full flex items-center justify-center shadow-2xl relative"
+              style={{ 
+                borderRadius: '48% 52% 45% 55% / 55% 45% 55% 45%',
+                boxShadow: '0 10px 30px -5px rgba(0,0,0,0.6), inset 0 5px 20px rgba(255,255,255,0.15), inset 0 -10px 20px rgba(0,0,0,0.4)'
+              }}
+            >
+               {/* Inner Ring */}
+               <div 
+                 className="w-40 h-40 border-[3px] border-red-950/20 rounded-full flex items-center justify-center relative"
+                 style={{ borderRadius: '50% 48% 52% 50% / 52% 50% 48% 50%' }}
+               >
+                  {/* Text */}
+                  <span 
+                    className="text-red-100/80 font-serif text-7xl font-bold tracking-widest rotate-[-12deg] select-none"
+                    style={{ 
+                      textShadow: '2px 2px 4px rgba(0,0,0,0.4), -1px -1px 2px rgba(255,255,255,0.1)',
+                      filter: 'contrast(0.9)'
+                    }}
+                  >
+                    US
+                  </span>
+                  
+                  {/* Decorative details */}
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-950/20 rounded-full"></div>
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-red-950/20 rounded-full"></div>
+               </div>
+               
+               {/* Wax Drips (Visual details) */}
+               <div className="absolute -bottom-2 right-12 w-8 h-8 bg-red-800 rounded-full -z-10" style={{ borderRadius: '40% 60% 30% 70% / 60% 30% 70% 40%' }}></div>
+               <div className="absolute -top-1 left-8 w-6 h-5 bg-red-700 rounded-full -z-10" style={{ borderRadius: '50% 50% 50% 50% / 40% 40% 60% 60%' }}></div>
+            </div>
           </div>
         </div>
       )}
