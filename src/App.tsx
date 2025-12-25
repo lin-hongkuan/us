@@ -66,6 +66,39 @@ const QUOTES: string[] = [
 ];
 
 function App() {
+  // Calculate days together (Start date: 2024-08-20)
+  const [daysTogether] = useState(() => {
+    const startDate = new Date('2024-08-20');
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+  });
+  const [displayDays, setDisplayDays] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = daysTogether;
+    if (start === end) return;
+
+    const duration = 2000;
+    const startTime = performance.now();
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 4); // Ease out quart
+      
+      const current = Math.floor(start + (end - start) * ease);
+      setDisplayDays(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [daysTogether]);
+
   const [memories, setMemories] = useState<Memory[]>([]);
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -415,7 +448,14 @@ function App() {
              </h1>
              
              <div className="space-y-8 md:pl-4 border-l-0 md:border-l border-slate-200 dark:border-slate-600">
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
+                   <div className="flex items-baseline gap-2 text-rose-500 dark:text-rose-400 mb-1 select-none group">
+                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">Together</span>
+                      <span className="font-display text-4xl leading-none tabular-nums tracking-tight transition-all duration-700 ease-out group-hover:scale-110 group-hover:text-rose-600 dark:group-hover:text-rose-300" style={{ textShadow: '0 4px 12px rgba(244, 63, 94, 0.2)' }}>
+                        {displayDays}
+                      </span>
+                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">Days</span>
+                   </div>
                    <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">Shared Memory</span>
                    <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">Journal</span>
                 </div>
