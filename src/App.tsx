@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { UserType, Memory } from './types';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { UserType, Memory, getAvatar, getDailyAvatars } from './types';
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
@@ -72,11 +72,13 @@ const QUOTES: string[] = [
 
 ];
 
+const START_DATE_STR = '2024-08-20';
+
 // 主应用组件：共享记忆日记应用
 function App() {
   // 纪念日计数：从 2024-08-20 开始计算在一起的天数，供首页计时器展示
   const [daysTogether] = useState(() => {
-    const startDate = new Date('2024-08-20');
+    const startDate = new Date(START_DATE_STR);
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - startDate.getTime());
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -90,6 +92,19 @@ function App() {
   const [showStamp, setShowStamp] = useState(false);
   const [isGravityMode, setIsGravityMode] = useState(false);
   const [isGame2048Open, setIsGame2048Open] = useState(false);
+
+  const specialEvent = useMemo(() => {
+    const today = new Date();
+    const startDate = new Date(START_DATE_STR);
+    
+    if (daysTogether===520||daysTogether > 0 && daysTogether % 100 === 0) return 'milestone';
+    
+    if (today.getMonth() === startDate.getMonth() && today.getDate() === startDate.getDate()) {
+      return 'anniversary';
+    }
+    
+    return null;
+  }, [daysTogether]);
 
   useEffect(() => {
     // 进入页面时检查本地时间：凌晨 1-6 点出现猫头鹰提示按钮
@@ -590,14 +605,14 @@ function App() {
              <div className="space-y-8 md:pl-4 border-l-0 md:border-l border-slate-200 dark:border-slate-600">
                 <div className="flex flex-col gap-1.5 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
                    <div className="flex items-baseline gap-2 text-rose-500 dark:text-rose-400 mb-1 select-none group">
-                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">Together</span>
+                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">在一起已经</span>
                       <span className="font-display text-4xl leading-none tabular-nums tracking-tight transition-all duration-700 ease-out group-hover:scale-110 group-hover:text-rose-600 dark:group-hover:text-rose-300" style={{ textShadow: '0 4px 12px rgba(244, 63, 94, 0.2)' }}>
                         {displayDays}
                       </span>
-                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">Days</span>
+                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">天了！</span>
                    </div>
-                   <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">Shared Memory</span>
-                   <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">Journal</span>
+                   <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">婷and宽的</span>
+                   <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">恋爱日记</span>
                 </div>
 
                 <p
@@ -642,9 +657,9 @@ function App() {
                  <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-rose-200 dark:border-rose-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
 
                  <div className="relative z-10 w-20 h-20 rounded-full bg-rose-50 dark:bg-rose-900/30 border-4 border-white dark:border-slate-600 shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
-                    🐱
+                    {getAvatar(UserType.HER)}
                  </div>
-                 <span className="relative z-10 font-serif font-bold text-lg text-rose-900/60 dark:text-rose-300 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">她</span>
+                 <span className="relative z-10 font-serif font-bold text-lg text-rose-900/60 dark:text-rose-300 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">可爱婷</span>
                </button>
 
                {/* Him Button */}
@@ -662,12 +677,15 @@ function App() {
                  <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-sky-200 dark:border-sky-400/50 opacity-0 group-hover:opacity-100 transition-all duration-500"></div>
 
                  <div className="relative z-10 w-20 h-20 rounded-full bg-sky-50 dark:bg-sky-900/30 border-4 border-white dark:border-slate-600 shadow-inner flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500">
-                    🐶
+                    {getAvatar(UserType.HIM)}
                  </div>
-                 <span className="relative z-10 font-serif font-bold text-lg text-sky-900/60 dark:text-sky-300 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">他</span>
+                 <span className="relative z-10 font-serif font-bold text-lg text-sky-900/60 dark:text-sky-300 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">小男奴</span>
                </button>
             </div>
-            <p className="text-center text-slate-300 dark:text-slate-500 text-[10px] mt-8 font-bold tracking-[0.3em] uppercase">选择身份</p>
+            <p className="text-center text-slate-300 dark:text-slate-500 text-[10px] mt-4 font-bold tracking-[0.3em] uppercase">
+              {getDailyAvatars().desc}
+            </p>
+            <p className="text-center text-slate-300 dark:text-slate-500 text-[10px] mt-4 font-bold tracking-[0.3em] uppercase">请问你是？</p>
           </div>
 
         </div>
@@ -804,53 +822,87 @@ function App() {
             {isNoticeOpen && (
               <div className="absolute top-full left-0 mt-4 w-72 p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
                 <div className="flex flex-col items-center">
-                  {noticeStep === 'question' && (
-                    <>
-                      <div className="text-2xl mb-2">✨</div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
-                        婷婷你今天想我了没
-                      </p>
-                      <div className="flex gap-2 w-full">
-                        <button
-                          onClick={() => setNoticeStep('yes')}
-                          className="flex-1 py-2 px-3 bg-rose-500 hover:bg-rose-600 text-white text-xs rounded-lg font-medium transition-colors active:scale-95"
-                        >
-                          想你了
-                        </button>
-                        <button
-                          onClick={() => setNoticeStep('no')}
-                          className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg font-medium transition-colors active:scale-95"
-                        >
-                          不想你
-                        </button>
-                      </div>
-                    </>
-                  )}
-
-                  {noticeStep === 'yes' && (
+                  {specialEvent === 'milestone' ? (
                     <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
+                      <div className="text-2xl mb-2">🎉</div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
+                        哇！我们已经一起走过{daysTogether}天啦！
+                      </p>
                       <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
                         <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={16} style={{ animationDelay: '0s' }} />
                         <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={12} style={{ animationDelay: '0.2s' }} />
                         <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={20} style={{ animationDelay: '0.4s' }} />
                       </div>
-                      <p className="text-base text-rose-500 font-bold mb-1 animate-bounce">太好了 ❤️</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">
-                        我也想婷婷
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        未来的每一天也要一起走下去哦 ❤️
                       </p>
                     </div>
-                  )}
-
-                  {noticeStep === 'no' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 w-full">
-                      <div className="flex justify-center mb-2 animate-shake text-slate-400 dark:text-slate-500">
-                        <Frown size={32} />
+                  ) : specialEvent === 'anniversary' ? (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
+                      <div className="text-2xl mb-2">🎂</div>
+                      <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
+                        今天是我们的纪念日！
+                      </p>
+                      <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
+                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={16} style={{ animationDelay: '0s' }} />
+                        <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={12} style={{ animationDelay: '0.2s' }} />
+                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={20} style={{ animationDelay: '0.4s' }} />
                       </div>
-                      <p className="text-base text-slate-500 font-medium mb-1">💔</p>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">
-                        呜呜呜婷婷你居然不想我
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        爱你的每一天 ❤️
                       </p>
                     </div>
+                  ) : (
+                    <>
+                      {noticeStep === 'question' && (
+                        <>
+                          <div className="text-2xl mb-2">✨</div>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
+                            婷婷你今天想我了没
+                          </p>
+                          <div className="flex gap-2 w-full">
+                            <button
+                              onClick={() => setNoticeStep('yes')}
+                              className="flex-1 py-2 px-3 bg-rose-500 hover:bg-rose-600 text-white text-xs rounded-lg font-medium transition-colors active:scale-95"
+                            >
+                              想你了
+                            </button>
+                            <button
+                              onClick={() => setNoticeStep('no')}
+                              className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg font-medium transition-colors active:scale-95"
+                            >
+                              不想你
+                            </button>
+                          </div>
+                        </>
+                      )}
+
+                      {noticeStep === 'yes' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
+                          <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
+                            <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={16} style={{ animationDelay: '0s' }} />
+                            <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={12} style={{ animationDelay: '0.2s' }} />
+                            <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={20} style={{ animationDelay: '0.4s' }} />
+                          </div>
+                          <p className="text-base text-rose-500 font-bold mb-1 animate-bounce">太好了 ❤️</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            我也想婷婷
+                          </p>
+                        </div>
+                      )}
+
+                      {noticeStep === 'no' && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 w-full">
+                          <div className="flex justify-center mb-2 animate-shake text-slate-400 dark:text-slate-500">
+                            <Frown size={32} />
+                          </div>
+                          <p className="text-base text-slate-500 font-medium mb-1">💔</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300">
+                            呜呜呜婷婷你居然不想我
+                          </p>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -981,7 +1033,7 @@ function App() {
                 onTouchEnd={handleAvatarPressEnd}
                 className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-900/30 mb-6 text-3xl shadow-inner transition-transform duration-500 cursor-pointer select-none ${avatarQuote?.type === UserType.HER ? 'scale-125 animate-bounce' : 'hover:scale-110'}`}
               >
-                🐱
+                {getAvatar(UserType.HER)}
               </div>
               <h2 
                 className="font-display font-normal text-5xl md:text-6xl mb-4 tracking-tight text-transparent bg-clip-text bg-cover texture-text cursor-default"
@@ -992,10 +1044,10 @@ function App() {
                   '--shadow-rgb': '136, 19, 55'
                 } as React.CSSProperties}
               >
-                Her Journal
+                Ting's Journal
               </h2>
               <TypewriterText 
-                text="&quot;她的每一个瞬间&quot;" 
+                text="&quot;正在同步... 婷婷的心情坐标&quot;" 
                 className="font-serif text-rose-400 italic text-lg" 
                 delay={150}
                 startDelay={500}
@@ -1069,7 +1121,7 @@ function App() {
                 onTouchEnd={handleAvatarPressEnd}
                 className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 dark:bg-sky-900/30 mb-6 text-3xl shadow-inner transition-transform duration-500 cursor-pointer select-none ${avatarQuote?.type === UserType.HIM ? 'scale-125 animate-bounce' : 'hover:scale-110'}`}
               >
-                🐶
+                {getAvatar(UserType.HIM)}
               </div>
               <h2 
                 className="font-display font-normal text-5xl md:text-6xl mb-4 tracking-tight text-transparent bg-clip-text bg-cover texture-text cursor-default"
@@ -1080,10 +1132,10 @@ function App() {
                   '--shadow-rgb': '3, 105, 161'
                 } as React.CSSProperties}
               >
-                His Journal
+                Kuan's Journal
               </h2>
               <TypewriterText 
-                text="&quot;他的每一份感动&quot;" 
+                text="&quot;独家索引：宽宽的每一份喜欢&quot;" 
                 className="font-serif text-sky-400 italic text-lg" 
                 delay={150}
                 startDelay={1500}
@@ -1158,7 +1210,7 @@ function App() {
               <div className="absolute inset-0 rounded-full border border-white/80 overlay-ring" />
 
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_18px_45px_rgba(15,23,42,0.18)] flex items-center justify-center text-5xl md:text-6xl relative z-10">
-                {currentUser === UserType.HER ? '🐱' : '🐶'}
+                {getAvatar(currentUser)}
               </div>
             </div>
             <span className="font-display text-5xl md:text-6xl tracking-tight text-slate-800/90">

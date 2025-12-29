@@ -17,7 +17,8 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import Matter from 'matter-js';
-import { Memory, UserType } from '../types';
+import { Memory, UserType, getAvatar } from '../types';
+
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -200,7 +201,7 @@ export const GravityMode: React.FC<GravityModeProps> = ({ memories, onClose }) =
                   {format(memory.createdAt, 'yyyy/MM/dd', { locale: zhCN })}
                 </span>
                 <span className="text-lg">
-                  {memory.author === UserType.HER ? '🐱' : '🐶'}
+                  {memory.author === UserType.HER ? getAvatar(UserType.HER) : getAvatar(UserType.HIM)}
                 </span>
               </div>
 

@@ -16,7 +16,7 @@
 
 import React, { useState, useRef } from 'react';
 import { UserType } from '../types';
-import { Send, X, ImagePlus, Trash2 } from 'lucide-react';
+import { Send, X, ImagePlus } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
 
 /**
@@ -49,9 +49,6 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
 
   // 根据当前用户确定的UI主题
   const isHer = currentUser === UserType.HER;
-  const btnGradient = isHer
-    ? 'bg-gradient-to-r from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-rose-200'
-    : 'bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 shadow-sky-200';
 
   /**
    * Handle form submission
@@ -126,101 +123,93 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 dark:bg-slate-950/50 backdrop-blur-sm md:backdrop-blur-md p-4 transition-all duration-500">
-      <div className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md md:backdrop-blur-2xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] w-full max-w-lg overflow-hidden animate-[fadeInUp_0.4s_cubic-bezier(0.16,1,0.3,1)] border border-white/60 dark:border-slate-700/60 relative group">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 transition-all duration-500 animate-in fade-in duration-300">
+      <div className="relative w-full max-w-lg transform overflow-hidden rounded-[2rem] bg-white/95 dark:bg-slate-900/95 shadow-2xl transition-all animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 border border-white/20 dark:border-slate-700/30">
         
-        {/* Decorative Noise Overlay */}
-        <div className="absolute inset-0 opacity-[0.03] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
+        {/* Background Gradient/Mesh */}
+        <div className={`absolute inset-0 opacity-30 pointer-events-none bg-gradient-to-br ${isHer ? 'from-rose-100/50 via-transparent to-rose-50/30' : 'from-sky-100/50 via-transparent to-sky-50/30'} animate-pulse`} />
+        
+        {/* Header Bar */}
+        <div className={`h-1.5 w-full bg-gradient-to-r ${isHer ? 'from-rose-300 via-rose-400 to-rose-500' : 'from-sky-300 via-sky-400 to-sky-500'}`} />
 
-        <div className={`h-2 w-full bg-gradient-to-r ${isHer ? 'from-rose-300 via-rose-400 to-rose-500' : 'from-sky-300 via-sky-400 to-sky-500'}`} />
-        
-        <div className="p-8 relative z-10">
-          <div className="flex justify-between items-center mb-8">
-            <h2 
-              className="font-serif text-3xl tracking-tight text-transparent bg-clip-text bg-cover texture-text cursor-default"
-              style={{
-                backgroundImage: isHer 
-                  ? `linear-gradient(180deg, #fb7185 0%, #e11d48 45%, #881337 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-                  : `linear-gradient(180deg, #38bdf8 0%, #0284c7 45%, #0c4a6e 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                backgroundBlendMode: 'hard-light',
-                backgroundSize: 'cover, 100px 100px',
-                '--shadow-rgb': isHer ? '136, 19, 55' : '3, 105, 161'
-              } as React.CSSProperties}
-            >
-              记录{isHer ? '他对你的好' : '她对你的好'}
-            </h2>
+        <div className="relative p-8">
+            {/* Close Button */}
             <button 
               onClick={onClose} 
-              className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-300 hover:rotate-90 active:scale-90"
+              className="absolute top-6 right-6 p-2 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 transition-all duration-300 hover:rotate-90"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
-          </div>
 
-          <div className="relative group/input">
-            <div className={`absolute -inset-0.5 rounded-2xl bg-gradient-to-r ${isHer ? 'from-rose-200 dark:from-rose-700 to-rose-100 dark:to-rose-800' : 'from-sky-200 dark:from-sky-700 to-sky-100 dark:to-sky-800'} opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-500 blur`}></div>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={isHer ? "他今天做了什么让你感动的事？" : "她今天有什么让你心动的瞬间？"}
-              className="relative w-full h-48 p-6 bg-slate-50/80 dark:bg-slate-700/80 rounded-2xl border-2 border-transparent focus:border-white dark:focus:border-slate-600 focus:bg-white dark:focus:bg-slate-700 focus:ring-0 outline-none transition-all duration-300 resize-none text-lg font-serif text-slate-700 dark:text-slate-200 placeholder:font-sans placeholder:text-slate-300 dark:placeholder:text-slate-500 mb-4 shadow-inner focus:shadow-none"
-            />
-          </div>
-
-          {/* Image Preview */}
-          {imagePreview && (
-            <div className="relative mb-4 rounded-2xl overflow-hidden group/image">
-              <img 
-                src={imagePreview} 
-                alt="Preview" 
-                className="w-full max-h-48 object-cover rounded-2xl"
-              />
-              <button
-                onClick={handleRemoveImage}
-                className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white opacity-0 group-hover/image:opacity-100 transition-all duration-300"
-                title="删除图片"
-              >
-                <Trash2 size={16} />
-              </button>
+            {/* Title */}
+            <div className="mb-8 text-center animate-in slide-in-from-bottom-2 fade-in duration-500 delay-100 fill-mode-backwards">
+                <h2 className={`font-serif text-2xl md:text-3xl font-medium tracking-wide ${isHer ? 'text-rose-900 dark:text-rose-100' : 'text-sky-900 dark:text-sky-100'}`}>
+                    记录{isHer ? '他对你的好' : '她对你的好'}
+                </h2>
+                <div className={`mx-auto mt-3 h-1 w-12 rounded-full ${isHer ? 'bg-rose-200' : 'bg-sky-200'}`} />
             </div>
-          )}
 
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleImageSelect}
-            className="hidden"
-          />
+            {/* Textarea Area */}
+            <div className="relative mb-6 group animate-in slide-in-from-bottom-2 fade-in duration-500 delay-200 fill-mode-backwards">
+                <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder={isHer ? "他今天做了什么让你感动的事？" : "她今天有什么让你心动的瞬间？"}
+                    className={`w-full h-40 resize-none rounded-xl bg-slate-50 dark:bg-slate-800/50 p-4 text-base leading-relaxed text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all duration-300 ${isHer ? 'focus:ring-rose-100 dark:focus:ring-rose-900/30 focus:bg-white dark:focus:bg-slate-800' : 'focus:ring-sky-100 dark:focus:ring-sky-900/30 focus:bg-white dark:focus:bg-slate-800'}`}
+                />
+            </div>
 
-          <div className="flex gap-3 justify-between items-center">
-            {/* Image Upload Button */}
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessing}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-full border-2 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 ${
-                isHer 
-                  ? 'border-rose-200 dark:border-rose-700 text-rose-500 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/30' 
-                  : 'border-sky-200 dark:border-sky-700 text-sky-500 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-900/30'
-              }`}
-              title="添加照片"
-            >
-              <ImagePlus size={18} />
-              <span className="text-sm font-medium">
-                {imagePreview ? '更换照片' : '添加照片'}
-              </span>
-            </button>
+            {/* Image Preview */}
+            {imagePreview && (
+                <div className="relative mb-6 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm group/image animate-in zoom-in-95 fade-in duration-300">
+                    <img src={imagePreview} alt="Preview" className="h-48 w-full object-cover transition-transform duration-700 group-hover/image:scale-105" />
+                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover/image:bg-black/10" />
+                    <button
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-black/70 group-hover/image:opacity-100 hover:scale-110"
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
+            )}
 
-            <button
-              onClick={handleSubmit}
-              disabled={isProcessing || (!text.trim() && !imageFile)}
-              className={`flex items-center gap-2 px-8 py-3 rounded-full text-white shadow-lg transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:scale-100 disabled:hover:translate-y-0 ${btnGradient}`}
-            >
-              <span className="font-medium tracking-wide">{isProcessing ? '上传中...' : '记录美好'}</span>
-              <Send size={16} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-            </button>
-          </div>
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-300 fill-mode-backwards">
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                />
+                
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`group flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                        isHer 
+                        ? 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20' 
+                        : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20'
+                    }`}
+                >
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${isHer ? 'bg-rose-100 group-hover:bg-rose-200 dark:bg-rose-900/40' : 'bg-sky-100 group-hover:bg-sky-200 dark:bg-sky-900/40'}`}>
+                        <ImagePlus size={16} className="transition-transform duration-300 group-hover:rotate-12" />
+                    </div>
+                    <span>{imagePreview ? '更换照片' : '添加照片'}</span>
+                </button>
+
+                <button
+                    onClick={handleSubmit}
+                    disabled={isProcessing || (!text.trim() && !imageFile)}
+                    className={`group flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 ${
+                        isHer
+                        ? 'bg-gradient-to-r from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-rose-200 dark:shadow-none'
+                        : 'bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 shadow-sky-200 dark:shadow-none'
+                    }`}
+                >
+                    <span>{isProcessing ? '记录中...' : '记录美好'}</span>
+                    {!isProcessing && <Send size={14} className="transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />}
+                </button>
+            </div>
         </div>
       </div>
     </div>

@@ -16,7 +16,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Memory, UserType } from '../types';
+import { Memory, UserType, getAvatar } from '../types';
 import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash, Download } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
 
@@ -344,7 +344,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
       
       {/* Watermark Icon */}
       <div className="absolute bottom-4 right-4 text-6xl opacity-[0.03] dark:opacity-[0.05] pointer-events-none select-none transition-opacity duration-500 group-hover:opacity-[0.40] dark:group-hover:opacity-[0.30]">
-         {isHer ? '🐱' : '🐶'}
+         {isHer ? getAvatar(UserType.HER) : getAvatar(UserType.HIM)}
       </div>
     </div>
   );
