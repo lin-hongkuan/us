@@ -1,43 +1,77 @@
+/**
+ * ==========================================
+ * 撰写器组件
+ * ==========================================
+ *
+ * 用于创建新记忆的模态框组件。支持文本输入和图片上传，
+ * 并根据用户身份提供特定主题色彩（粉色为她，蓝色为他）。
+ *
+ * 功能特性：
+ * - 记忆内容文本输入
+ * - 图片上传、预览和验证
+ * - 用户特定的颜色主题
+ * - 加载状态和错误处理
+ * - 响应式设计和背景模糊
+ */
+
 import React, { useState, useRef } from 'react';
 import { UserType } from '../types';
 import { Send, X, ImagePlus, Trash2 } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
 
+/**
+ * 撰写器组件的属性接口
+ */
 interface ComposerProps {
+  /** 当前创建记忆的用户 */
   currentUser: UserType;
+  /** 保存记忆时的回调函数 */
   onSave: (content: string, imageUrl?: string) => Promise<void>;
+  /** 关闭撰写器时的回调函数 */
   onClose: () => void;
 }
 
-// 记忆编辑弹窗：支持文字与图片上传，区分她/他配色
+/**
+ * 记忆创建模态框组件
+ * 支持文本和图片输入，并提供用户特定的样式
+ */
 export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose }) => {
+  // 文本内容状态
   const [text, setText] = useState('');
+  // 图片预览URL状态
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  // 选中的图片文件状态
   const [imageFile, setImageFile] = useState<File | null>(null);
+  // 保存操作期间的加载状态
   const [isProcessing, setIsProcessing] = useState(false);
+  // 隐藏文件输入的引用
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // UI 配色：根据身份切换主色
+  // 根据当前用户确定的UI主题
   const isHer = currentUser === UserType.HER;
-  const btnGradient = isHer 
-    ? 'bg-gradient-to-r from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-rose-200' 
+  const btnGradient = isHer
+    ? 'bg-gradient-to-r from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-rose-200'
     : 'bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 shadow-sky-200';
 
-  // 提交保存：先上传图片（如有），再调用外部 onSave
+  /**
+   * Handle form submission
+   * Uploads image if present, then saves the memory
+   */
   const handleSubmit = async () => {
     if (!text.trim() && !imageFile) return;
-    
+
     setIsProcessing(true);
     try {
       let imageUrl: string | undefined;
-      
-      // 如选择了图片，先上传获取地址
+
+      // Upload image if one was selected
       if (imageFile) {
         const uploadedUrl = await uploadImage(imageFile);
         imageUrl = uploadedUrl || undefined;
       }
-      
+
       await onSave(text, imageUrl);
+      // Reset form after successful save
       setText('');
       setImagePreview(null);
       setImageFile(null);

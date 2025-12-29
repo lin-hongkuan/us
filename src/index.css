@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 基础层：定义 CSS 自定义属性（变量） */
 @layer base {
-  /* ?????????/?????? */
+  /* 颜色变量定义：用于主题切换 */
   :root {
     --color-bg-primary: 255 255 255;
     --color-bg-secondary: 248 250 252;
@@ -13,6 +14,7 @@
     --color-glass: 255 255 255;
   }
 
+  /* 深色主题变量 */
   .dark {
     --color-bg-primary: 15 23 42;
     --color-bg-secondary: 30 41 59;
@@ -23,31 +25,39 @@
   }
 }
 
+/* 工具层：自定义工具类 */
 @layer utilities {
-  /* ?????????? tw ?? */
+  /* 动画延迟工具类 */
   .animation-delay-2000 {
     animation-delay: 2s;
   }
   .animation-delay-4000 {
     animation-delay: 4s;
   }
-.animate-gradient {
-  background-size: 400% 400%;
-  animation: gradient 8s ease infinite;
-  will-change: background-position;
-}  .texture-text {
+
+  /* 渐变背景动画 */
+  .animate-gradient {
+    background-size: 400% 400%;
+    animation: gradient 8s ease infinite;
+    will-change: background-position;
+  }
+
+  /* 纹理文字效果 */
+  .texture-text {
     filter: drop-shadow(0 2px 0px rgba(255,255,255,0.5)) drop-shadow(0 4px 8px rgba(var(--shadow-rgb), 0.2));
     transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
-  
+
   .texture-text:hover {
     filter: drop-shadow(0 2px 0px rgba(255,255,255,0.6)) drop-shadow(0 15px 25px rgba(var(--shadow-rgb), 0.4)) brightness(1.1);
     transform: scale(1.05) translateY(-5px) rotate(-2deg);
-    background-size: cover, 120px 120px !important; /* �����Ŵ� */
+    background-size: cover, 120px 120px !important; /* 背景放大 */
   }
 }
 
-/* ????????????? */
+/* 动画关键帧定义 */
+
+/* 浮动动画：元素上下浮动，营造轻盈感 */
 @keyframes float {
   0% { transform: translateY(0px); }
   50% { transform: translateY(-20px); }
@@ -58,7 +68,7 @@
   animation: float 6s ease-in-out infinite;
 }
 
-/* ???????? */
+/* 斑点动画：不规则移动和缩放，营造有机流动感 */
 @keyframes blob {
   0% { transform: translate(0px, 0px) scale(1); }
   33% { transform: translate(30px, -50px) scale(1.1); }
@@ -71,7 +81,7 @@
   will-change: transform;
 }
 
-/* ????????????? */
+/* 淡入向上动画：元素从下方淡入，营造出现感 */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -83,7 +93,7 @@
   }
 }
 
-/* ???????????? */
+/* 星星弹出动画：星星出现效果，营造惊喜感 */
 @keyframes star-pop {
   0% {
     transform: translate3d(-50%, -50%, 0) scale(0);
@@ -103,12 +113,12 @@
   animation: star-pop 0.7s ease-out forwards;
 }
 
-/* ????????? */
+/* 淡入向上动画应用类：用于元素进入时的平滑过渡 */
 .animate-fadeInUp {
   animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* ???????? */
+/* 闪烁动画：光泽效果，营造金属质感 */
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
@@ -120,7 +130,7 @@
   animation: shimmer 3s infinite;
 }
 
-/* ???????????? */
+/* 背景移动动画：背景位置变化，营造动态感 */
 @keyframes moveBackground {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(100px, 100px, 0); }
@@ -131,14 +141,14 @@
   will-change: transform;
 }
 
-/* ???????? */
+/* 渐变动画：背景位置循环变化，用于彩虹渐变效果 */
 @keyframes gradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
-/* ??/????????? */
+/* 覆盖层绽放动画：模糊绽放效果，用于过渡场景 */
 @keyframes overlay-bloom {
   0% {
     opacity: 0;
@@ -158,7 +168,7 @@
   animation: overlay-bloom 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
-/* ??/?????????? */
+/* 覆盖层表情动画：表情符号弹出效果，用于可爱提示 */
 @keyframes overlay-emoji {
   0% {
     opacity: 0;
@@ -178,7 +188,7 @@
   animation: overlay-emoji 0.9s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
-/* ??/?????????? */
+/* 覆盖层环形动画：环形扩散效果，用于强调元素 */
 @keyframes overlay-ring {
   0% {
     transform: scale(0.7);
@@ -197,15 +207,12 @@
   animation: overlay-ring 0.9s ease-out forwards;
 }
 
-
-
-/* ?????????? */
+/* 互锁动画：左右交替移动，营造齿轮转动效果 */
 @keyframes interlock-left {
   0%, 100% { transform: translateX(0); }
   50% { transform: translateX(50%); }
 }
 
-/* ?????????? */
 @keyframes interlock-right {
   0%, 100% { transform: translateX(0); }
   50% { transform: translateX(-50%); }
@@ -219,6 +226,7 @@
   animation: interlock-right 4s ease-in-out infinite;
 }
 
+/* 闪烁星星动画：柔和闪烁效果，营造星空感觉 */
 .twinkle-star {
   animation: soft-twinkle 16s ease-in-out infinite;
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.35));
@@ -239,6 +247,7 @@
   }
 }
 
+/* 硬币掉落动画：硬币从上方掉落，用于奖励效果 */
 @keyframes coin-drop {
   0% { transform: translateY(-50px) scale(0.5); opacity: 0; }
   20% { opacity: 1; }
@@ -246,6 +255,7 @@
   100% { transform: translateY(10px) scale(0.5); opacity: 0; }
 }
 
+/* 小猪存钱罐弹跳动画：弹性缩放和旋转，用于收集硬币时的反馈 */
 @keyframes piggy-bounce {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.2) rotate(5deg); }
@@ -259,12 +269,14 @@
   animation: piggy-bounce 0.3s ease-out;
 }
 
+/* 向上浮动动画：元素向上飘浮消失，用于爱心等飘散效果 */
 @keyframes float-up {
   0% { transform: translateY(0) scale(0.8); opacity: 0; }
   20% { opacity: 1; transform: translateY(-10px) scale(1.1); }
   100% { transform: translateY(-50px) scale(1); opacity: 0; }
 }
 
+/* 摇晃动画：左右摇摆，用于错误或拒绝反馈 */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-5px) rotate(-5deg); }
@@ -279,6 +291,7 @@
   animation: shake 0.5s ease-in-out;
 }
 
+/* 印章进入动画：弹性缩放进入效果，用于保存记忆成功提示 */
 @keyframes stamp-in {
   0% { transform: scale(3); opacity: 0; }
   60% { transform: scale(0.8); opacity: 1; }

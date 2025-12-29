@@ -1,25 +1,50 @@
+/**
+ * ==========================================
+ * 存储服务
+ * ==========================================
+ *
+ * 此服务处理共享记忆日记的所有数据持久化。
+ * 它提供统一的接口来存储和检索记忆，
+ * 自动从Supabase（云端）回退到localStorage（本地）。
+ *
+ * 功能特性：
+ * - 通过Supabase进行云存储，并以localStorage作为本地回退
+ * - 图片上传和压缩工具
+ * - 记忆CRUD操作（创建、读取、更新、删除）
+ * - 演示用途的自动数据种子填充
+ * - 数据库和应用模型之间的类型安全数据映射
+ */
+
 import { createClient } from '@supabase/supabase-js';
 import { Memory, UserType, CreateMemoryDTO } from '../types';
 
 // ==========================================
-// CONFIGURATION
-// Replace these with your actual Supabase credentials
+// SUPABASE配置
 // ==========================================
+
+/** Supabase项目URL - 请替换为您的实际Supabase URL */
 const SUPABASE_URL: string = 'https://uiczraluplwdupdigkar.supabase.co';
+
+/** Supabase匿名密钥 - 请替换为您的实际Supabase密钥 */
 const SUPABASE_KEY: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpY3pyYWx1cGx3ZHVwZGlna2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNjQzNDMsImV4cCI6MjA4MDg0MDM0M30.xS-mEzW1i1sPrhfAOgQNb6pux7bZjqKQiVe3LU0TbVo';
 
-// Check if Supabase is properly configured to prevent "Invalid URL" crash
+/** 检查Supabase凭据是否正确配置 */
 const isConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL.startsWith('http');
 
-// Only create client if configured
+/** Supabase客户端实例 - 仅在正确配置时创建 */
 const supabase = isConfigured ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 // ==========================================
-// FALLBACK: LOCAL STORAGE IMPLEMENTATION
-// Used when Supabase keys are not set
+// 本地存储回退
 // ==========================================
+
+/** 当Supabase不可用时，用于存储记忆的本地存储键 */
 const LOCAL_STORAGE_KEY = 'us_app_memories';
 
+/**
+ * 从localStorage检索记忆
+ * 当Supabase未配置或不可用时用作回退
+ */
 const getLocalMemories = (): Memory[] => {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -29,23 +54,35 @@ const getLocalMemories = (): Memory[] => {
   }
 };
 
-// Map database row to app Memory type
+/**
+ * 将数据库行映射到Memory类型
+ * 将Supabase数据库格式转换为应用的Memory接口
+ */
 const mapRowToMemory = (row: any): Memory => ({
   id: row.id,
   content: row.content,
   author: row.author as UserType,
-  createdAt: new Date(row.created_at).getTime(), // Convert ISO string to timestamp
+  createdAt: new Date(row.created_at).getTime(), // 将ISO字符串转换为时间戳
   tags: row.tags,
   imageUrl: row.image_url
 });
 
 // ==========================================
-// IMAGE HANDLING UTILITIES
+// 图片处理工具
 // ==========================================
 
+/** Supabase存储桶名称，用于记忆图片 */
 const STORAGE_BUCKET = 'memory-images';
 
-// Compress and resize image, return as Blob for upload
+/**
+ * 压缩并调整图片大小，返回Blob用于上传
+ * 在保持质量的同时减小文件大小以适合网页显示
+ *
+ * @param file - 要压缩的图片文件
+ * @param maxWidth - 最大宽度像素（默认：1200）
+ * @param quality - JPEG质量（0-1，默认：0.8）
+ * @returns Promise解析为压缩后的Blob
+ */
 export const compressImageToBlob = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -54,24 +91,24 @@ export const compressImageToBlob = (file: File, maxWidth: number = 1200, quality
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
-        
+
         // Calculate new dimensions while maintaining aspect ratio
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           reject(new Error('Cannot get canvas context'));
           return;
         }
-        
+
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // Convert to Blob
         canvas.toBlob(
           (blob) => {
@@ -93,7 +130,15 @@ export const compressImageToBlob = (file: File, maxWidth: number = 1200, quality
   });
 };
 
-// Legacy function for local storage fallback (returns base64)
+/**
+ * 旧版函数，用于本地存储回退（返回base64）
+ * 压缩图片并返回base64字符串用于localStorage
+ *
+ * @param file - 要压缩的图片文件
+ * @param maxWidth - 最大宽度像素（默认：1200）
+ * @param quality - JPEG质量（0-1，默认：0.8）
+ * @returns Promise解析为base64字符串
+ */
 export const compressImage = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -102,24 +147,24 @@ export const compressImage = (file: File, maxWidth: number = 1200, quality: numb
       img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
-        
+
         // Calculate new dimensions while maintaining aspect ratio
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         const ctx = canvas.getContext('2d');
         if (!ctx) {
           reject(new Error('Cannot get canvas context'));
           return;
         }
-        
+
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // Convert to base64 with compression
         const base64 = canvas.toDataURL('image/jpeg', quality);
         resolve(base64);
@@ -132,7 +177,13 @@ export const compressImage = (file: File, maxWidth: number = 1200, quality: numb
   });
 };
 
-// Convert file to base64 (no compression, original quality)
+/**
+ * 将文件转换为base64字符串，无压缩
+ * 当不需要压缩时用于localStorage回退
+ *
+ * @param file - 要转换的文件
+ * @returns Promise解析为base64字符串
+ */
 export const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -142,7 +193,13 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-// Upload image to Supabase Storage (original quality, no compression)
+/**
+ * 上传图片到存储（Supabase或localStorage回退）
+ * 自动处理云上传和本地回退
+ *
+ * @param file - 要上传的图片文件
+ * @returns Promise解析为图片URL或失败时为null
+ */
 export const uploadImage = async (file: File): Promise<string | null> => {
   // Fallback to base64 for local storage
   if (!supabase) {
@@ -152,10 +209,10 @@ export const uploadImage = async (file: File): Promise<string | null> => {
   try {
     // Get file extension
     const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-    
+
     // Generate unique filename with original extension
     const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
-    
+
     // Upload original file to Supabase Storage (no compression)
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -183,18 +240,24 @@ export const uploadImage = async (file: File): Promise<string | null> => {
   }
 };
 
-// Delete image from Supabase Storage
+/**
+ * 从Supabase存储删除图片
+ * 仅在使用Supabase时尝试删除（不是base64图片）
+ *
+ * @param imageUrl - 要删除的图片URL
+ * @returns Promise解析为成功布尔值
+ */
 export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   if (!supabase || !imageUrl) return true;
-  
+
   // Skip if it's a base64 image
   if (imageUrl.startsWith('data:')) return true;
-  
+
   try {
     // Extract filename from URL
     const urlParts = imageUrl.split('/');
     const filename = urlParts[urlParts.length - 1];
-    
+
     const { error } = await supabase.storage
       .from(STORAGE_BUCKET)
       .remove([filename]);
@@ -210,6 +273,12 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   }
 };
 
+/**
+ * 获取所有记忆
+ * 从Supabase或localStorage回退获取记忆列表
+ *
+ * @returns Promise解析为记忆数组
+ */
 export const getMemories = async (): Promise<Memory[]> => {
   // Fallback to Local Storage if Supabase is not configured
   if (!supabase) {
@@ -233,6 +302,13 @@ export const getMemories = async (): Promise<Memory[]> => {
   }
 };
 
+/**
+ * 保存新记忆
+ * 创建新的记忆条目并保存到Supabase或localStorage
+ *
+ * @param dto - 创建记忆的数据传输对象
+ * @returns Promise解析为创建的记忆或失败时为null
+ */
 export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> => {
   const newEntryBase = {
     content: dto.content,
@@ -273,6 +349,15 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
   }
 };
 
+/**
+ * 更新现有记忆
+ * 修改记忆内容和/或图片
+ *
+ * @param id - 要更新的记忆ID
+ * @param content - 新内容
+ * @param imageUrl - 新图片URL（可选，null表示删除图片）
+ * @returns Promise解析为更新后的记忆或失败时为null
+ */
 export const updateMemory = async (id: string, content: string, imageUrl?: string | null): Promise<Memory | null> => {
   // Fallback to Local Storage
   if (!supabase) {
@@ -320,6 +405,13 @@ export const updateMemory = async (id: string, content: string, imageUrl?: strin
   }
 };
 
+/**
+ * 删除记忆
+ * 从Supabase或localStorage中删除指定的记忆
+ *
+ * @param id - 要删除的记忆ID
+ * @returns Promise解析为成功布尔值
+ */
 export const deleteMemory = async (id: string): Promise<boolean> => {
   // Fallback to Local Storage
   if (!supabase) {
@@ -343,6 +435,10 @@ export const deleteMemory = async (id: string): Promise<boolean> => {
   }
 };
 
+/**
+ * 如果数据为空则填充种子数据
+ * 为演示目的自动添加初始记忆数据
+ */
 export const seedDataIfEmpty = async () => {
   if (!supabase) {
      if (!localStorage.getItem(LOCAL_STORAGE_KEY)) {

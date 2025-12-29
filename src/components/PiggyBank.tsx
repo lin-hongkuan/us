@@ -1,18 +1,46 @@
+/**
+ * ==========================================
+ * 小猪存钱罐组件
+ * ==========================================
+ *
+ * 一个游戏化的储蓄组件，跟踪记忆数量并在达到目标里程碑时提供奖励。
+ * 具有动画和收集"爱心硬币"的视觉反馈。
+ *
+ * 功能特性：
+ * - 跟踪朝向记忆数量目标的进度
+ * - 动画硬币掉落和小猪存钱罐弹跳
+ * - 带有特殊优惠券的奖励模态框
+ * - 显示进度的悬停工具提示
+ * - 主题感知样式
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { PiggyBank as PiggyIcon, Coins, Gift } from 'lucide-react';
 
+/**
+ * 小猪存钱罐组件的属性接口
+ */
 interface PiggyBankProps {
+  /** 当前记忆数量（收集的硬币） */
   count: number;
+  /** 达到奖励的目标数量（默认：52） */
   target?: number;
 }
-//储钱罐组件
+
+/**
+ * 用于游戏化记忆收集的小猪存钱罐组件
+ * 显示朝向目标的进度并提供奖励
+ */
 export const PiggyBank: React.FC<PiggyBankProps> = ({ count, target = 52 }) => {
+  // 硬币掉落动画状态
   const [isAnimating, setIsAnimating] = useState(false);
+  // 显示奖励模态框的状态
   const [showReward, setShowReward] = useState(false);
+  // 用于触发动画的上一个数量引用
   const prevCountRef = useRef(count);
 
   useEffect(() => {
-    // Only animate if count increases
+    // 仅在数量增加时动画
     if (count > prevCountRef.current) {
       setIsAnimating(true);
       const timer = setTimeout(() => setIsAnimating(false), 1000);

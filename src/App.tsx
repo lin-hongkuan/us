@@ -9,12 +9,14 @@ import { GravityMode } from './components/GravityMode';
 import { Game2048 } from './components/Game2048';
 import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown } from 'lucide-react';
 
+// 定义点击星星的特效接口
 interface Star {
   id: number;
   x: number;
   y: number;
 }
 
+// 定义角落星光闪烁的接口
 interface AmbientStar {
   id: number;
   top?: string;
@@ -26,6 +28,8 @@ interface AmbientStar {
   duration: number;
   opacity: number;
 }
+
+// 登录页显示的浪漫情话数组
 const QUOTES: string[] = [
   '“我们共享的每一刻，\n都是故事里的一页。”',
   '“人生中最好的事情\n就是彼此拥有。”',
@@ -68,13 +72,14 @@ const QUOTES: string[] = [
 
 ];
 
+// 主应用组件：共享记忆日记应用
 function App() {
   // 纪念日计数：从 2024-08-20 开始计算在一起的天数，供首页计时器展示
   const [daysTogether] = useState(() => {
     const startDate = new Date('2024-08-20');
     const today = new Date();
     const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24)); 
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   });
   const [displayDays, setDisplayDays] = useState(0);
   // 深夜彩蛋状态：是否处于 1-6 点，以及提示气泡是否展示
@@ -180,10 +185,12 @@ function App() {
     window.localStorage.setItem('dark_mode', String(darkMode));
   }, [darkMode]);
 
+  // 切换深色/浅色主题
   const toggleDarkMode = () => {
     setDarkMode(prev => !prev);
   };
 
+  // 点击情话切换到下一条，并保存到localStorage
   const handleQuoteClick = (e: React.MouseEvent<HTMLParagraphElement>) => {
     e.stopPropagation();
     if (!QUOTES.length) return;
@@ -288,47 +295,49 @@ function App() {
   const [showHeader, setShowHeader] = useState(true);
   const scrollPositions = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
 
-  // Avatar Long Press Logic
+  // 头像长按逻辑：长按5秒显示随机情话气泡
   const [avatarQuote, setAvatarQuote] = useState<{ type: UserType, text: string } | null>(null);
   const [isQuoteVisible, setIsQuoteVisible] = useState(false);
   const longPressTimer = useRef<number | null>(null);
   const isLongPress = useRef(false);
   const pressStartTime = useRef<number>(0);
 
+  // 开始长按头像：启动振动循环，5秒后显示随机情话
   const handleAvatarPressStart = (type: UserType) => {
     isLongPress.current = false;
     pressStartTime.current = Date.now();
     
-    // Reset state
+    // 重置状态
     setAvatarQuote(null);
     setIsQuoteVisible(false);
 
     const startTime = Date.now();
     
+    // 振动循环函数：随着时间推移振动间隔变短
     const vibrateLoop = () => {
       const elapsed = Date.now() - startTime;
       
-      // 5 seconds threshold
+      // 5秒阈值
       if (elapsed >= 5000) {
         isLongPress.current = true;
-        if (navigator.vibrate) navigator.vibrate([200]); // Success vibration
+        if (navigator.vibrate) navigator.vibrate([200]); // 成功振动
         
         const randomQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
         setAvatarQuote({ type, text: randomQuote });
         
-        // Smooth fade in
+        // 平滑淡入
         requestAnimationFrame(() => setIsQuoteVisible(true));
         
-        // Auto hide after 5s
+        // 5秒后自动隐藏
         setTimeout(() => {
           setIsQuoteVisible(false);
-          setTimeout(() => setAvatarQuote(null), 500); // Wait for fade out
+          setTimeout(() => setAvatarQuote(null), 500); // 等待淡出
         }, 5000);
         
         return;
       }
 
-      // Calculate delay: 500ms -> 50ms
+      // 计算延迟：500ms -> 50ms
       const progress = elapsed / 5000;
       const delay = 500 - (progress * 450); 
       
@@ -340,6 +349,7 @@ function App() {
     vibrateLoop();
   };
 
+  // 结束长按：清除定时器，停止振动
   const handleAvatarPressEnd = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);

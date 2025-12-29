@@ -1,51 +1,91 @@
+/**
+ * ==========================================
+ * 记忆卡片组件
+ * ==========================================
+ *
+ * 显示单个记忆的卡片组件，具有编辑功能。
+ * 支持查看、编辑、删除和图片管理记忆。
+ *
+ * 功能特性：
+ * - 显示记忆内容和图片
+ * - 行内文本编辑的编辑模式
+ * - 图片上传、预览和删除
+ * 作者特定的权限（只有作者可以编辑/删除）
+ * - 可展开的图片视图
+ * - 响应式设计和动画
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Memory, UserType } from '../types';
 import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash, Download } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
 
+/**
+ * 记忆卡片组件的属性接口
+ */
 interface MemoryCardProps {
+  /** 要显示的记忆数据 */
   memory: Memory;
+  /** 删除记忆时的回调函数 */
   onDelete: (id: string) => void;
+  /** 更新记忆时的回调函数 */
   onUpdate: (id: string, content: string, imageUrl?: string | null) => Promise<boolean>;
+  /** 当前登录用户 */
   currentUser: UserType;
 }
 
-// 单条记忆卡片：支持查看、编辑、删除、图片上传/下载
+/**
+ * 具有编辑功能的单个记忆卡片组件
+ * 显示记忆内容、图片，并为作者提供编辑控件
+ */
 export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpdate, currentUser }) => {
+  // 编辑模式状态
   const [isEditing, setIsEditing] = useState(false);
+  // 更新操作期间的保存状态
   const [isSaving, setIsSaving] = useState(false);
+  // 正在编辑的内容
   const [editContent, setEditContent] = useState(memory.content);
+  // 正在编辑的图片URL
   const [editImageUrl, setEditImageUrl] = useState<string | null | undefined>(memory.imageUrl);
+  // 选择上传的新图片文件
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  // Image expansion state for full-screen view
   const [isImageExpanded, setIsImageExpanded] = useState(false);
+  // Reference to hidden file input
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Determine if current memory belongs to "Her"
   const isHer = memory.author === UserType.HER;
-  
-  // 同步外部传入的记忆内容与图片到本地编辑状态
+
+  // Sync external memory data to local edit state
   useEffect(() => {
     setEditContent(memory.content);
     setEditImageUrl(memory.imageUrl);
     setEditImageFile(null);
   }, [memory.content, memory.imageUrl]);
-  
-  // 只有作者本人才能编辑/删除
+
+  // Only the author can modify their own memories
   const canModify = currentUser === memory.author;
 
-  // 手动格式化日期，避免引入额外 locale 体积
+  // Format date manually to avoid additional locale bundle size
   const date = new Date(memory.createdAt);
   const dateStr = `${date.getFullYear()} . ${date.getMonth() + 1} . ${date.getDate()}`;
 
-  // 选择图片：校验类型/大小，生成本地预览，并保留文件以便上传
+  /**
+   * Handle image file selection with validation
+   * Validates file type and size, creates preview
+   */
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('请选择图片文件');
       return;
     }
 
+    // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
       alert('图片大小不能超过10MB');
       return;

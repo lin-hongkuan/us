@@ -1,21 +1,48 @@
+/**
+ * ==========================================
+ * 打字机文字组件
+ * ==========================================
+ *
+ * 一个以打字机效果显示文本的组件，模拟逐字符打字。
+ *
+ * 功能特性：
+ * - 逐字符显示文本
+ * - 可配置打字速度和延迟
+ * - 闪烁光标动画
+ * - 可自定义样式
+ */
+
 import React, { useState, useEffect } from 'react';
 
+/**
+ * 打字机文字组件的属性接口
+ */
 interface TypewriterTextProps {
+  /** 要以打字机效果显示的文本 */
   text: string;
+  /** 每个字符之间的延迟（毫秒） */
   delay?: number;
+  /** 额外的CSS类名 */
   className?: string;
+  /** 开始效果前的延迟（毫秒） */
   startDelay?: number;
 }
 
-// 打字机效果组件：按延迟逐字显示文本，并在结尾淡出光标
-export const TypewriterText: React.FC<TypewriterTextProps> = ({ 
-  text, 
-  delay = 100, 
-  className = "", 
-  startDelay = 0 
+/**
+ * 打字机效果文字组件
+ * 逐字符显示文本并带有闪烁光标
+ */
+export const TypewriterText: React.FC<TypewriterTextProps> = ({
+  text,
+  delay = 100,
+  className = "",
+  startDelay = 0
 }) => {
+  // 当前显示的文本
   const [displayedText, setDisplayedText] = useState('');
+  // 效果是否已开始
   const [started, setStarted] = useState(false);
+  // 是否显示闪烁光标
   const [showCursor, setShowCursor] = useState(true);
 
   useEffect(() => {
