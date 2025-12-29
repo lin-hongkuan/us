@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { UserType, Memory, getAvatar, getDailyAvatars } from './types';
+import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './types';
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
@@ -7,7 +7,7 @@ import { TypewriterText } from './components/TypewriterText';
 import { PiggyBank } from './components/PiggyBank';
 import { GravityMode } from './components/GravityMode';
 import { Game2048 } from './components/Game2048';
-import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown } from 'lucide-react';
+import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown, Sparkles } from 'lucide-react';
 
 // 定义点击星星的特效接口
 interface Star {
@@ -92,6 +92,7 @@ function App() {
   const [showStamp, setShowStamp] = useState(false);
   const [isGravityMode, setIsGravityMode] = useState(false);
   const [isGame2048Open, setIsGame2048Open] = useState(false);
+  const [showUpdate, setShowUpdate] = useState(false);
 
   const specialEvent = useMemo(() => {
     const today = new Date();
@@ -470,7 +471,7 @@ function App() {
   };
 
   // 保存记忆：写入存储并更新列表，成功后关闭弹窗
-  const handleSave = async (content: string, imageUrl?: string) => {
+  const handleSave = async (content: string, imageUrls?: string[]) => {
     const trimmed = content.trim();
     if (trimmed === '1104') {
       setIsGravityMode(true);
@@ -484,7 +485,7 @@ function App() {
     }
 
     if (!currentUser) return;
-    const newMem = await saveMemory({ content, author: currentUser, imageUrl });
+    const newMem = await saveMemory({ content, author: currentUser, imageUrls });
     if (newMem) {
       setMemories([newMem, ...memories]);
       setIsComposerOpen(false);
@@ -512,8 +513,8 @@ function App() {
   };
 
   // 更新记忆：成功后替换列表项，并播放动作音效
-  const handleUpdateMemory = async (id: string, content: string, imageUrl?: string | null) => {
-    const updated = await updateMemory(id, content, imageUrl);
+  const handleUpdateMemory = async (id: string, content: string, imageUrls?: string[] | null) => {
+    const updated = await updateMemory(id, content, imageUrls);
     if (updated) {
       setMemories(prev => prev.map(m => m.id === id ? updated : m));
       playClickSound('action');
@@ -908,6 +909,46 @@ function App() {
 
                 {/* Speech bubble triangle */}
                 <div className="absolute -top-2 left-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
+              </div>
+            )}
+          </div>
+
+          {/* Update Notification Button 更新公告*/}
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowUpdate(!showUpdate);
+              }}
+              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-indigo-400 hover:text-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
+              title="更新公告"
+            >
+              <span className="text-xs md:text-lg">🔔</span>
+            </button>
+
+            {showUpdate && (
+              <div 
+                className="absolute top-full left-0 mt-4 w-80 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 dark:border-slate-700/50 p-6 animate-in fade-in slide-in-from-top-4 duration-300 z-50 text-left"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-baseline gap-2">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">更新公告</h3>
+                    <span className="text-xs font-mono text-rose-500 bg-rose-100 dark:bg-rose-900/30 px-1.5 py-0.5 rounded">{APP_UPDATE.version}</span>
+                  </div>
+                  <span className="text-xs text-slate-400">{APP_UPDATE.date}</span>
+                </div>
+                
+                <div className="space-y-3">
+                  {APP_UPDATE.content.map((item, index) => (
+                    <p key={index} className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                      {item}
+                    </p>
+                  ))}
+                </div>
+
+                {/* Arrow */}
+                <div className="absolute -top-2 left-4 w-4 h-4 bg-white/90 dark:bg-slate-800/90 border-t border-l border-white/50 dark:border-slate-700/50 transform rotate-45"></div>
               </div>
             )}
           </div>

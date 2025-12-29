@@ -26,7 +26,7 @@ interface ComposerProps {
   /** 当前创建记忆的用户 */
   currentUser: UserType;
   /** 保存记忆时的回调函数 */
-  onSave: (content: string, imageUrl?: string) => Promise<void>;
+  onSave: (content: string, imageUrls?: string[]) => Promise<void>;
   /** 关闭撰写器时的回调函数 */
   onClose: () => void;
 }
@@ -39,9 +39,9 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   // 文本内容状态
   const [text, setText] = useState('');
   // 图片预览URL状态
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   // 选中的图片文件状态
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   // 保存操作期间的加载状态
   const [isProcessing, setIsProcessing] = useState(false);
   // 隐藏文件输入的引用
@@ -55,23 +55,23 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
    * Uploads image if present, then saves the memory
    */
   const handleSubmit = async () => {
-    if (!text.trim() && !imageFile) return;
+    if (!text.trim() && imageFiles.length === 0) return;
 
     setIsProcessing(true);
     try {
-      let imageUrl: string | undefined;
+      const uploadedUrls: string[] = [];
 
-      // Upload image if one was selected
-      if (imageFile) {
-        const uploadedUrl = await uploadImage(imageFile);
-        imageUrl = uploadedUrl || undefined;
+      // Upload all images
+      for (const file of imageFiles) {
+        const url = await uploadImage(file);
+        if (url) uploadedUrls.push(url);
       }
 
-      await onSave(text, imageUrl);
+      await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined);
       // Reset form after successful save
       setText('');
-      setImagePreview(null);
-      setImageFile(null);
+      setImagePreviews([]);
+      setImageFiles([]);
     } catch (error) {
       console.error('Failed to save:', error);
       alert('保存失败，请重试');
@@ -82,30 +82,40 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
 
   // 选择图片：校验类型/大小，生成预览并存储文件
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      alert('请选择图片文件');
-      return;
-    }
-
-    // Check file size (max 10MB before compression)
-    if (file.size > 10 * 1024 * 1024) {
-      alert('图片大小不能超过10MB');
-      return;
-    }
-
-    // Store the file for later upload
-    setImageFile(file);
+    const newFiles: File[] = [];
     
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Process each selected file
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        continue;
+      }
+
+      // Check file size (max 10MB before compression)
+      if (file.size > 10 * 1024 * 1024) {
+        alert(`图片 ${file.name} 大小超过10MB`);
+        continue;
+      }
+      
+      newFiles.push(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setImagePreviews(prev => [...prev, e.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Store the files for later upload
+    setImageFiles(prev => [...prev, ...newFiles]);
     
     // Reset file input
     if (fileInputRef.current) {
@@ -114,9 +124,9 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   };
 
   // 移除已选图片
-  const handleRemoveImage = () => {
-    setImagePreview(null);
-    setImageFile(null);
+  const handleRemoveImage = (index: number) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -159,17 +169,21 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
                 />
             </div>
 
-            {/* Image Preview */}
-            {imagePreview && (
-                <div className="relative mb-6 overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm group/image animate-in zoom-in-95 fade-in duration-300">
-                    <img src={imagePreview} alt="Preview" className="h-48 w-full object-cover transition-transform duration-700 group-hover/image:scale-105" />
-                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover/image:bg-black/10" />
-                    <button
-                        onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-black/70 group-hover/image:opacity-100 hover:scale-110"
-                    >
-                        <X size={14} />
-                    </button>
+            {/* Image Previews */}
+            {imagePreviews.length > 0 && (
+                <div className="mb-6 grid grid-cols-3 gap-2 animate-in zoom-in-95 fade-in duration-300 max-h-48 overflow-y-auto pr-1">
+                    {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative aspect-square overflow-hidden rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm group/image">
+                            <img src={preview} alt={`Preview ${index}`} className="h-full w-full object-cover transition-transform duration-700 group-hover/image:scale-105" />
+                            <div className="absolute inset-0 bg-black/0 transition-colors group-hover/image:bg-black/10" />
+                            <button
+                                onClick={() => handleRemoveImage(index)}
+                                className="absolute top-1 right-1 rounded-full bg-black/50 p-1 text-white opacity-0 backdrop-blur-sm transition-all hover:bg-black/70 group-hover/image:opacity-100 hover:scale-110"
+                            >
+                                <X size={12} />
+                            </button>
+                        </div>
+                    ))}
                 </div>
             )}
 
@@ -179,6 +193,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    multiple
                     onChange={handleImageSelect}
                     className="hidden"
                 />
@@ -194,12 +209,12 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
                     <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${isHer ? 'bg-rose-100 group-hover:bg-rose-200 dark:bg-rose-900/40' : 'bg-sky-100 group-hover:bg-sky-200 dark:bg-sky-900/40'}`}>
                         <ImagePlus size={16} className="transition-transform duration-300 group-hover:rotate-12" />
                     </div>
-                    <span>{imagePreview ? '更换照片' : '添加照片'}</span>
+                    <span>{imagePreviews.length > 0 ? '添加更多' : '添加照片'}</span>
                 </button>
 
                 <button
                     onClick={handleSubmit}
-                    disabled={isProcessing || (!text.trim() && !imageFile)}
+                    disabled={isProcessing || (!text.trim() && imageFiles.length === 0)}
                     className={`group flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 ${
                         isHer
                         ? 'bg-gradient-to-r from-rose-400 to-rose-600 hover:from-rose-500 hover:to-rose-700 shadow-rose-200 dark:shadow-none'

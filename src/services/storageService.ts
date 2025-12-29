@@ -64,7 +64,8 @@ const mapRowToMemory = (row: any): Memory => ({
   author: row.author as UserType,
   createdAt: new Date(row.created_at).getTime(), // 将ISO字符串转换为时间戳
   tags: row.tags,
-  imageUrl: row.image_url
+  imageUrl: row.image_url,
+  imageUrls: row.image_urls || (row.image_url ? [row.image_url] : [])
 });
 
 // ==========================================
@@ -313,7 +314,8 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
   const newEntryBase = {
     content: dto.content,
     author: dto.author,
-    image_url: dto.imageUrl || null,
+    image_url: dto.imageUrl || (dto.imageUrls?.[0] || null),
+    image_urls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : null),
     // created_at will be handled by default value in DB or we can send ISO string
     // created_at: new Date().toISOString(), 
   };
@@ -326,7 +328,8 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
       content: dto.content,
       createdAt: Date.now(),
       author: dto.author,
-      imageUrl: dto.imageUrl
+      imageUrl: dto.imageUrl || (dto.imageUrls?.[0]),
+      imageUrls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : undefined)
     };
     const current = getLocalMemories();
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([newMemory, ...current]));
@@ -358,18 +361,20 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
  * @param imageUrl - 新图片URL（可选，null表示删除图片）
  * @returns Promise解析为更新后的记忆或失败时为null
  */
-export const updateMemory = async (id: string, content: string, imageUrl?: string | null): Promise<Memory | null> => {
+export const updateMemory = async (id: string, content: string, imageUrls?: string[] | null): Promise<Memory | null> => {
   // Fallback to Local Storage
   if (!supabase) {
     const current = getLocalMemories();
     const index = current.findIndex(m => m.id === id);
     if (index !== -1) {
       current[index].content = content;
-      // Update imageUrl - if null, remove it; if undefined, keep existing
-      if (imageUrl === null) {
+      // Update imageUrls - if null, remove it; if undefined, keep existing
+      if (imageUrls === null) {
         delete current[index].imageUrl;
-      } else if (imageUrl !== undefined) {
-        current[index].imageUrl = imageUrl;
+        delete current[index].imageUrls;
+      } else if (imageUrls !== undefined) {
+        current[index].imageUrls = imageUrls;
+        current[index].imageUrl = imageUrls[0];
       }
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
       return current[index];
@@ -380,8 +385,9 @@ export const updateMemory = async (id: string, content: string, imageUrl?: strin
   try {
     const updateData: any = { content };
     // Only update image_url if explicitly provided (including null for deletion)
-    if (imageUrl !== undefined) {
-      updateData.image_url = imageUrl;
+    if (imageUrls !== undefined) {
+      updateData.image_urls = imageUrls;
+      updateData.image_url = imageUrls && imageUrls.length > 0 ? imageUrls[0] : null;
     }
     
     const { data, error } = await supabase
