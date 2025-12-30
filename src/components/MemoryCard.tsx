@@ -38,8 +38,9 @@ interface MemoryCardProps {
 /**
  * 具有编辑功能的单个记忆卡片组件
  * 显示记忆内容、图片，并为作者提供编辑控件
+ * 使用 React.memo 优化重渲染性能
  */
-export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpdate, currentUser }) => {
+export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDelete, onUpdate, currentUser }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -486,4 +487,13 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({ memory, onDelete, onUpda
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // 自定义比较函数：仅当关键属性变化时重渲染
+  return (
+    prevProps.memory.id === nextProps.memory.id &&
+    prevProps.memory.content === nextProps.memory.content &&
+    prevProps.memory.imageUrl === nextProps.memory.imageUrl &&
+    JSON.stringify(prevProps.memory.imageUrls) === JSON.stringify(nextProps.memory.imageUrls) &&
+    prevProps.currentUser === nextProps.currentUser
+  );
+});

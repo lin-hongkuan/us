@@ -40,6 +40,7 @@
     background-size: 400% 400%;
     animation: gradient 8s ease infinite;
     will-change: background-position;
+    contain: layout style;
   }
 
   /* 纹理文字效果 */
@@ -59,26 +60,30 @@
 
 /* 浮动动画：元素上下浮动，营造轻盈感 */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0px); }
+  0% { transform: translate3d(0, 0px, 0); }
+  50% { transform: translate3d(0, -20px, 0); }
+  100% { transform: translate3d(0, 0px, 0); }
 }
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* 斑点动画：不规则移动和缩放，营造有机流动感 */
 @keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
+  0% { transform: translate3d(0px, 0px, 0) scale(1); }
+  33% { transform: translate3d(30px, -50px, 0) scale(1.1); }
+  66% { transform: translate3d(-20px, 20px, 0) scale(0.9); }
+  100% { transform: translate3d(0px, 0px, 0) scale(1); }
 }
 
 .animate-blob {
   animation: blob 7s infinite;
   will-change: transform;
+  contain: layout style;
+  backface-visibility: hidden;
 }
 
 /* 淡入向上动画：元素从下方淡入，营造出现感 */
@@ -111,6 +116,8 @@
 
 .star-pop {
   animation: star-pop 0.7s ease-out forwards;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 /* 淡入向上动画应用类：用于元素进入时的平滑过渡 */
@@ -139,6 +146,8 @@
 .animate-moveBackground {
   animation: moveBackground 20s linear infinite;
   will-change: transform;
+  backface-visibility: hidden;
+  contain: layout style;
 }
 
 /* 渐变动画：背景位置循环变化，用于彩虹渐变效果 */
@@ -230,6 +239,9 @@
 .twinkle-star {
   animation: soft-twinkle 16s ease-in-out infinite;
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.35));
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  contain: layout style;
 }
 
 @keyframes soft-twinkle {

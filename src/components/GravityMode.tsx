@@ -141,19 +141,45 @@ export const GravityMode: React.FC<GravityModeProps> = ({ memories, onClose }) =
     Runner.run(runner, engine);
 
     // Animation loop to sync DOM elements with physics bodies
+    // 使用批量 DOM 更新优化性能
     let animationFrameId: number;
+    let isRunning = true;
+    
+    // 预先缓存 DOM 元素引用，避免每帧查询
+    const elementCache = new Map<string, HTMLElement>();
+    bodiesRef.current.forEach((_, id) => {
+      const el = document.getElementById(`gravity-card-${id}`);
+      if (el) elementCache.set(id, el);
+    });
 
     const updateDOM = () => {
+      if (!isRunning) return;
+      
+      // 页面不可见时跳过更新，节省 CPU
+      if (document.hidden) {
+        animationFrameId = requestAnimationFrame(updateDOM);
+        return;
+      }
+      
+      // 批量收集所有变换，减少布局抖动
+      const transforms: Array<{ el: HTMLElement; transform: string }> = [];
+      
       bodiesRef.current.forEach((body, id) => {
-        const element = document.getElementById(`gravity-card-${id}`);
+        const element = elementCache.get(id);
         if (element) {
           const { x, y } = body.position;
           const angle = body.angle;
-          // Position DOM element to match physics body (centered)
           const dim = cardDimensions.get(id);
-          element.style.transform = `translate(${x - (dim?.width || 0)/2}px, ${y - (dim?.height || 0)/2}px) rotate(${angle}rad)`;
+          const transform = `translate3d(${x - (dim?.width || 0)/2}px, ${y - (dim?.height || 0)/2}px, 0) rotate(${angle}rad)`;
+          transforms.push({ el: element, transform });
         }
       });
+      
+      // 批量应用变换
+      transforms.forEach(({ el, transform }) => {
+        el.style.transform = transform;
+      });
+      
       animationFrameId = requestAnimationFrame(updateDOM);
     };
 
@@ -161,9 +187,11 @@ export const GravityMode: React.FC<GravityModeProps> = ({ memories, onClose }) =
 
     // Cleanup function
     return () => {
+      isRunning = false;
       Runner.stop(runner);
       Engine.clear(engine);
       cancelAnimationFrame(animationFrameId);
+      elementCache.clear();
     };
   }, [isReady, memories, cardDimensions]);
 

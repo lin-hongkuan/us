@@ -228,12 +228,24 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [currentQuote, quoteIndex]);
 
+  // AudioContext 单例缓存，避免重复创建
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  
   // 可爱的点击音效：根据按钮类型（她/他/动作/默认）生成不同音高的合成器短音
   const playClickSound = (type: 'default' | 'her' | 'him' | 'action' | 'stamp' = 'default') => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
 
-    const audioCtx = new AudioContext();
+    // 复用或创建 AudioContext 单例
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new AudioContextClass();
+    }
+    const audioCtx = audioCtxRef.current;
+    
+    // 如果 AudioContext 被暂停（浏览器策略），恢复它
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
 
@@ -297,13 +309,14 @@ function App() {
 
   useEffect(() => {
     // 全局捕获带 data-sound 的元素，统一触发点击音效
+    // 使用 passive 优化事件监听器性能
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const soundElement = target.closest('[data-sound]');
       const type = soundElement ? soundElement.getAttribute('data-sound') : 'default';
       playClickSound(type as any);
     };
-    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('mousedown', handleClick, { passive: true });
     return () => window.removeEventListener('mousedown', handleClick);
   }, []);
   
@@ -402,19 +415,28 @@ function App() {
     const isDesktop = window.matchMedia('(pointer: fine)').matches;
     if (!isDesktop) return;
 
+    // 使用 passive 监听器提升滚动性能
     const handleMouseMove = (e: MouseEvent) => {
-      requestAnimationFrame(() => {
-        mousePos.current = {
-          x: (e.clientX / window.innerWidth) * 2 - 1,
-          y: (e.clientY / window.innerHeight) * 2 - 1
-        };
-      });
+      mousePos.current = {
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: (e.clientY / window.innerHeight) * 2 - 1
+      };
     };
     
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
     
     let frameId: number;
+    let isRunning = true;
+    
     const animate = () => {
+      if (!isRunning) return;
+      
+      // 页面不可见时跳过计算，节省 CPU
+      if (document.hidden) {
+        frameId = requestAnimationFrame(animate);
+        return;
+      }
+      
       const ease = 0.015; // 小步长 Lerp，慢速跟随
       currentPos.current.x += (mousePos.current.x - currentPos.current.x) * ease;
       currentPos.current.y += (mousePos.current.y - currentPos.current.y) * ease;
@@ -435,6 +457,7 @@ function App() {
     animate();
     
     return () => {
+      isRunning = false;
       window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(frameId);
     };
@@ -453,21 +476,32 @@ function App() {
     fetchData();
   }, []);
 
-  // 滚动时隐藏/显示顶部 Header，避免占屏空间
+  // 滚动节流标志
+  const scrollRafRef = useRef<number | null>(null);
+  
+  // 滚动时隐藏/显示顶部 Header，避免占屏空间（RAF节流）
   const handleScroll = (e: React.UIEvent<HTMLDivElement>, type: UserType) => {
-    const current = e.currentTarget.scrollTop;
-    const last = scrollPositions.current[type];
-    const diff = current - last;
-
-    if (Math.abs(diff) < 10) return;
-
-    if (current > last && current > 60) {
-      setShowHeader(false);
-    } else if (current < last) {
-      setShowHeader(true);
-    }
+    const scrollTop = e.currentTarget.scrollTop;
     
-    scrollPositions.current[type] = current;
+    // RAF 节流：避免高频滚动导致性能问题
+    if (scrollRafRef.current !== null) return;
+    
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      
+      const last = scrollPositions.current[type];
+      const diff = scrollTop - last;
+
+      if (Math.abs(diff) < 10) return;
+
+      if (scrollTop > last && scrollTop > 60) {
+        setShowHeader(false);
+      } else if (scrollTop < last) {
+        setShowHeader(true);
+      }
+      
+      scrollPositions.current[type] = scrollTop;
+    });
   };
 
   // 保存记忆：写入存储并更新列表，成功后关闭弹窗
@@ -533,23 +567,37 @@ function App() {
     }, 900);
   };
 
-  // 全局点击生成小星星：用于登录页与主页面的点击反馈
+  // 星星对象池：复用星星对象减少 GC 压力
+  const starPoolRef = useRef<Star[]>([]);
+  const maxStars = 10; // 最大同时显示星星数
+  
+  // 全局点击生成小星星：用于登录页与主页面的点击反馈（优化版）
   const handleGlobalClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const id = starIdRef.current++;
     const x = e.clientX;
     const y = e.clientY;
-
-    setStars(prev => [...prev, { id, x, y }]);
+    
+    // 限制最大星星数量，防止高频点击时累积
+    if (stars.length >= maxStars) {
+      // 复用最旧的星星位置
+      setStars(prev => {
+        const newStars = [...prev];
+        newStars[0] = { id: starIdRef.current++, x, y };
+        return [...newStars.slice(1), newStars[0]];
+      });
+    } else {
+      const id = starIdRef.current++;
+      setStars(prev => [...prev, { id, x, y }]);
+    }
 
     // 700ms 后移除，避免内存累积
     window.setTimeout(() => {
-      setStars(prev => prev.filter(star => star.id !== id));
+      setStars(prev => prev.slice(1));
     }, 700);
   };
 
-  // 过滤两侧列表
-  const herMemories = memories.filter(m => m.author === UserType.HER);
-  const hisMemories = memories.filter(m => m.author === UserType.HIM);
+  // 过滤两侧列表（使用 useMemo 缓存避免每次渲染重新计算）
+  const herMemories = useMemo(() => memories.filter(m => m.author === UserType.HER), [memories]);
+  const hisMemories = useMemo(() => memories.filter(m => m.author === UserType.HIM), [memories]);
 
   // 登录阶段：身份选择与欢迎界面
   if (phase === 'login' || !currentUser) {
