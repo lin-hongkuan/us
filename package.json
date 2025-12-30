@@ -9,6 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@supabase/supabase-js": "2.39.7",
     "@types/matter-js": "^0.20.2",
     "date-fns": "^4.1.0",
