@@ -96,9 +96,9 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
         continue;
       }
 
-      // Check file size (max 10MB before compression)
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`图片 ${file.name} 大小超过10MB`);
+      // Check file size (max 50MB before compression)
+      if (file.size > 50 * 1024 * 1024) {
+        alert(`图片 ${file.name} 大小超过50MB`);
         continue;
       }
       

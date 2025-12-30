@@ -147,6 +147,9 @@ function App() {
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const [stars, setStars] = useState<Star[]>([]);
+  // 触摸滑动状态：用于移动端左右滑动切换用户
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
   // 主题状态：优先读本地存储，其次跟随系统；用于 Tailwind dark 模式
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -595,6 +598,45 @@ function App() {
     }, 700);
   };
 
+  // 触摸事件处理：移动端左右滑动切换用户
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null); // 重置结束位置
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isLeftSwipe = distanceX > 50;
+    const isRightSwipe = distanceX < -50;
+    const isMainlyHorizontal = Math.abs(distanceX) > Math.abs(distanceY);
+
+    // 只在水平滑动距离足够大且主要是水平方向时切换
+    if (isMainlyHorizontal) {
+      if (isLeftSwipe && activeTab === UserType.HER) {
+        // 向左滑动，从HER切换到HIM
+        setActiveTab(UserType.HIM);
+        playClickSound('him');
+      } else if (isRightSwipe && activeTab === UserType.HIM) {
+        // 向右滑动，从HIM切换到HER
+        setActiveTab(UserType.HER);
+        playClickSound('her');
+      }
+    }
+  };
+
   // 过滤两侧列表（使用 useMemo 缓存避免每次渲染重新计算）
   const herMemories = useMemo(() => memories.filter(m => m.author === UserType.HER), [memories]);
   const hisMemories = useMemo(() => memories.filter(m => m.author === UserType.HIM), [memories]);
@@ -939,7 +981,12 @@ function App() {
       </header>
 
       {/* 主体：左右分栏记忆流 */}
-      <main className="h-screen flex relative overflow-hidden">
+      <main 
+        className="h-screen flex relative overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* 主屏背景光团 - 移动端优化：禁用动画和混合模式 */}
         <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none md:transition-transform md:duration-100 md:ease-out">
           <div className={`absolute top-[-20%] left-[-10%] w-[500px] md:w-[700px] h-[500px] md:h-[700px] bg-rose-300/25 md:bg-rose-300/40 dark:bg-rose-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[25px] md:blur-[100px] md:animate-blob pointer-events-none md:transition-opacity md:duration-1000 ${activeTab === UserType.HER ? 'opacity-50 md:opacity-80' : 'opacity-0 md:opacity-80'}`}></div>

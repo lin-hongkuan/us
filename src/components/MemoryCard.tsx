@@ -91,8 +91,8 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     let processed = 0;
 
     files.forEach(file => {
-      if (file.size > 10 * 1024 * 1024) {
-        alert(`图片 ${file.name} 大小不能超过 10MB`);
+      if (file.size > 50 * 1024 * 1024) {
+        alert(`图片 ${file.name} 大小不能超过 50MB`);
         return;
       }
       validFiles.push(file);

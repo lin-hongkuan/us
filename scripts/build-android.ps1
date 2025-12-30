@@ -17,7 +17,11 @@ if (-not $Release -and -not $Debug) {
   if ($hasSigning) { $Release = $true } else { $Debug = $true }
 }
 
-$task = $Debug ? 'assembleDebug' : 'assembleRelease'
+if ($Debug) {
+  $task = 'assembleDebug'
+} else {
+  $task = 'assembleRelease'
+}
 
 Write-Host "1) Building web assets with Vite..."
 npm run build

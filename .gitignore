@@ -32,4 +32,12 @@ android/.gradle/
 android/sdk/
 android/commandlinetools.zip
 android/
+android/local.properties
+*.keystore
+*.jks
+*.p12
+*.pem
+*.aab
+*.apk
+*.apks
 
