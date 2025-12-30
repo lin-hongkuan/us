@@ -24,10 +24,10 @@
     --color-glass: 30 41 59;
   }
   
-  /* 移动端滚动性能优化 */
+  /* 移动端全局性能优化 */
   @media (max-width: 768px) {
     * {
-      /* 滚动时禁用不必要的动画计算 */
+      /* 禁用平滑滚动，提升滚动性能 */
       scroll-behavior: auto !important;
     }
     
@@ -37,6 +37,31 @@
       transform: translateZ(0);
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
+      /* 启用惯性滚动 */
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    /* 移动端减轻 backdrop-blur 强度（保留视觉效果但降低模糊半径） */
+    .backdrop-blur-md {
+      -webkit-backdrop-filter: blur(4px) !important;
+      backdrop-filter: blur(4px) !important;
+    }
+    
+    .backdrop-blur-lg,
+    .backdrop-blur-xl {
+      -webkit-backdrop-filter: blur(6px) !important;
+      backdrop-filter: blur(6px) !important;
+    }
+    
+    /* 移动端简化 blob 动画（减少动画时长和复杂度） */
+    .animate-blob {
+      animation-duration: 14s !important;
+      animation-timing-function: ease-in-out !important;
+    }
+    
+    /* 移动端简化背景移动动画 */
+    .animate-moveBackground {
+      animation-duration: 120s !important;
     }
   }
 }

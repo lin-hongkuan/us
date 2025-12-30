@@ -621,21 +621,21 @@ function App() {
         {/* 底噪纹理遮罩 */}
         <div className="absolute inset-0 opacity-[0.02] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
-        {/* ICON 图案遮罩 */}
-        <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
+        {/* ICON 图案遮罩 - 移动端禁用动画 */}
+        <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 md:animate-moveBackground" 
              style={{ 
                backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
              }}
         ></div>
 
-        {/* 抽象背景光团 */}
-        <div ref={loginBackgroundRef} className="absolute -inset-[100px] overflow-hidden pointer-events-none transition-transform duration-100 ease-out">
-           <div className="absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-80 animate-blob" />
-           <div className="absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-80 animate-blob animation-delay-2000" />
-           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 dark:bg-purple-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000" />
+        {/* 抽象背景光团 - 移动端简化版 */}
+        <div ref={loginBackgroundRef} className="absolute -inset-[100px] overflow-hidden pointer-events-none md:transition-transform md:duration-100 md:ease-out">
+           <div className="absolute top-[-20%] left-[-10%] w-[500px] md:w-[700px] h-[500px] md:h-[700px] bg-rose-300/30 dark:bg-rose-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[40px] md:blur-[100px] opacity-70 md:animate-blob" />
+           <div className="absolute bottom-[-20%] right-[-10%] w-[500px] md:w-[700px] h-[500px] md:h-[700px] bg-sky-300/30 dark:bg-sky-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[40px] md:blur-[100px] opacity-70 md:animate-blob md:animation-delay-2000" />
+           <div className="absolute top-[20%] left-[20%] w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-purple-200/30 dark:bg-purple-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[40px] md:blur-[100px] opacity-50 md:animate-blob md:animation-delay-4000 hidden md:block" />
         </div>
 
-        <div className="max-w-3xl w-full bg-white/60 dark:bg-slate-800/60 backdrop-blur-md md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/60 dark:border-slate-700/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
+        <div className="max-w-3xl w-full bg-white/90 md:bg-white/60 dark:bg-slate-800/90 md:dark:bg-slate-800/60 md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/60 dark:border-slate-700/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20">
           
           {/* Left Side: Brand */}
           <div className="flex-1 text-center md:text-left relative z-10 flex flex-col justify-center">
@@ -769,8 +769,8 @@ function App() {
       {/* 主界面噪点遮罩 */}
       <div className="absolute inset-0 opacity-[0.03] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
 
-      {/* ICON 遮罩层 */}
-      <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 animate-moveBackground" 
+      {/* ICON 遮罩层 - 移动端禁用动画 */}
+      <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 md:animate-moveBackground" 
            style={{ 
            backgroundImage: `url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%2364748b' fill-opacity='1'%3E%3Cg transform='translate(10 10) scale(0.4) rotate(-10)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3Cg transform='translate(60 60) scale(0.3) rotate(20)'%3E%3Cellipse cx='50' cy='65' rx='18' ry='14'/%3E%3Ccircle cx='25' cy='45' r='7'/%3E%3Ccircle cx='40' cy='30' r='7'/%3E%3Ccircle cx='60' cy='30' r='7'/%3E%3Ccircle cx='75' cy='45' r='7'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")` 
            }}
@@ -862,7 +862,7 @@ function App() {
                 }
               }}
               data-sound="action"
-              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-yellow-400 hover:text-yellow-500 hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
+              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-yellow-400 hover:text-yellow-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
               title="公告"
             >
               <StarIcon size={12} className="md:w-[18px] md:h-[18px] fill-current" />
@@ -876,7 +876,7 @@ function App() {
                 e.stopPropagation();
                 setShowUpdate(!showUpdate);
               }}
-              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-indigo-400 hover:text-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
+              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-indigo-400 hover:text-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
               title="更新公告"
             >
               <span className="text-xs md:text-lg">🔔</span>
@@ -885,18 +885,18 @@ function App() {
         </div>
 
         {/* Mobile Toggle (Pill) - Floating Island */}
-        <div className="pointer-events-auto md:hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl p-1 rounded-full border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2 z-50">
+        <div className="pointer-events-auto md:hidden bg-white/95 dark:bg-slate-800/95 p-1 rounded-full border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] absolute left-1/2 -translate-x-1/2 z-50">
            <button 
              onClick={() => setActiveTab(UserType.HER)}
              data-sound="her"
-             className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HER ? 'bg-rose-50 dark:bg-rose-900/50 text-rose-500 dark:text-rose-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
+             className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest transition-colors duration-200 ${activeTab === UserType.HER ? 'bg-rose-50 dark:bg-rose-900/50 text-rose-500 dark:text-rose-300 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
            >
              她
            </button>
            <button 
              onClick={() => setActiveTab(UserType.HIM)}
              data-sound="him"
-             className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest transition-all duration-500 ${activeTab === UserType.HIM ? 'bg-sky-50 dark:bg-sky-900/50 text-sky-500 dark:text-sky-300 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
+             className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest transition-colors duration-200 ${activeTab === UserType.HIM ? 'bg-sky-50 dark:bg-sky-900/50 text-sky-500 dark:text-sky-300 shadow-sm' : 'text-slate-400 dark:text-slate-500'}`}
            >
              他
            </button>
@@ -917,7 +917,7 @@ function App() {
           <button
             onClick={toggleDarkMode}
             data-sound="action"
-            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500"
+            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
             title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
           >
             {darkMode ? <Sun size={12} className="md:w-[18px] md:h-[18px]" /> : <Moon size={12} className="md:w-[18px] md:h-[18px]" />}
@@ -930,7 +930,7 @@ function App() {
               setPhase('login');
             }}
              data-sound="action"
-             className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-all duration-500 hover:rotate-180"
+             className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200 md:hover:rotate-180 md:transition-all md:duration-500"
              title="切换用户"
           >
             <User size={12} className="md:w-[18px] md:h-[18px]" />
@@ -940,10 +940,10 @@ function App() {
 
       {/* 主体：左右分栏记忆流 */}
       <main className="h-screen flex relative overflow-hidden">
-        {/* 主屏背景光团 - 移动端优化：减少模糊和禁用混合模式 */}
-        <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none transition-transform duration-100 ease-out">
-          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[30px] md:blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-60 md:opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
-          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[30px] md:blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-60 md:opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+        {/* 主屏背景光团 - 移动端优化：禁用动画和混合模式 */}
+        <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none md:transition-transform md:duration-100 md:ease-out">
+          <div className={`absolute top-[-20%] left-[-10%] w-[500px] md:w-[700px] h-[500px] md:h-[700px] bg-rose-300/25 md:bg-rose-300/40 dark:bg-rose-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[25px] md:blur-[100px] md:animate-blob pointer-events-none md:transition-opacity md:duration-1000 ${activeTab === UserType.HER ? 'opacity-50 md:opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className={`absolute bottom-[-20%] right-[-10%] w-[500px] md:w-[700px] h-[500px] md:h-[700px] bg-sky-300/25 md:bg-sky-300/40 dark:bg-sky-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[25px] md:blur-[100px] md:animate-blob md:animation-delay-2000 pointer-events-none md:transition-opacity md:duration-1000 ${activeTab === UserType.HIM ? 'opacity-50 md:opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 dark:bg-purple-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
         </div>
         

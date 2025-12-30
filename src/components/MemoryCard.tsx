@@ -178,19 +178,18 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     <div 
       data-sound={isHer ? 'her' : 'him'}
       className={`
-        relative group p-8 mb-12 rounded-3xl border
-        transform-gpu will-change-transform
-        transition-[border-color,box-shadow] duration-300
-        hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:-translate-y-2
+        relative group p-6 md:p-8 mb-8 md:mb-12 rounded-2xl md:rounded-3xl border
+        transform-gpu
+        md:transition-[border-color,box-shadow,transform] md:duration-300
+        md:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] md:dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] md:hover:-translate-y-2
         ${isHer 
-          ? 'bg-white/95 dark:bg-slate-800/95 border-rose-100/50 dark:border-rose-900/50 hover:border-rose-200 dark:hover:border-rose-700' 
-          : 'bg-white/95 dark:bg-slate-800/95 border-sky-100/50 dark:border-sky-900/50 hover:border-sky-200 dark:hover:border-sky-700'
+          ? 'bg-white dark:bg-slate-800 border-rose-100/50 dark:border-rose-900/50 md:hover:border-rose-200 md:dark:hover:border-rose-700' 
+          : 'bg-white dark:bg-slate-800 border-sky-100/50 dark:border-sky-900/50 md:hover:border-sky-200 md:dark:hover:border-sky-700'
         }
-        md:backdrop-blur-md md:bg-white/80 md:dark:bg-slate-800/80
       `}
     >
       {/* Decorative Tape/Pin Effect */}
-      <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-24 h-6 rotate-[-2deg] md:backdrop-blur-md border border-white/60 dark:border-slate-600/60 shadow-sm ${isHer ? 'bg-rose-200/80 dark:bg-rose-800/80 md:bg-rose-200/60' : 'bg-sky-200/80 dark:bg-sky-800/80 md:bg-sky-200/60'}`}></div>
+      <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-24 h-6 rotate-[-2deg] border border-white/60 dark:border-slate-600/60 shadow-sm ${isHer ? 'bg-rose-200/90 dark:bg-rose-800/90' : 'bg-sky-200/90 dark:bg-sky-800/90'}`}></div>
 
       {/* Quote Icon */}
       <div className={`absolute -left-3 top-8 w-8 h-8 rounded-full bg-white dark:bg-slate-700 border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${isHer ? 'text-rose-300 dark:text-rose-400 border-rose-100 dark:border-rose-800' : 'text-sky-300 dark:text-sky-400 border-sky-100 dark:border-sky-800'}`}>
