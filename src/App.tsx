@@ -558,8 +558,8 @@ function App() {
         onClick={handleGlobalClick}
         className="min-h-screen flex items-center justify-center p-6 font-sans relative overflow-hidden bg-gradient-to-br from-rose-100 via-purple-50 to-sky-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 animate-gradient"
       >
-        {/* Dark Mode Toggle */}
-        <button
+        {/* Dark Mode Toggle - Hidden on Login Page */}
+        {/* <button
           onClick={(e) => {
             e.stopPropagation();
             toggleDarkMode();
@@ -568,7 +568,7 @@ function App() {
           title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
         >
           {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-        </button>
+        </button> */}
 
         {/* 底噪纹理遮罩 */}
         <div className="absolute inset-0 opacity-[0.02] dark:opacity-0 pointer-events-none z-0" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }}></div>
@@ -604,20 +604,20 @@ function App() {
              </h1>
              
              <div className="space-y-8 md:pl-4 border-l-0 md:border-l border-slate-200 dark:border-slate-600">
-                <div className="flex flex-col gap-1.5 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-                   <div className="flex items-baseline gap-2 text-rose-500 dark:text-rose-400 mb-1 select-none group">
-                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">在一起已经</span>
-                      <span className="font-display text-4xl leading-none tabular-nums tracking-tight transition-all duration-700 ease-out group-hover:scale-110 group-hover:text-rose-600 dark:group-hover:text-rose-300" style={{ textShadow: '0 4px 12px rgba(244, 63, 94, 0.2)' }}>
+                <div className="flex flex-col gap-1.5 animate-fadeInUp items-center md:items-start" style={{ animationDelay: '0.2s' }}>
+                   <div className="flex items-baseline justify-center md:justify-start gap-2 text-rose-500 dark:text-rose-400 mb-1 select-none group w-full md:w-auto">
+                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100 text-right">在一起已经</span>
+                      <span className="font-display text-4xl leading-none tabular-nums tracking-tight transition-all duration-700 ease-out group-hover:scale-110 group-hover:text-rose-600 dark:group-hover:text-rose-300 min-w-[3ch] text-center" style={{ textShadow: '0 4px 12px rgba(244, 63, 94, 0.2)' }}>
                         {displayDays}
                       </span>
-                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100">天了！</span>
+                      <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100 text-left">天了！</span>
                    </div>
                    <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">婷and宽的</span>
                    <span className="text-slate-400 dark:text-slate-500 text-[10px] font-bold tracking-[0.4em] uppercase">恋爱日记</span>
                 </div>
 
                 <p
-                  className="font-serif text-xl text-slate-600 dark:text-slate-300 italic leading-relaxed opacity-80 cursor-pointer select-none"
+                  className="font-serif text-xl text-slate-600 dark:text-slate-300 italic leading-relaxed opacity-80 cursor-pointer select-none text-center md:text-left"
                   onClick={handleQuoteClick}
                 >
                   {currentQuote.split('\n').map((line, idx) => (
