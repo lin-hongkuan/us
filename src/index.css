@@ -23,6 +23,22 @@
     --color-border: 51 65 85;
     --color-glass: 30 41 59;
   }
+  
+  /* 移动端滚动性能优化 */
+  @media (max-width: 768px) {
+    * {
+      /* 滚动时禁用不必要的动画计算 */
+      scroll-behavior: auto !important;
+    }
+    
+    /* 滚动容器硬件加速 */
+    .no-scrollbar {
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+    }
+  }
 }
 
 /* 工具层：自定义工具类 */

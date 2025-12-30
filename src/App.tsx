@@ -940,10 +940,10 @@ function App() {
 
       {/* 主体：左右分栏记忆流 */}
       <main className="h-screen flex relative overflow-hidden">
-        {/* 主屏背景光团 */}
+        {/* 主屏背景光团 - 移动端优化：减少模糊和禁用混合模式 */}
         <div ref={mainBackgroundRef} className="absolute -inset-[100px] pointer-events-none transition-transform duration-100 ease-out">
-          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
-          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className={`absolute top-[-20%] left-[-10%] w-[700px] h-[700px] bg-rose-300/40 dark:bg-rose-500/20 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[30px] md:blur-[100px] animate-blob pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HER ? 'opacity-60 md:opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
+          <div className={`absolute bottom-[-20%] right-[-10%] w-[700px] h-[700px] bg-sky-300/40 dark:bg-sky-500/20 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[30px] md:blur-[100px] animate-blob animation-delay-2000 pointer-events-none transition-opacity duration-1000 ${activeTab === UserType.HIM ? 'opacity-60 md:opacity-80' : 'opacity-0 md:opacity-80'}`}></div>
           <div className="absolute top-[20%] left-[20%] w-[600px] h-[600px] bg-purple-200/40 dark:bg-purple-500/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-[60px] md:blur-[100px] opacity-60 animate-blob animation-delay-4000 pointer-events-none hidden md:block"></div>
         </div>
         
@@ -976,10 +976,12 @@ function App() {
           onMouseLeave={() => setHoveredSide(null)}
           className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
+            transform-gpu overscroll-contain
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             bg-gradient-to-r from-rose-100/30 dark:from-rose-900/10 via-rose-50/10 dark:via-transparent to-transparent md:bg-none
             ${activeTab === UserType.HER ? 'translate-x-0 block' : '-translate-x-full hidden md:block'}
           `}
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {/* Spacer */}
           <div className="h-48 md:h-32 w-full" />
@@ -1064,10 +1066,12 @@ function App() {
            onMouseLeave={() => setHoveredSide(null)}
            className={`
             flex-1 h-full overflow-y-auto no-scrollbar relative z-10
+            transform-gpu overscroll-contain
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             bg-gradient-to-l from-sky-100/30 dark:from-sky-900/10 via-sky-50/10 dark:via-transparent to-transparent md:bg-none
             ${activeTab === UserType.HIM ? 'translate-x-0 block' : 'translate-x-full hidden md:block'}
           `}
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
            {/* Spacer */}
            <div className="h-48 md:h-32 w-full" />
