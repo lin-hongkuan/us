@@ -819,98 +819,6 @@ function App() {
             >
               <StarIcon size={12} className="md:w-[18px] md:h-[18px] fill-current" />
             </button>
-
-            {isNoticeOpen && (
-              <div className="absolute top-full left-0 mt-4 w-72 p-5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 text-center z-50 animate-fadeInUp">
-                <div className="flex flex-col items-center">
-                  {specialEvent === 'milestone' ? (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
-                      <div className="text-2xl mb-2">🎉</div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
-                        哇！我们已经一起走过{daysTogether}天啦！
-                      </p>
-                      <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
-                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={16} style={{ animationDelay: '0s' }} />
-                        <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={12} style={{ animationDelay: '0.2s' }} />
-                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={20} style={{ animationDelay: '0.4s' }} />
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        未来的每一天也要一起走下去哦 ❤️
-                      </p>
-                    </div>
-                  ) : specialEvent === 'anniversary' ? (
-                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
-                      <div className="text-2xl mb-2">🎂</div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
-                        今天是我们的纪念日！
-                      </p>
-                      <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
-                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={16} style={{ animationDelay: '0s' }} />
-                        <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={12} style={{ animationDelay: '0.2s' }} />
-                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={20} style={{ animationDelay: '0.4s' }} />
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        爱你的每一天 ❤️
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      {noticeStep === 'question' && (
-                        <>
-                          <div className="text-2xl mb-2">✨</div>
-                          <p className="text-sm text-slate-600 dark:text-slate-300 font-medium mb-4">
-                            婷婷你今天想我了没
-                          </p>
-                          <div className="flex gap-2 w-full">
-                            <button
-                              onClick={() => setNoticeStep('yes')}
-                              className="flex-1 py-2 px-3 bg-rose-500 hover:bg-rose-600 text-white text-xs rounded-lg font-medium transition-colors active:scale-95"
-                            >
-                              想你了
-                            </button>
-                            <button
-                              onClick={() => setNoticeStep('no')}
-                              className="flex-1 py-2 px-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs rounded-lg font-medium transition-colors active:scale-95"
-                            >
-                              不想你
-                            </button>
-                          </div>
-                        </>
-                      )}
-
-                      {noticeStep === 'yes' && (
-                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
-                          <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
-                            <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={16} style={{ animationDelay: '0s' }} />
-                            <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={12} style={{ animationDelay: '0.2s' }} />
-                            <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={20} style={{ animationDelay: '0.4s' }} />
-                          </div>
-                          <p className="text-base text-rose-500 font-bold mb-1 animate-bounce">太好了 ❤️</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-300">
-                            我也想婷婷
-                          </p>
-                        </div>
-                      )}
-
-                      {noticeStep === 'no' && (
-                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 w-full">
-                          <div className="flex justify-center mb-2 animate-shake text-slate-400 dark:text-slate-500">
-                            <Frown size={32} />
-                          </div>
-                          <p className="text-base text-slate-500 font-medium mb-1">💔</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-300">
-                            呜呜呜婷婷你居然不想我
-                          </p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-
-                {/* Speech bubble triangle */}
-                <div className="absolute -top-2 left-4 w-4 h-4 bg-white dark:bg-slate-800 transform rotate-45 border-t border-l border-slate-100 dark:border-slate-700"></div>
-              </div>
-            )}
           </div>
 
           {/* Update Notification Button 更新公告*/}
@@ -925,32 +833,6 @@ function App() {
             >
               <span className="text-xs md:text-lg">🔔</span>
             </button>
-
-            {showUpdate && (
-              <div 
-                className="absolute top-full left-0 mt-4 w-80 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 dark:border-slate-700/50 p-6 animate-in fade-in slide-in-from-top-4 duration-300 z-50 text-left"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">更新公告</h3>
-                    <span className="text-xs font-mono text-rose-500 bg-rose-100 dark:bg-rose-900/30 px-1.5 py-0.5 rounded">{APP_UPDATE.version}</span>
-                  </div>
-                  <span className="text-xs text-slate-400">{APP_UPDATE.date}</span>
-                </div>
-                
-                <div className="space-y-3">
-                  {APP_UPDATE.content.map((item, index) => (
-                    <p key={index} className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                      {item}
-                    </p>
-                  ))}
-                </div>
-
-                {/* Arrow */}
-                <div className="absolute -top-2 left-4 w-4 h-4 bg-white/90 dark:bg-slate-800/90 border-t border-l border-white/50 dark:border-slate-700/50 transform rotate-45"></div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -1274,6 +1156,144 @@ function App() {
       {/* Piggy Bank Feature */}
       {phase === 'main' && (
         <PiggyBank count={memories.length} />
+      )}
+
+      {/* Notice Modal */}
+      {isNoticeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsNoticeOpen(false)} />
+          <div className="relative bg-white dark:bg-slate-800 rounded-3xl p-6 w-full max-w-sm mx-auto shadow-2xl animate-popIn border border-white/50 dark:border-slate-700/50 text-center">
+            <button 
+              onClick={() => setIsNoticeOpen(false)} 
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="flex flex-col items-center pt-2">
+              {specialEvent === 'milestone' ? (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
+                  <div className="text-4xl mb-4">🎉</div>
+                  <p className="text-lg text-slate-700 dark:text-slate-200 font-bold mb-2">
+                    哇！我们已经一起走过{daysTogether}天啦！
+                  </p>
+                  <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
+                    <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={24} style={{ animationDelay: '0s' }} />
+                    <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={16} style={{ animationDelay: '0.2s' }} />
+                    <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={32} style={{ animationDelay: '0.4s' }} />
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    未来的每一天也要一起走下去哦 ❤️
+                  </p>
+                </div>
+              ) : specialEvent === 'anniversary' ? (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
+                  <div className="text-4xl mb-4">🎂</div>
+                  <p className="text-lg text-slate-700 dark:text-slate-200 font-bold mb-2">
+                    今天是我们的纪念日！
+                  </p>
+                  <div className="absolute -top-12 left-0 right-0 flex justify-center gap-4 pointer-events-none">
+                    <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={24} style={{ animationDelay: '0s' }} />
+                    <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={16} style={{ animationDelay: '0.2s' }} />
+                    <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={32} style={{ animationDelay: '0.4s' }} />
+                  </div>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    爱你的每一天 ❤️
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {noticeStep === 'question' && (
+                    <>
+                      <div className="text-4xl mb-4">✨</div>
+                      <p className="text-lg text-slate-700 dark:text-slate-200 font-bold mb-6">
+                        婷婷你今天想我了没
+                      </p>
+                      <div className="flex gap-3 w-full">
+                        <button
+                          onClick={() => setNoticeStep('yes')}
+                          className="flex-1 py-3 px-4 bg-rose-500 hover:bg-rose-600 text-white text-sm rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-rose-500/30"
+                        >
+                          想你了
+                        </button>
+                        <button
+                          onClick={() => setNoticeStep('no')}
+                          className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-sm rounded-xl font-bold transition-all active:scale-95"
+                        >
+                          不想你
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {noticeStep === 'yes' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 relative w-full">
+                      <div className="absolute -top-16 left-0 right-0 flex justify-center gap-4 pointer-events-none">
+                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={24} style={{ animationDelay: '0s' }} />
+                        <Heart className="text-rose-400 fill-rose-400 animate-float-up" size={16} style={{ animationDelay: '0.2s' }} />
+                        <Heart className="text-rose-500 fill-rose-500 animate-float-up" size={32} style={{ animationDelay: '0.4s' }} />
+                      </div>
+                      <p className="text-xl text-rose-500 font-bold mb-2 animate-bounce">太好了 ❤️</p>
+                      <p className="text-base text-slate-600 dark:text-slate-300">
+                        我也想婷婷
+                      </p>
+                    </div>
+                  )}
+
+                  {noticeStep === 'no' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 w-full">
+                      <div className="flex justify-center mb-4 animate-shake text-slate-400 dark:text-slate-500">
+                        <Frown size={48} />
+                      </div>
+                      <p className="text-lg text-slate-500 font-bold mb-2">💔</p>
+                      <p className="text-base text-slate-600 dark:text-slate-300">
+                        呜呜呜婷婷你居然不想我
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Notification Modal */}
+      {showUpdate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setShowUpdate(false)} />
+          <div className="relative bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl rounded-3xl p-6 w-full max-w-sm mx-auto shadow-2xl animate-popIn border border-white/50 dark:border-slate-700/50 max-h-[80vh] overflow-y-auto">
+            <button 
+              onClick={() => setShowUpdate(false)} 
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center justify-between mb-6 pr-8">
+              <div className="flex items-baseline gap-2">
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">更新公告</h3>
+                <span className="text-xs font-mono text-rose-500 bg-rose-100 dark:bg-rose-900/30 px-2 py-1 rounded-md font-bold">{APP_UPDATE.version}</span>
+              </div>
+              <span className="text-xs text-slate-400">{APP_UPDATE.date}</span>
+            </div>
+            
+            <div className="space-y-4">
+              {APP_UPDATE.content.map((item, index) => (
+                <div key={index} className="flex gap-3 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <span className="text-rose-400 mt-1">•</span>
+                  <p>{item}</p>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-8 pt-4 border-t border-slate-100 dark:border-slate-700 text-center">
+              <p className="text-xs text-slate-400">
+                超级无敌喜欢婷婷 ❤️
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Wax Seal Animation */}
