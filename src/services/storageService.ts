@@ -274,50 +274,19 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   }
 };
 
-// ==========================================
-// 内存缓存层 - 减少重复请求
-// ==========================================
-
-/** 内存缓存 */
-let memoriesCache: Memory[] | null = null;
-/** 缓存时间戳 */
-let cacheTimestamp: number = 0;
-/** 缓存有效期（5分钟） */
-const CACHE_TTL = 5 * 60 * 1000;
-
-/** 清除缓存 */
-const invalidateCache = () => {
-  memoriesCache = null;
-  cacheTimestamp = 0;
-};
-
-/** 检查缓存是否有效 */
-const isCacheValid = () => {
-  return memoriesCache !== null && (Date.now() - cacheTimestamp) < CACHE_TTL;
-};
-
 /**
  * 获取所有记忆
  * 从Supabase或localStorage回退获取记忆列表
- * 使用内存缓存减少重复请求
  *
  * @returns Promise解析为记忆数组
  */
 export const getMemories = async (): Promise<Memory[]> => {
-  // 如果缓存有效，直接返回缓存
-  if (isCacheValid()) {
-    return memoriesCache!;
-  }
-
   // Fallback to Local Storage if Supabase is not configured
   if (!supabase) {
     console.warn("Supabase not configured. Using Local Storage.");
     // Simulate async delay slightly for consistent UX
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const localData = getLocalMemories();
-    memoriesCache = localData;
-    cacheTimestamp = Date.now();
-    return localData;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return getLocalMemories();
   }
 
   try {
@@ -327,11 +296,7 @@ export const getMemories = async (): Promise<Memory[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    const memories = (data || []).map(mapRowToMemory);
-    // 更新缓存
-    memoriesCache = memories;
-    cacheTimestamp = Date.now();
-    return memories;
+    return (data || []).map(mapRowToMemory);
   } catch (e) {
     console.error("Failed to load memories from cloud", e);
     return [];
@@ -346,9 +311,6 @@ export const getMemories = async (): Promise<Memory[]> => {
  * @returns Promise解析为创建的记忆或失败时为null
  */
 export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> => {
-  // 保存新记忆后失效缓存
-  invalidateCache();
-  
   const newEntryBase = {
     content: dto.content,
     author: dto.author,
@@ -400,9 +362,6 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
  * @returns Promise解析为更新后的记忆或失败时为null
  */
 export const updateMemory = async (id: string, content: string, imageUrls?: string[] | null): Promise<Memory | null> => {
-  // 更新记忆后失效缓存
-  invalidateCache();
-  
   // Fallback to Local Storage
   if (!supabase) {
     const current = getLocalMemories();
@@ -460,9 +419,6 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
  * @returns Promise解析为成功布尔值
  */
 export const deleteMemory = async (id: string): Promise<boolean> => {
-  // 删除记忆后失效缓存
-  invalidateCache();
-  
   // Fallback to Local Storage
   if (!supabase) {
     const current = getLocalMemories();

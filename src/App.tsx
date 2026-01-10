@@ -1,13 +1,12 @@
-import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './types';
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
 import { TypewriterText } from './components/TypewriterText';
 import { PiggyBank } from './components/PiggyBank';
-// 懒加载大型组件 - 用户不一定会使用这些功能
-const GravityMode = lazy(() => import('./components/GravityMode').then(m => ({ default: m.GravityMode })));
-const Game2048 = lazy(() => import('./components/Game2048').then(m => ({ default: m.Game2048 })));
+import { GravityMode } from './components/GravityMode';
+import { Game2048 } from './components/Game2048';
 import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown, Sparkles } from 'lucide-react';
 
 // 定义点击星星的特效接口
@@ -1243,26 +1242,14 @@ function App() {
         </div>
       )}
 
-      {/* Gravity Mode - 懒加载 */}
+      {/* Gravity Mode */}
       {isGravityMode && (
-        <Suspense fallback={
-          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-            <Loader2 className="animate-spin text-white" size={48} />
-          </div>
-        }>
-          <GravityMode memories={memories} onClose={() => setIsGravityMode(false)} />
-        </Suspense>
+        <GravityMode memories={memories} onClose={() => setIsGravityMode(false)} />
       )}
 
-      {/* 2048 Game - 懒加载 */}
+      {/* 2048 Game */}
       {isGame2048Open && (
-        <Suspense fallback={
-          <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center">
-            <Loader2 className="animate-spin text-white" size={48} />
-          </div>
-        }>
-          <Game2048 onClose={() => setIsGame2048Open(false)} />
-        </Suspense>
+        <Game2048 onClose={() => setIsGame2048Open(false)} />
       )}
 
       {/* Piggy Bank Feature */}

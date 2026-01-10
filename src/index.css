@@ -24,20 +24,6 @@
     --color-glass: 30 41 59;
   }
   
-  /* 全局性能优化 */
-  html {
-    /* 启用硬件加速 */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-  
-  /* 减少重绘的滚动容器 */
-  .no-scrollbar {
-    contain: strict;
-    content-visibility: auto;
-  }
-  
   /* 移动端全局性能优化 */
   @media (max-width: 768px) {
     * {
@@ -76,23 +62,6 @@
     /* 移动端简化背景移动动画 */
     .animate-moveBackground {
       animation-duration: 120s !important;
-    }
-    
-    /* 移动端禁用不必要的动画以提升性能 */
-    .animate-gradient {
-      animation: none !important;
-      background-size: 100% 100% !important;
-    }
-  }
-  
-  /* 用户偏好减少动画时禁用所有动画 */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
     }
   }
 }
