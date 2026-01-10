@@ -5,12 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#fff1f2">
+    <meta name="description" content="Us - 共享记忆日记，记录我们的美好时光">
     <title>Us - Our Memories</title>
     <link rel="icon" type="image/png" href="icon.png">
+    <!-- DNS 预解析 -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="dns-prefetch" href="https://uiczraluplwdupdigkar.supabase.co">
+    <!-- 预连接关键域名 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&family=Skranji:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 字体加载优化：使用 display=swap 确保文字可见 -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&family=Skranji:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <!-- 字体加载失败时的回退 -->
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&family=Skranji:wght@400;700&display=swap" rel="stylesheet">
+    </noscript>
     <style>
+      /* 关键 CSS 内联 - 首屏加载优化 */
+      html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: linear-gradient(135deg, #ffe4e6 0%, #faf5ff 50%, #e0f2fe 100%);
+        min-height: 100vh;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      /* 加载占位符 */
+      .loading-placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-size: 3rem;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 1; }
+      }
       /* Hide scrollbar for clean look */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
@@ -20,14 +59,12 @@
         scrollbar-width: none;
       }
     </style>
-    <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-      alert('Error: ' + message + '\nSource: ' + source + '\nLine: ' + lineno);
-    };
-  </script>
   <script type="module" src="/src/index.tsx"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- 加载占位符，React 挂载后会被替换 -->
+      <div class="loading-placeholder">💕</div>
+    </div>
   </body>
 </html>
