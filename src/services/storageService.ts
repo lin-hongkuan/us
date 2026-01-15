@@ -13,10 +13,24 @@
  * - 记忆CRUD操作（创建、读取、更新、删除）
  * - 演示用途的自动数据种子填充
  * - 数据库和应用模型之间的类型安全数据映射
+ * - 【优化】三层缓存策略：内存 > IndexedDB > 云端
+ * - 【优化】Cache-First 加载策略，毫秒级响应
  */
 
 import { createClient } from '@supabase/supabase-js';
 import { Memory, UserType, CreateMemoryDTO } from '../types';
+import {
+  getMemoryCache,
+  setMemoryCache,
+  clearMemoryCache,
+  getIndexedDBMemories,
+  setIndexedDBMemories,
+  addToIndexedDB,
+  removeFromIndexedDB,
+  updateInIndexedDB,
+  notifyCacheUpdate,
+  preloadImages,
+} from './cacheService';
 
 // ==========================================
 // SUPABASE配置
@@ -276,19 +290,47 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
 
 /**
  * 获取所有记忆
- * 从Supabase或localStorage回退获取记忆列表
+ * 【优化】Cache-First 策略：
+ * 1. 优先返回内存缓存（毫秒级）
+ * 2. 其次返回 IndexedDB 缓存（10ms级）
+ * 3. 后台静默从云端同步最新数据
  *
  * @returns Promise解析为记忆数组
  */
 export const getMemories = async (): Promise<Memory[]> => {
-  // Fallback to Local Storage if Supabase is not configured
-  if (!supabase) {
-    console.warn("Supabase not configured. Using Local Storage.");
-    // Simulate async delay slightly for consistent UX
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return getLocalMemories();
+  // 1. 尝试从内存缓存获取（最快）
+  const memoryCached = getMemoryCache();
+  if (memoryCached && memoryCached.length > 0) {
+    // 后台静默同步云端数据
+    syncFromCloudInBackground();
+    return memoryCached;
   }
 
+  // 2. 尝试从 IndexedDB 获取（次快）
+  const indexedDBCached = await getIndexedDBMemories();
+  if (indexedDBCached && indexedDBCached.length > 0) {
+    // 更新内存缓存
+    setMemoryCache(indexedDBCached);
+    // 预加载图片
+    const imageUrls = indexedDBCached.flatMap(m => m.imageUrls || (m.imageUrl ? [m.imageUrl] : []));
+    preloadImages(imageUrls);
+    // 后台静默同步云端数据
+    syncFromCloudInBackground();
+    return indexedDBCached;
+  }
+
+  // 3. Fallback to Local Storage if Supabase is not configured
+  if (!supabase) {
+    console.warn("Supabase not configured. Using Local Storage.");
+    const localMemories = getLocalMemories();
+    if (localMemories.length > 0) {
+      setMemoryCache(localMemories);
+      await setIndexedDBMemories(localMemories);
+    }
+    return localMemories;
+  }
+
+  // 4. 从云端获取（首次加载或缓存为空）
   try {
     const { data, error } = await supabase
       .from('memories')
@@ -296,7 +338,18 @@ export const getMemories = async (): Promise<Memory[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []).map(mapRowToMemory);
+    
+    const memories = (data || []).map(mapRowToMemory);
+    
+    // 更新所有缓存层
+    setMemoryCache(memories);
+    await setIndexedDBMemories(memories);
+    
+    // 预加载图片
+    const imageUrls = memories.flatMap(m => m.imageUrls || (m.imageUrl ? [m.imageUrl] : []));
+    preloadImages(imageUrls);
+    
+    return memories;
   } catch (e) {
     console.error("Failed to load memories from cloud", e);
     return [];
@@ -304,8 +357,70 @@ export const getMemories = async (): Promise<Memory[]> => {
 };
 
 /**
+ * 后台静默同步云端数据
+ * 不阻塞 UI，同步完成后通过事件通知更新
+ */
+let isSyncing = false;
+const SYNC_TIMEOUT = 3000; // 3秒超时
+
+const syncFromCloudInBackground = async (): Promise<void> => {
+  if (isSyncing || !supabase) return;
+  
+  isSyncing = true;
+  
+  try {
+    // 使用 AbortController 实现超时
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SYNC_TIMEOUT);
+    
+    const { data, error } = await supabase
+      .from('memories')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .abortSignal(controller.signal);
+    
+    clearTimeout(timeoutId);
+    
+    if (error) {
+      // 检查是否是超时取消的请求
+      if ((error as any).name !== 'AbortError' && error.message !== 'AbortError') {
+        console.warn('Background sync failed:', error);
+      }
+      return;
+    }
+    
+    const cloudMemories = (data || []).map(mapRowToMemory);
+    const cachedMemories = getMemoryCache();
+    
+    // 检查数据是否有变化（简单比较长度和最新记录的时间戳）
+    const hasChanges = !cachedMemories || 
+      cachedMemories.length !== cloudMemories.length ||
+      (cachedMemories[0]?.createdAt !== cloudMemories[0]?.createdAt);
+    
+    if (hasChanges) {
+      // 更新缓存
+      setMemoryCache(cloudMemories);
+      await setIndexedDBMemories(cloudMemories);
+      
+      // 触发 UI 更新事件
+      notifyCacheUpdate(cloudMemories);
+      
+      // 预加载新图片
+      const imageUrls = cloudMemories.flatMap(m => m.imageUrls || (m.imageUrl ? [m.imageUrl] : []));
+      preloadImages(imageUrls);
+    }
+  } catch (e) {
+    // 静默失败，不影响用户体验
+    console.warn('Background sync error:', e);
+  } finally {
+    isSyncing = false;
+  }
+};
+
+/**
  * 保存新记忆
  * 创建新的记忆条目并保存到Supabase或localStorage
+ * 【优化】同时更新所有缓存层
  *
  * @param dto - 创建记忆的数据传输对象
  * @returns Promise解析为创建的记忆或失败时为null
@@ -322,7 +437,6 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
 
   // Fallback to Local Storage
   if (!supabase) {
-    await new Promise(resolve => setTimeout(resolve, 500));
     const newMemory: Memory = {
       id: crypto.randomUUID(),
       content: dto.content,
@@ -333,6 +447,12 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
     };
     const current = getLocalMemories();
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([newMemory, ...current]));
+    
+    // 【优化】更新缓存
+    const updatedMemories = [newMemory, ...current];
+    setMemoryCache(updatedMemories);
+    await addToIndexedDB(newMemory);
+    
     return newMemory;
   }
 
@@ -344,7 +464,16 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
       .single();
 
     if (error) throw error;
-    return mapRowToMemory(data);
+    
+    const newMemory = mapRowToMemory(data);
+    
+    // 【优化】更新缓存
+    const cachedMemories = getMemoryCache() || [];
+    const updatedMemories = [newMemory, ...cachedMemories];
+    setMemoryCache(updatedMemories);
+    await addToIndexedDB(newMemory);
+    
+    return newMemory;
   } catch (e: any) {
     console.error("Failed to save memory to cloud", e);
     alert(`保存失败: ${e.message || "请检查网络"}`);
@@ -355,6 +484,7 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
 /**
  * 更新现有记忆
  * 修改记忆内容和/或图片
+ * 【优化】同时更新所有缓存层
  *
  * @param id - 要更新的记忆ID
  * @param content - 新内容
@@ -377,6 +507,11 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
         current[index].imageUrl = imageUrls[0];
       }
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
+      
+      // 【优化】更新缓存
+      setMemoryCache(current);
+      await updateInIndexedDB(current[index]);
+      
       return current[index];
     }
     return null;
@@ -404,7 +539,15 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
       return null;
     }
 
-    return mapRowToMemory(data[0]);
+    const updatedMemory = mapRowToMemory(data[0]);
+    
+    // 【优化】更新缓存
+    const cachedMemories = getMemoryCache() || [];
+    const updatedMemories = cachedMemories.map(m => m.id === id ? updatedMemory : m);
+    setMemoryCache(updatedMemories);
+    await updateInIndexedDB(updatedMemory);
+    
+    return updatedMemory;
   } catch (e) {
     console.error("Failed to update memory", e);
     return null;
@@ -414,6 +557,7 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
 /**
  * 删除记忆
  * 从Supabase或localStorage中删除指定的记忆
+ * 【优化】同时更新所有缓存层
  *
  * @param id - 要删除的记忆ID
  * @returns Promise解析为成功布尔值
@@ -424,6 +568,11 @@ export const deleteMemory = async (id: string): Promise<boolean> => {
     const current = getLocalMemories();
     const updated = current.filter(m => m.id !== id);
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
+    
+    // 【优化】更新缓存
+    setMemoryCache(updated);
+    await removeFromIndexedDB(id);
+    
     return true;
   }
 
@@ -434,6 +583,13 @@ export const deleteMemory = async (id: string): Promise<boolean> => {
       .eq('id', id);
 
     if (error) throw error;
+    
+    // 【优化】更新缓存
+    const cachedMemories = getMemoryCache() || [];
+    const updatedMemories = cachedMemories.filter(m => m.id !== id);
+    setMemoryCache(updatedMemories);
+    await removeFromIndexedDB(id);
+    
     return true;
   } catch (e) {
     console.error("Failed to delete memory", e);

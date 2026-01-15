@@ -7,10 +7,129 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Us - Our Memories</title>
     <link rel="icon" type="image/png" href="icon.png">
+    
+    <!-- 【优化】DNS 预解析 - 提前解析域名，减少连接延迟 -->
+    <link rel="dns-prefetch" href="https://uiczraluplwdupdigkar.supabase.co">
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    
+    <!-- 【优化】预连接关键资源 - 提前建立连接 -->
+    <link rel="preconnect" href="https://uiczraluplwdupdigkar.supabase.co" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&family=Skranji:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- 【优化】字体异步加载 - 使用 display=swap 不阻塞渲染 -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&family=Skranji:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&family=Skranji:wght@400;700&display=swap" rel="stylesheet">
+    </noscript>
+    
     <style>
+      /* 【优化】关键 CSS 内联 - 首屏立即渲染 */
+      
+      /* 基础重置 */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      
+      html { 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      body {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #fff1f2 0%, #fce7f3 50%, #fbcfe8 100%);
+      }
+      
+      /* 深色模式 */
+      html.dark body {
+        background: linear-gradient(135deg, #1f1f23 0%, #2d2d35 50%, #1a1a1e 100%);
+      }
+      
+      #root {
+        min-height: 100vh;
+      }
+      
+      /* 【优化】首屏骨架屏 - 在 JS 加载前显示 */
+      .skeleton-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 2rem;
+        animation: fadeIn 0.3s ease-out;
+      }
+      
+      .skeleton-heart {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
+        position: relative;
+        transform: rotate(-45deg);
+        animation: heartbeat 1.2s ease-in-out infinite;
+        border-radius: 10px;
+      }
+      
+      .skeleton-heart::before,
+      .skeleton-heart::after {
+        content: '';
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #fda4af 0%, #fb7185 100%);
+        border-radius: 50%;
+      }
+      
+      .skeleton-heart::before {
+        top: -40px;
+        left: 0;
+      }
+      
+      .skeleton-heart::after {
+        top: 0;
+        left: 40px;
+      }
+      
+      html.dark .skeleton-heart,
+      html.dark .skeleton-heart::before,
+      html.dark .skeleton-heart::after {
+        background: linear-gradient(135deg, #be185d 0%, #9d174d 100%);
+      }
+      
+      .skeleton-text {
+        margin-top: 2rem;
+        font-size: 1.125rem;
+        color: #9ca3af;
+        text-align: center;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      
+      html.dark .skeleton-text {
+        color: #6b7280;
+      }
+      
+      @keyframes heartbeat {
+        0%, 100% { transform: rotate(-45deg) scale(1); }
+        50% { transform: rotate(-45deg) scale(1.1); }
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      
+      /* shimmer 效果 */
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+      
       /* Hide scrollbar for clean look */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
@@ -19,15 +138,62 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+      
+      /* 隐藏骨架屏（应用加载后） */
+      #root:not(:empty) + .skeleton-loader,
+      #root:not(:empty) ~ .skeleton-loader {
+        display: none;
+      }
     </style>
+    
+    <!-- 【优化】提前加载深色模式设置，避免闪烁 -->
     <script>
-    window.onerror = function(message, source, lineno, colno, error) {
-      alert('Error: ' + message + '\nSource: ' + source + '\nLine: ' + lineno);
-    };
-  </script>
-  <script type="module" src="/src/index.tsx"></script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('dark_mode');
+          var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (stored === 'true' || (stored === null && prefersDark)) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- 【优化】首屏骨架屏 - 在 React 加载前显示爱心动画 -->
+    <div class="skeleton-loader" id="skeleton">
+      <div class="skeleton-heart"></div>
+      <p class="skeleton-text">正在加载美好回忆...</p>
+    </div>
+    
+    <!-- 移除骨架屏的脚本 -->
+    <script>
+      // 当 React 渲染内容后，移除骨架屏
+      var observer = new MutationObserver(function(mutations) {
+        var root = document.getElementById('root');
+        if (root && root.children.length > 0) {
+          var skeleton = document.getElementById('skeleton');
+          if (skeleton) {
+            skeleton.style.opacity = '0';
+            skeleton.style.transition = 'opacity 0.3s ease-out';
+            setTimeout(function() {
+              skeleton.remove();
+            }, 300);
+          }
+          observer.disconnect();
+        }
+      });
+      observer.observe(document.getElementById('root'), { childList: true });
+      
+      // 5秒后强制移除骨架屏（防止卡住）
+      setTimeout(function() {
+        var skeleton = document.getElementById('skeleton');
+        if (skeleton) skeleton.remove();
+      }, 5000);
+    </script>
+    
+    <script type="module" src="/src/index.tsx"></script>
   </body>
 </html>

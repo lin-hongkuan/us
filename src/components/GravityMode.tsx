@@ -16,7 +16,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import Matter from 'matter-js';
+import * as Matter from 'matter-js';
 import { Memory, UserType, getAvatar } from '../types';
 
 import { format } from 'date-fns';

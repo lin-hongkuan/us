@@ -1,13 +1,26 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './types';
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
+import { subscribeToCacheUpdates } from './services/cacheService';
 import { MemoryCard } from './components/MemoryCard';
 import { Composer } from './components/Composer';
 import { TypewriterText } from './components/TypewriterText';
-import { PiggyBank } from './components/PiggyBank';
-import { GravityMode } from './components/GravityMode';
-import { Game2048 } from './components/Game2048';
 import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown, Sparkles } from 'lucide-react';
+
+// 【优化】懒加载不常用的彩蛋组件
+const PiggyBank = lazy(() => import('./components/PiggyBank').then(m => ({ default: m.PiggyBank })));
+const GravityMode = lazy(() => import('./components/GravityMode').then(m => ({ default: m.GravityMode })));
+const Game2048 = lazy(() => import('./components/Game2048').then(m => ({ default: m.Game2048 })));
+
+// 懒加载组件的 Loading 占位
+const LazyLoadingFallback = () => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="w-8 h-8 animate-spin text-rose-400" />
+      <span className="text-white/80 text-sm">加载中...</span>
+    </div>
+  </div>
+);
 
 // 定义点击星星的特效接口
 interface Star {
@@ -477,6 +490,15 @@ function App() {
       setIsLoading(false);
     };
     fetchData();
+    
+    // 【优化】订阅缓存更新事件，后台同步数据时自动更新 UI
+    const unsubscribe = subscribeToCacheUpdates((updatedMemories) => {
+      setMemories(updatedMemories);
+    });
+    
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // 滚动节流标志
@@ -1242,19 +1264,25 @@ function App() {
         </div>
       )}
 
-      {/* Gravity Mode */}
+      {/* Gravity Mode - 懒加载 */}
       {isGravityMode && (
-        <GravityMode memories={memories} onClose={() => setIsGravityMode(false)} />
+        <Suspense fallback={<LazyLoadingFallback />}>
+          <GravityMode memories={memories} onClose={() => setIsGravityMode(false)} />
+        </Suspense>
       )}
 
-      {/* 2048 Game */}
+      {/* 2048 Game - 懒加载 */}
       {isGame2048Open && (
-        <Game2048 onClose={() => setIsGame2048Open(false)} />
+        <Suspense fallback={<LazyLoadingFallback />}>
+          <Game2048 onClose={() => setIsGame2048Open(false)} />
+        </Suspense>
       )}
 
-      {/* Piggy Bank Feature */}
+      {/* Piggy Bank Feature - 懒加载 */}
       {phase === 'main' && (
-        <PiggyBank count={memories.length} />
+        <Suspense fallback={null}>
+          <PiggyBank count={memories.length} />
+        </Suspense>
       )}
 
       {/* Notice Modal */}
