@@ -4,6 +4,7 @@ import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } 
 import { subscribeToCacheUpdates } from './services/cacheService';
 import { MemoryCard } from './components/MemoryCard';
 import { TypewriterText } from './components/TypewriterText';
+import { PresenceIndicator } from './components/PresenceIndicator';
 import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown, Sparkles } from 'lucide-react';
 
 // 【优化】懒加载模态框/弹窗组件 - 只在用户交互时才需要
@@ -1287,6 +1288,11 @@ function App() {
         <Suspense fallback={null}>
           <PiggyBank count={memories.length} />
         </Suspense>
+      )}
+
+      {/* 双人在线状态指示器 - 当对方也在线时显示甜蜜提示 */}
+      {phase === 'main' && (
+        <PresenceIndicator currentUser={currentUser} darkMode={darkMode} />
       )}
 
       {/* Notice Modal */}
