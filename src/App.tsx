@@ -3,9 +3,11 @@ import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './type
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
 import { subscribeToCacheUpdates } from './services/cacheService';
 import { MemoryCard } from './components/MemoryCard';
-import { Composer } from './components/Composer';
 import { TypewriterText } from './components/TypewriterText';
 import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown, Sparkles } from 'lucide-react';
+
+// 【优化】懒加载模态框/弹窗组件 - 只在用户交互时才需要
+const Composer = lazy(() => import('./components/Composer').then(m => ({ default: m.Composer })));
 
 // 【优化】懒加载不常用的彩蛋组件
 const PiggyBank = lazy(() => import('./components/PiggyBank').then(m => ({ default: m.PiggyBank })));
@@ -1217,13 +1219,15 @@ function App() {
         </div>
       </main>
 
-      {/* Composer Modal */}
+      {/* Composer Modal - 懒加载 */}
       {isComposerOpen && (
-        <Composer 
-          currentUser={currentUser} 
-          onSave={handleSave} 
-          onClose={() => setIsComposerOpen(false)} 
-        />
+        <Suspense fallback={<LazyLoadingFallback />}>
+          <Composer 
+            currentUser={currentUser} 
+            onSave={handleSave} 
+            onClose={() => setIsComposerOpen(false)} 
+          />
+        </Suspense>
       )}
 
       {/* Click Stars Effect */}

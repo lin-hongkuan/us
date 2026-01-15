@@ -24,6 +24,17 @@
     --color-glass: 30 41 59;
   }
   
+  /* 性能优化：用户偏好减少动画时禁用所有动画 */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  
   /* 移动端全局性能优化 */
   @media (max-width: 768px) {
     * {
@@ -62,6 +73,37 @@
     /* 移动端简化背景移动动画 */
     .animate-moveBackground {
       animation-duration: 120s !important;
+    }
+    
+    /* 移动端禁用复杂渐变动画以节省性能 */
+    .animate-gradient {
+      animation-duration: 20s !important;
+    }
+    
+    /* 移动端减少星星闪烁动画的复杂度 */
+    .twinkle-star {
+      animation-duration: 24s !important;
+      filter: none !important;
+    }
+  }
+  
+  /* 低端设备/电池节省模式优化 */
+  @media (max-width: 480px) {
+    /* 极低端设备完全禁用 blob 背景动画 */
+    .animate-blob {
+      animation: none !important;
+      transform: translate3d(0, 0, 0) !important;
+    }
+    
+    /* 简化浮动动画 */
+    .animate-float {
+      animation-duration: 10s !important;
+    }
+    
+    /* 完全禁用星星闪烁 */
+    .twinkle-star {
+      animation: none !important;
+      opacity: 0.3 !important;
     }
   }
 }

@@ -20,7 +20,6 @@ import { createPortal } from 'react-dom';
 import { Memory, UserType, getAvatar } from '../types';
 import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash, Download, Maximize2 } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
-import { LazyImage } from './LazyImage';
 
 /**
  * 记忆卡片组件的属性接口
@@ -197,26 +196,26 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
         <Quote size={12} fill="currentColor" className="opacity-60 rotate-180" />
       </div>
 
-      {/* Content */}
+      {/* Content 照片预览逻辑*/}
+      
       <div className="relative z-10">
         {/* Image Display Area */}
         {displayImages.length > 0 && (
           <div className="mb-4">
-            {/* Main Preview Image - 使用懒加载组件 */}
+            {/* Main Preview Image */}
             <div className="relative rounded-xl overflow-hidden group/image mb-2">
-              <LazyImage 
+              <img 
                 src={displayImages[mainPreviewIndex].url} 
                 alt={`Memory Main`} 
                 className={`w-full object-cover transition-all duration-300 cursor-pointer ${
-                  isImageExpanded ? 'max-h-[70vh]' : 'max-h-64'
+                  isImageExpanded ? 'max-h-[75vh]' : 'max-h-64'
                 }`}
-                height={isImageExpanded ? '70vh' : '256px'}
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   if (!isEditing) {
                     setIsImageExpanded(!isImageExpanded);
                   }
                 }}
-                showSkeleton={true}
               />
               
               {/* Full Screen Button (Top Right) */}
@@ -276,7 +275,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
               )}
             </div>
 
-            {/* Thumbnails List (if more than 1 image) - 使用懒加载 */}
+            {/* Thumbnails List (if more than 1 image) */}
             {displayImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {displayImages.map((img, index) => (
@@ -293,14 +292,10 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                         : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <LazyImage 
+                    <img 
                       src={img.url} 
                       alt={`Thumbnail ${index + 1}`} 
                       className="w-full h-full object-cover"
-                      width={64}
-                      height={64}
-                      threshold={100}
-                      showSkeleton={true}
                     />
                   </button>
                 ))}
