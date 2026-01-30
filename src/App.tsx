@@ -1,3 +1,12 @@
+/**
+ * App.tsx - 共享记忆日记主应用
+ *
+ * 结构说明：
+ * - 三阶段：login（选身份）→ transition（过渡动画）→ main（双栏时间轴）
+ * - 登录页：纪念日计数、情话轮播、她/他选择；主界面：左右分栏记忆流、Header、弹窗与彩蛋
+ * - 性能：Header 显隐用 ref 不触发重渲染；记忆列表项 content-visibility；彩蛋/弹窗懒加载
+ */
+
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './types';
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
@@ -7,15 +16,13 @@ import { TypewriterText } from './components/TypewriterText';
 import { PresenceIndicator } from './components/PresenceIndicator';
 import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown, Sparkles } from 'lucide-react';
 
-// 【优化】懒加载模态框/弹窗组件 - 只在用户交互时才需要
+// ---------- 懒加载组件（按需加载，减轻首包） ----------
 const Composer = lazy(() => import('./components/Composer').then(m => ({ default: m.Composer })));
-
-// 【优化】懒加载不常用的彩蛋组件
 const PiggyBank = lazy(() => import('./components/PiggyBank').then(m => ({ default: m.PiggyBank })));
 const GravityMode = lazy(() => import('./components/GravityMode').then(m => ({ default: m.GravityMode })));
 const Game2048 = lazy(() => import('./components/Game2048').then(m => ({ default: m.Game2048 })));
 
-// 懒加载组件的 Loading 占位
+/** 弹窗/彩蛋加载中的占位 UI */
 const LazyLoadingFallback = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
     <div className="flex flex-col items-center gap-3">
@@ -25,14 +32,14 @@ const LazyLoadingFallback = () => (
   </div>
 );
 
-// 定义点击星星的特效接口
+/** 点击产生的星星特效：用于登录/主界面点击反馈 */
 interface Star {
   id: number;
   x: number;
   y: number;
 }
 
-// 定义角落星光闪烁的接口
+/** 角落常驻星光：位置 + 尺寸/延迟/时长，由 CSS 做闪烁 */
 interface AmbientStar {
   id: number;
   top?: string;
@@ -45,7 +52,7 @@ interface AmbientStar {
   opacity: number;
 }
 
-// 登录页显示的浪漫情话数组
+/** 登录页情话池，点击可切换并持久化到 localStorage */
 const QUOTES: string[] = [
   '“我们共享的每一刻，\n都是故事里的一页。”',
   '“人生中最好的事情\n就是彼此拥有。”',
@@ -88,19 +95,17 @@ const QUOTES: string[] = [
 
 ];
 
+/** 纪念日起算日，用于“在一起 X 天”计算 */
 const START_DATE_STR = '2024-08-20';
 
-// 主应用组件：共享记忆日记应用
 function App() {
-  // 纪念日计数：从 2024-08-20 开始计算在一起的天数，供首页计时器展示
+  // ---------- 纪念日与登录页 ----------
   const [daysTogether] = useState(() => {
     const startDate = new Date(START_DATE_STR);
     const today = new Date();
-    const diffTime = Math.abs(today.getTime() - startDate.getTime());
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    return Math.floor(Math.abs(today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
   });
   const [displayDays, setDisplayDays] = useState(0);
-  // 深夜彩蛋状态：是否处于 1-6 点，以及提示气泡是否展示
   const [isLateNight, setIsLateNight] = useState(false);
   const [showSleepMessage, setShowSleepMessage] = useState(false);
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
@@ -110,6 +115,7 @@ function App() {
   const [isGame2048Open, setIsGame2048Open] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
 
+  /** 今日是否为里程碑(100/520天)或纪念日(同月同日) */
   const specialEvent = useMemo(() => {
     const today = new Date();
     const startDate = new Date(START_DATE_STR);
@@ -124,56 +130,40 @@ function App() {
   }, [daysTogether]);
 
   useEffect(() => {
-    // 进入页面时检查本地时间：凌晨 1-6 点出现猫头鹰提示按钮
     const hour = new Date().getHours();
-    if (hour >= 1 && hour < 6) {
-      setIsLateNight(true);
-    }
+    if (hour >= 1 && hour < 6) setIsLateNight(true);
   }, []);
 
   useEffect(() => {
-    let start = 0;
-    const end = daysTogether;
-    if (start === end) return;
-
-    const duration = 2000; // 数字滚动时长 2s
+    if (daysTogether === 0) return;
+    const duration = 2000;
     const startTime = performance.now();
-
     const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 4); // 四次缓出，让数字滚动更柔和
-      
-      const current = Math.floor(start + (end - start) * ease);
-      setDisplayDays(current);
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 4);
+      setDisplayDays(Math.floor(daysTogether * ease));
+      if (progress < 1) requestAnimationFrame(animate);
     };
-
     requestAnimationFrame(animate);
   }, [daysTogether]);
 
+  // ---------- 主界面状态 ----------
   const [memories, setMemories] = useState<Memory[]>([]);
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<UserType>(UserType.HER); // Mobile only
+  const [activeTab, setActiveTab] = useState<UserType>(UserType.HER);
   const [isLoading, setIsLoading] = useState(true);
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const [stars, setStars] = useState<Star[]>([]);
-  // 触摸滑动状态：用于移动端左右滑动切换用户
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
   const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
-  // 主题状态：优先读本地存储，其次跟随系统；用于 Tailwind dark 模式
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const stored = window.localStorage.getItem('dark_mode');
     if (stored !== null) return stored === 'true';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
-  // 登陆页文案索引：用 localStorage 轮流展示情话
   const [quoteIndex, setQuoteIndex] = useState<number>(() => {
     if (typeof window === 'undefined' || QUOTES.length === 0) return 0;
     try {
@@ -186,9 +176,8 @@ function App() {
       return 0;
     }
   });
-  const [showSecondLine, setShowSecondLine] = useState(false); // 控制第二句延迟出现
-  const currentQuote = QUOTES[quoteIndex] || '我们共享的每一刻，都是故事里的一页。';
-  // 角落星光：预生成一组星点参数，交给 CSS 做缓动闪烁
+  const [showSecondLine, setShowSecondLine] = useState(false);
+  const currentQuote = QUOTES[quoteIndex] ?? QUOTES[0];
   const [ambientStars] = useState<AmbientStar[]>(() => {
     const spots = [
       { top: '4%', left: '6%' },
@@ -210,7 +199,7 @@ function App() {
   });
   const starIdRef = useRef(0);
 
-  // Dark mode effect：在 <html> 注入/移除 dark class，并持久化到 localStorage
+  // ---------- 主题与音效 ----------
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
@@ -220,12 +209,8 @@ function App() {
     window.localStorage.setItem('dark_mode', String(darkMode));
   }, [darkMode]);
 
-  // 切换深色/浅色主题
-  const toggleDarkMode = () => {
-    setDarkMode(prev => !prev);
-  };
+  const toggleDarkMode = () => setDarkMode(prev => !prev);
 
-  // 点击情话切换到下一条，并保存到localStorage
   const handleQuoteClick = (e: React.MouseEvent<HTMLParagraphElement>) => {
     e.stopPropagation();
     if (!QUOTES.length) return;
@@ -247,10 +232,7 @@ function App() {
     return () => window.clearTimeout(timer);
   }, [currentQuote, quoteIndex]);
 
-  // AudioContext 单例缓存，避免重复创建
   const audioCtxRef = useRef<AudioContext | null>(null);
-  
-  // 可爱的点击音效：根据按钮类型（她/他/动作/默认）生成不同音高的合成器短音
   const playClickSound = (type: 'default' | 'her' | 'him' | 'action' | 'stamp' = 'default') => {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;
@@ -327,8 +309,6 @@ function App() {
   };
 
   useEffect(() => {
-    // 全局捕获带 data-sound 的元素，统一触发点击音效
-    // 使用 passive 优化事件监听器性能
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const soundElement = target.closest('[data-sound]');
@@ -338,13 +318,13 @@ function App() {
     window.addEventListener('mousedown', handleClick, { passive: true });
     return () => window.removeEventListener('mousedown', handleClick);
   }, []);
-  
-  // Header visibility logic
-  const [showHeader, setShowHeader] = useState(true);
+
+  // ---------- 滚动与 Header（ref 控制显隐，不触发重渲染） ----------
+  const headerRef = useRef<HTMLElement>(null);
   const scrollPositions = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
 
-  // 头像长按逻辑：长按5秒显示随机情话气泡
-  const [avatarQuote, setAvatarQuote] = useState<{ type: UserType, text: string } | null>(null);
+  // ---------- 头像长按彩蛋（5 秒振动 + 随机情话气泡） ----------
+  const [avatarQuote, setAvatarQuote] = useState<{ type: UserType; text: string } | null>(null);
   const [isQuoteVisible, setIsQuoteVisible] = useState(false);
   const longPressTimer = useRef<number | null>(null);
   const isLongPress = useRef(false);
@@ -411,10 +391,7 @@ function App() {
   };
 
   const handleAvatarClickWrapper = (type: UserType, e: React.MouseEvent) => {
-    const pressDuration = Date.now() - pressStartTime.current;
-    
-    // If it was a long press event, or held for > 500ms (but less than 5s), block the click
-    if (isLongPress.current || pressDuration > 500) {
+    if (isLongPress.current || Date.now() - pressStartTime.current > 500) {
       e.preventDefault();
       e.stopPropagation();
       isLongPress.current = false;
@@ -423,16 +400,16 @@ function App() {
     handleChooseUser(type);
   };
 
-  // Mouse movement effect for background
+  // ---------- 背景视差（仅桌面 ≥768px，移动端不跑 RAF） ----------
   const loginBackgroundRef = useRef<HTMLDivElement>(null);
   const mainBackgroundRef = useRef<HTMLDivElement>(null);
   const mousePos = useRef({ x: 0, y: 0 });
   const currentPos = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    // 背景视差：桌面端监听鼠标，缓动平移登录/主背景，营造空间感
-    const isDesktop = window.matchMedia('(pointer: fine)').matches;
-    if (!isDesktop) return;
+    const isDesktopPointer = window.matchMedia('(pointer: fine)').matches;
+    const isWideEnough = window.matchMedia('(min-width: 768px)').matches;
+    if (!isDesktopPointer || !isWideEnough) return;
 
     // 使用 passive 监听器提升滚动性能
     const handleMouseMove = (e: MouseEvent) => {
@@ -482,9 +459,8 @@ function App() {
     };
   }, []);
 
-  // Initial Data Fetch
+  // ---------- 数据加载与缓存订阅 ----------
   useEffect(() => {
-    // 初始化数据：若为空则种子数据填充，再读取本地存储
     const fetchData = async () => {
       setIsLoading(true);
       await seedDataIfEmpty();
@@ -504,10 +480,7 @@ function App() {
     };
   }, []);
 
-  // 滚动节流标志
   const scrollRafRef = useRef<number | null>(null);
-  
-  // 滚动时隐藏/显示顶部 Header，避免占屏空间（RAF节流）
   const handleScroll = (e: React.UIEvent<HTMLDivElement>, type: UserType) => {
     const scrollTop = e.currentTarget.scrollTop;
     
@@ -522,17 +495,14 @@ function App() {
 
       if (Math.abs(diff) < 10) return;
 
-      if (scrollTop > last && scrollTop > 60) {
-        setShowHeader(false);
-      } else if (scrollTop < last) {
-        setShowHeader(true);
-      }
+      const hide = scrollTop > last && scrollTop > 60;
+      headerRef.current?.classList.toggle('header-hidden', hide);
       
       scrollPositions.current[type] = scrollTop;
     });
   };
 
-  // 保存记忆：写入存储并更新列表，成功后关闭弹窗
+  // ---------- 记忆 CRUD 与彩蛋暗号 ----------
   const handleSave = async (content: string, imageUrls?: string[]) => {
     const trimmed = content.trim();
     if (trimmed === '1104') {
@@ -562,7 +532,6 @@ function App() {
     }
   };
 
-  // 删除记忆：确认后删除存储并更新列表
   const handleDelete = async (id: string) => {
     if (window.confirm('确定要删除这条记忆吗？')) {
       const success = await deleteMemory(id);
@@ -574,7 +543,6 @@ function App() {
     }
   };
 
-  // 更新记忆：成功后替换列表项，并播放动作音效
   const handleUpdateMemory = async (id: string, content: string, imageUrls?: string[] | null) => {
     const updated = await updateMemory(id, content, imageUrls);
     if (updated) {
@@ -585,7 +553,6 @@ function App() {
     return false;
   };
 
-  // 选择身份：先进入 transition 慢动画，再切换到主界面
   const handleChooseUser = (type: UserType) => {
     setCurrentUser(type);
     setActiveTab(type);
@@ -595,12 +562,14 @@ function App() {
     }, 900);
   };
 
-  // 星星对象池：复用星星对象减少 GC 压力
-  const starPoolRef = useRef<Star[]>([]);
-  const maxStars = 10; // 最大同时显示星星数
-  
-  // 全局点击生成小星星：用于登录页与主页面的点击反馈（优化版）
+  // ---------- 点击星星特效（节流 100ms，最多 10 颗） ----------
+  const maxStars = 10;
+  const lastStarClickTimeRef = useRef(0);
   const handleGlobalClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const now = Date.now();
+    if (now - lastStarClickTimeRef.current < 100) return;
+    lastStarClickTimeRef.current = now;
+
     const x = e.clientX;
     const y = e.clientY;
     
@@ -623,7 +592,7 @@ function App() {
     }, 700);
   };
 
-  // 触摸事件处理：移动端左右滑动切换用户
+  // ---------- 移动端左右滑切换她/他 ----------
   const handleTouchStart = (e: React.TouchEvent) => {
     setTouchEnd(null); // 重置结束位置
     setTouchStart({
@@ -662,11 +631,10 @@ function App() {
     }
   };
 
-  // 过滤两侧列表（使用 useMemo 缓存避免每次渲染重新计算）
   const herMemories = useMemo(() => memories.filter(m => m.author === UserType.HER), [memories]);
   const hisMemories = useMemo(() => memories.filter(m => m.author === UserType.HIM), [memories]);
 
-  // 登录阶段：身份选择与欢迎界面
+  // ---------- 渲染：登录页 ----------
   if (phase === 'login' || !currentUser) {
     return (
       <div 
@@ -822,6 +790,7 @@ function App() {
     );
   }
 
+  // ---------- 渲染：主界面（双栏时间轴 + Header + 弹窗/彩蛋） ----------
   return (
     <div 
       onClick={handleGlobalClick}
@@ -843,8 +812,8 @@ function App() {
            }}
       ></div>
 
-      {/* 角落星光常亮 */}
-      <div className="absolute inset-0 pointer-events-none z-10 mix-blend-screen">
+      {/* 角落星光常亮（移动端 CSS 只显示前 3 颗以提升帧率） */}
+      <div className="corner-stars absolute inset-0 pointer-events-none z-10 mix-blend-screen">
         {ambientStars.map(star => (
           <span
             key={star.id}
@@ -864,14 +833,10 @@ function App() {
         ))}
       </div>
 
-      {/* 顶部 Header：悬浮渐隐 左右边距*/}
+      {/* 顶部 Header：显隐由 ref + .header-hidden 控制，滚动不触发 setState */}
       <header 
-        className={`
-          fixed top-0 left-0 right-0 h-20 md:h-24 z-40 px-2 md:px-16 
-          flex items-center justify-between pointer-events-none
-          transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
-          ${showHeader ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}
-        `}
+        ref={headerRef}
+        className="header-visibility fixed top-0 left-0 right-0 h-20 md:h-24 z-40 px-2 md:px-16 flex items-center justify-between pointer-events-none transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] translate-y-0 opacity-100"
       >
         {/* Left Area: Logo + Left Actions */}
         <div className="pointer-events-auto flex items-center gap-2 md:gap-4">
@@ -1111,7 +1076,7 @@ function App() {
                 herMemories.map((m, i) => (
                   <div 
                     key={m.id} 
-                    className="md:pl-20 relative group animate-fadeInUp"
+                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4"
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
                     {/* 时间轴节点 */}
@@ -1201,7 +1166,7 @@ function App() {
                 hisMemories.map((m, i) => (
                   <div 
                     key={m.id} 
-                    className="md:pl-20 relative group animate-fadeInUp"
+                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4"
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
                     {/* 时间轴节点 */}

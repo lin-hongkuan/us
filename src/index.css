@@ -1,10 +1,14 @@
+/**
+ * index.css - 全局样式与动画
+ * 结构：@layer base（变量、媒体查询）→ @layer utilities（工具类）→ 关键帧与动画类
+ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* 基础层：定义 CSS 自定义属性（变量） */
+/* ---------- base：主题变量、prefers-reduced-motion、移动端/低端收口 ---------- */
 @layer base {
-  /* 颜色变量定义：用于主题切换 */
+  /* 主题变量（供 Tailwind 与组件使用） */
   :root {
     --color-bg-primary: 255 255 255;
     --color-bg-secondary: 248 250 252;
@@ -52,22 +56,23 @@
       -webkit-overflow-scrolling: touch;
     }
     
-    /* 移动端减轻 backdrop-blur 强度（保留视觉效果但降低模糊半径） */
+    /* 移动端进一步减轻 backdrop-blur，减少合成层开销 */
     .backdrop-blur-md {
-      -webkit-backdrop-filter: blur(4px) !important;
-      backdrop-filter: blur(4px) !important;
+      -webkit-backdrop-filter: blur(2px) !important;
+      backdrop-filter: blur(2px) !important;
     }
     
     .backdrop-blur-lg,
     .backdrop-blur-xl {
-      -webkit-backdrop-filter: blur(6px) !important;
-      backdrop-filter: blur(6px) !important;
+      -webkit-backdrop-filter: blur(3px) !important;
+      backdrop-filter: blur(3px) !important;
     }
     
-    /* 移动端简化 blob 动画（减少动画时长和复杂度） */
+    /* 移动端禁用 blob 动画，静止光团以提升帧率，去掉 will-change 减少合成层 */
     .animate-blob {
-      animation-duration: 14s !important;
-      animation-timing-function: ease-in-out !important;
+      animation: none !important;
+      transform: translate3d(0, 0, 0) !important;
+      will-change: auto !important;
     }
     
     /* 移动端简化背景移动动画 */
@@ -75,15 +80,20 @@
       animation-duration: 120s !important;
     }
     
-    /* 移动端禁用复杂渐变动画以节省性能 */
+    /* 移动端保留渐变动效，仅放慢以兼顾性能与观感 */
     .animate-gradient {
       animation-duration: 20s !important;
     }
     
-    /* 移动端减少星星闪烁动画的复杂度 */
+    /* 移动端保留星光闪烁，仅放慢并去掉 filter 以兼顾性能与观感 */
     .twinkle-star {
       animation-duration: 24s !important;
       filter: none !important;
+    }
+    
+    /* 移动端只保留前 3 颗角落星光，减少同时动画数量 */
+    .corner-stars > span:nth-child(n + 4) {
+      display: none !important;
     }
   }
   
@@ -110,6 +120,19 @@
 
 /* 工具层：自定义工具类 */
 @layer utilities {
+  /* Header 滚动隐藏：由 JS 通过 ref 切换，不触发 React 重渲染 */
+  .header-hidden {
+    transform: translateY(-2.5rem);
+    opacity: 0;
+  }
+
+  /* 记忆卡片列表项：视口外跳过 layout/paint；overflow:visible 保证顶部胶带不被裁掉 */
+  .memory-card-wrapper {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 400px;
+    overflow: visible;
+  }
+
   /* 动画延迟工具类 */
   .animation-delay-2000 {
     animation-delay: 2s;

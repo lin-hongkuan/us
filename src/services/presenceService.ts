@@ -101,18 +101,15 @@ export const initPresence = async (userType: UserType): Promise<void> => {
       if (!channel) return;
       
       const presenceState = channel.presenceState();
-      console.log('📡 Presence 同步:', presenceState);
       checkPartnerPresence(presenceState, myInstanceId);
     })
     .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-      console.log('✅ 用户加入:', key, newPresences);
       if (!channel) return;
       
       const presenceState = channel.presenceState();
       checkPartnerPresence(presenceState, myInstanceId);
     })
     .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-      console.log('👋 用户离开:', key, leftPresences);
       if (!channel) return;
       
       const presenceState = channel.presenceState();
@@ -121,15 +118,12 @@ export const initPresence = async (userType: UserType): Promise<void> => {
 
   // 订阅频道并追踪 Presence
   await channel.subscribe(async (status) => {
-    console.log('🔗 频道状态:', status);
     if (status === 'SUBSCRIBED') {
-      console.log('✨ 正在追踪用户:', userType, myInstanceId);
       await channel?.track({
         user_type: userType,
         online_at: new Date().toISOString(),
         instance_id: myInstanceId
       });
-      console.log('✅ 追踪成功');
     }
   });
 };
@@ -146,18 +140,13 @@ const checkPartnerPresence = (
 
   // 获取所有在线用户
   const allPresences = Object.values(presenceState).flat();
-  console.log('👥 所有在线用户:', allPresences);
-  console.log('🙋 我是:', myUser, '实例ID:', myInstanceId);
   
   // 查找不同身份的用户（不是同一个实例，且是不同角色）
   const partner = allPresences.find(p => {
     const isNotMe = p.instance_id !== myInstanceId;
     const isDifferentRole = p.user_type !== myUser;
-    console.log('  检查用户:', p.user_type, p.instance_id, '| 不是我:', isNotMe, '不同角色:', isDifferentRole);
     return isNotMe && isDifferentRole;
   });
-  
-  console.log('💕 找到伴侣:', partner);
 
   const partnerOnline = !!partner;
   const partnerUser = partner ? (partner.user_type as UserType) : null;

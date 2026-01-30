@@ -22,7 +22,7 @@ interface PresenceIndicatorProps {
   darkMode?: boolean;
 }
 
-// 甜蜜提示语数组
+// 甜蜜提示语数组 - 上线时
 const SWEET_MESSAGES = [
   '对方也正在想你噢 💭',
   'TA 也在看呢~ 💕',
@@ -32,6 +32,14 @@ const SWEET_MESSAGES = [
   '不约而同地想起了对方 🌙',
   '此刻你们在一起 💫',
   '两颗心在同一个频率 💓'
+];
+
+// 离线提示语数组 - 下线时
+const GOODBYE_MESSAGES = [
+  'TA 暂时离开了 👋',
+  '对方去忙了，记得想 TA 哦 💫',
+  'TA 下线了，但心还在 💗',
+  '暂别片刻，思念不减 🌙'
 ];
 
 export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
@@ -44,8 +52,10 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
   const [isDismissed, setIsDismissed] = useState(false);
   const [message, setMessage] = useState(SWEET_MESSAGES[0]);
   const [showHeartBurst, setShowHeartBurst] = useState(false);
+  const [isGoodbye, setIsGoodbye] = useState(false); // 是否是离线提示
   const dismissTimeoutRef = useRef<number | null>(null);
   const hasPlayedSound = useRef(false);
+  const wasOnlineRef = useRef(false); // 记录上次是否在线
 
   // 可爱音效
   const playHeartSound = () => {
@@ -100,6 +110,7 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
       if (online && !hasPlayedSound.current) {
         // 随机选择消息
         setMessage(SWEET_MESSAGES[Math.floor(Math.random() * SWEET_MESSAGES.length)]);
+        setIsGoodbye(false);
         
         // 播放音效
         playHeartSound();
@@ -111,10 +122,21 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
         
         // 重置 dismissed 状态
         setIsDismissed(false);
+        wasOnlineRef.current = true;
       }
       
-      if (!online) {
+      // 如果对方下线了，且之前是在线的，显示离开提示
+      if (!online && wasOnlineRef.current) {
+        setMessage(GOODBYE_MESSAGES[Math.floor(Math.random() * GOODBYE_MESSAGES.length)]);
+        setIsGoodbye(true);
+        setIsDismissed(false);
         hasPlayedSound.current = false;
+        wasOnlineRef.current = false;
+        
+        // 3秒后自动隐藏离线提示
+        setTimeout(() => {
+          setIsDismissed(true);
+        }, 3000);
       }
     });
 
@@ -126,14 +148,15 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
 
   // 控制显示/隐藏动画
   useEffect(() => {
-    if (partnerOnline && !isDismissed) {
+    // 在线时显示，或者是离开提示时也显示
+    if ((partnerOnline || isGoodbye) && !isDismissed) {
       // 延迟显示，让动画更流畅
       const timer = setTimeout(() => setIsVisible(true), 100);
       return () => clearTimeout(timer);
     } else {
       setIsVisible(false);
     }
-  }, [partnerOnline, isDismissed]);
+  }, [partnerOnline, isDismissed, isGoodbye]);
 
   // 关闭处理
   const handleDismiss = (e: React.MouseEvent) => {
@@ -204,11 +227,15 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
             relative flex items-center gap-3 px-4 py-3 rounded-2xl
             shadow-lg backdrop-blur-md
             border
-            ${darkMode 
-              ? 'bg-slate-800/90 border-rose-500/30 text-white' 
-              : 'bg-white/90 border-rose-200 text-slate-700'
+            ${isGoodbye
+              ? (darkMode 
+                  ? 'bg-slate-800/90 border-slate-500/30 text-white' 
+                  : 'bg-white/90 border-slate-200 text-slate-600')
+              : (darkMode 
+                  ? 'bg-slate-800/90 border-rose-500/30 text-white' 
+                  : 'bg-white/90 border-rose-200 text-slate-700')
             }
-            animate-float
+            ${isGoodbye ? '' : 'animate-float'}
           `}
         >
           {/* 关闭按钮 */}
@@ -231,40 +258,47 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
 
           {/* 头像区域 */}
           <div className="relative">
-            {/* 脉冲光环 */}
-            <div className="absolute inset-0 rounded-full animate-ping-slow opacity-30 bg-rose-400" />
+            {/* 脉冲光环 - 只在在线时显示 */}
+            {!isGoodbye && (
+              <div className="absolute inset-0 rounded-full animate-ping-slow opacity-30 bg-rose-400" />
+            )}
             
             {/* 头像容器 */}
             <div
               className={`
                 relative w-12 h-12 rounded-full
                 flex items-center justify-center text-2xl
-                border-2 border-rose-300
-                ${darkMode ? 'bg-slate-700' : 'bg-rose-50'}
-                animate-bounce-gentle
+                border-2 ${isGoodbye ? 'border-slate-300' : 'border-rose-300'}
+                ${darkMode ? 'bg-slate-700' : (isGoodbye ? 'bg-slate-50' : 'bg-rose-50')}
+                ${isGoodbye ? '' : 'animate-bounce-gentle'}
               `}
             >
               {partnerAvatar}
               
-              {/* 在线指示点 */}
-              <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white animate-pulse" />
+              {/* 在线指示点 - 只在在线时显示 */}
+              {!isGoodbye && (
+                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-green-400 border-2 border-white animate-pulse" />
+              )}
             </div>
           </div>
 
           {/* 文字区域 */}
           <div className="flex flex-col">
             <span className="text-sm font-medium flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />
+              {!isGoodbye && <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin-slow" />}
               {message}
             </span>
             <span className={`text-xs ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
-              {partnerUser === UserType.HER ? '她' : '他'}正在浏览
+              {isGoodbye 
+                ? `${partnerUser === UserType.HER ? '她' : '他'}刚刚离开`
+                : `${partnerUser === UserType.HER ? '她' : '他'}正在浏览`
+              }
             </span>
           </div>
 
           {/* 装饰心形 */}
           <Heart 
-            className="w-5 h-5 text-rose-400 fill-rose-400 animate-heartbeat" 
+            className={`w-5 h-5 ${isGoodbye ? 'text-slate-400' : 'text-rose-400 fill-rose-400 animate-heartbeat'}`}
           />
         </div>
       </div>

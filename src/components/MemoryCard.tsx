@@ -1,18 +1,8 @@
 /**
- * ==========================================
- * 记忆卡片组件
- * ==========================================
+ * MemoryCard - 单条记忆卡片
  *
- * 显示单个记忆的卡片组件，具有编辑功能。
- * 支持查看、编辑、删除和图片管理记忆。
- *
- * 功能特性：
- * - 显示记忆内容和图片
- * - 行内文本编辑的编辑模式
- * - 图片上传、预览和删除
- * 作者特定的权限（只有作者可以编辑/删除）
- * - 可展开的图片视图
- * - 响应式设计和动画
+ * 展示一条记忆的正文与多图，支持：查看、编辑、删除、主图展开/收起、全屏看图。
+ * 仅作者可编辑/删除；图片用 LazyImage 懒加载；React.memo 按 id/content/images 比较防重渲染。
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -20,48 +10,33 @@ import { createPortal } from 'react-dom';
 import { Memory, UserType, getAvatar } from '../types';
 import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash, Download, Maximize2 } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
+import { LazyImage } from './LazyImage';
 
-/**
- * 记忆卡片组件的属性接口
- */
 interface MemoryCardProps {
-  /** 要显示的记忆数据 */
   memory: Memory;
-  /** 删除记忆时的回调函数 */
   onDelete: (id: string) => void;
-  /** 更新记忆时的回调函数 */
   onUpdate: (id: string, content: string, imageUrls?: string[] | null) => Promise<boolean>;
-  /** 当前登录用户 */
   currentUser: UserType;
 }
 
-/**
- * 具有编辑功能的单个记忆卡片组件
- * 显示记忆内容、图片，并为作者提供编辑控件
- * 使用 React.memo 优化重渲染性能
- */
 export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDelete, onUpdate, currentUser }) => {
+  // ---------- 编辑与图片状态 ----------
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
   const [editContent, setEditContent] = useState(memory.content);
-  // Multi-image state
   const [editImageUrls, setEditImageUrls] = useState<string[]>(
     memory.imageUrls || (memory.imageUrl ? [memory.imageUrl] : [])
   );
   const [editImageFiles, setEditImageFiles] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
-  
   const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Determine if current memory belongs to "Her"
   const isHer = memory.author === UserType.HER;
 
-  // Sync external memory data to local edit state
+  /** 外部 memory 变更时同步到本地编辑态 */
   useEffect(() => {
     setEditContent(memory.content);
     setEditImageUrls(memory.imageUrls || (memory.imageUrl ? [memory.imageUrl] : []));
@@ -69,13 +44,11 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     setNewImagePreviews([]);
   }, [memory]);
 
-  // Only the author can modify their own memories
   const canModify = currentUser === memory.author;
-
-  // Format date manually to avoid additional locale bundle size
   const date = new Date(memory.createdAt);
   const dateStr = `${date.getFullYear()} . ${date.getMonth() + 1} . ${date.getDate()}`;
 
+  // ---------- 图片选择与编辑 ----------
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []) as File[];
     if (files.length === 0) return;
@@ -165,14 +138,11 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     }
   };
 
-  const displayImages = isEditing 
+  const displayImages = isEditing
     ? [...editImageUrls.map(url => ({ url, isNew: false })), ...newImagePreviews.map(url => ({ url, isNew: true }))]
     : (memory.imageUrls || (memory.imageUrl ? [memory.imageUrl] : [])).map(url => ({ url, isNew: false }));
-
-  // Determine which image to show as main preview (default to first one)
-  const mainPreviewIndex = previewImageIndex !== null && previewImageIndex < displayImages.length 
-    ? previewImageIndex 
-    : 0;
+  const mainPreviewIndex =
+    previewImageIndex !== null && previewImageIndex < displayImages.length ? previewImageIndex : 0;
 
   return (
     <div 
@@ -191,9 +161,14 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
       {/* Decorative Tape/Pin Effect */}
       <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 w-24 h-6 rotate-[-2deg] border border-white/60 dark:border-slate-600/60 shadow-sm ${isHer ? 'bg-rose-200/90 dark:bg-rose-800/90' : 'bg-sky-200/90 dark:bg-sky-800/90'}`}></div>
 
-      {/* Quote Icon */}
+      {/* 左上：开引号（旋转 180° 显示为 “） */}
       <div className={`absolute -left-3 top-8 w-8 h-8 rounded-full bg-white dark:bg-slate-700 border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 ${isHer ? 'text-rose-300 dark:text-rose-400 border-rose-100 dark:border-rose-800' : 'text-sky-300 dark:text-sky-400 border-sky-100 dark:border-sky-800'}`}>
         <Quote size={12} fill="currentColor" className="opacity-60 rotate-180" />
+      </div>
+
+      {/* 右下：闭引号（与左上对称，放在 Footer 上方、水印左侧） */}
+      <div className={`absolute -right-3 bottom-8 w-8 h-8 rounded-full bg-white dark:bg-slate-700 border shadow-sm flex items-center justify-center transition-transform group-hover:scale-110 duration-500 pointer-events-none ${isHer ? 'text-rose-300 dark:text-rose-400 border-rose-100 dark:border-rose-800' : 'text-sky-300 dark:text-sky-400 border-sky-100 dark:border-sky-800'}`}>
+        <Quote size={12} fill="currentColor" className="opacity-60" />
       </div>
 
       {/* Content 照片预览逻辑*/}
