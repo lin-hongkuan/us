@@ -148,7 +148,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     <div 
       data-sound={isHer ? 'her' : 'him'}
       className={`
-        relative group p-7 md:p-8 mb-8 md:mb-12 rounded-2xl md:rounded-3xl border overflow-visible
+        relative group p-7 md:p-8 mb-8 md:mb-12 rounded-2xl md:rounded-3xl border
         transform-gpu
         transition-[border-color,box-shadow,transform] duration-300
         hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.25)] md:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] md:dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:-translate-y-2

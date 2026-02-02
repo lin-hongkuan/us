@@ -75,9 +75,11 @@
       will-change: auto !important;
     }
     
-    /* 移动端简化背景移动动画 */
-    .animate-moveBackground {
-      animation-duration: 120s !important;
+    /* 移动端禁用背景脚印移动动画，兼顾性能 */
+    .animate-moveBackground,
+    [class*="animate-moveBackground"] {
+      animation: none !important;
+      transform: translate3d(0, 0, 0) !important;
     }
     
     /* 移动端保留渐变动效，仅放慢以兼顾性能与观感 */
@@ -257,18 +259,28 @@
   animation: shimmer 3s infinite;
 }
 
-/* 背景移动动画：背景位置变化，营造动态感 */
+/* 背景移动动画：动物脚印/图标往返移动，路径长、速度快 */
 @keyframes moveBackground {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(100px, 100px, 0); }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(200px, 200px, 0); }
 }
 
-.animate-moveBackground {
-  animation: moveBackground 20s linear infinite;
+/* 选择器需匹配 Tailwind 响应式类名 md:animate-moveBackground（实际为 .md\:animate-moveBackground） */
+.animate-moveBackground,
+[class*="animate-moveBackground"] {
+  animation: moveBackground 25s ease-in-out infinite;
   will-change: transform;
   backface-visibility: hidden;
-  contain: layout style;
 }
+
+/* 脚印层：统一不透明度，不再用透明度蒙版 */
+.footprint-vignette {
+  opacity: 0.5;
+}
+
+
+
+
 
 /* 渐变动画：背景位置循环变化，用于彩虹渐变效果 */
 @keyframes gradient {
