@@ -529,3 +529,67 @@
 .animate-popIn {
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
+
+/* 登录页卡片内部：光带缓慢扫过 + 噪点轻微呼吸 */
+@keyframes login-card-shimmer {
+  0% { background-position: 200% 50%; }
+  100% { background-position: -100% 50%; }
+}
+
+@keyframes login-card-noise-breath {
+  0%, 100% { opacity: 0.06; }
+  50% { opacity: 0.14; }
+}
+
+.login-card-texture {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.login-card-shimmer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.15) 18%,
+    rgba(251, 113, 133, 0.08) 38%,
+    transparent 50%,
+    rgba(147, 197, 253, 0.08) 68%,
+    rgba(255, 255, 255, 0.12) 85%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: login-card-shimmer 14s ease-in-out infinite;
+}
+
+.dark .login-card-shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 18%,
+    rgba(251, 113, 133, 0.04) 38%,
+    transparent 50%,
+    rgba(147, 197, 253, 0.04) 68%,
+    rgba(255, 255, 255, 0.08) 85%,
+    transparent 100%
+  );
+}
+
+.login-card-noise {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 100px 100px;
+  animation: login-card-noise-breath 5s ease-in-out infinite;
+}
+
+.dark .login-card-noise {
+  opacity: 0.08;
+}
