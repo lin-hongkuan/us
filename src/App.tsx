@@ -10,7 +10,7 @@
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './types';
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty, subscribeToMemoryChanges, unsubscribeFromMemoryChanges } from './services/storageService';
-import { subscribeToCacheUpdates } from './services/cacheService';
+import { subscribeToCacheUpdates, clearMemoryCache, clearIndexedDBCache } from './services/cacheService';
 import { MemoryCard } from './components/MemoryCard';
 import { TypewriterText } from './components/TypewriterText';
 import { PresenceIndicator } from './components/PresenceIndicator';
@@ -323,53 +323,126 @@ function App() {
   const headerRef = useRef<HTMLElement>(null);
   const scrollPositions = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
 
-  // ---------- 头像长按彩蛋（5 秒振动 + 随机情话气泡） ----------
-  const [avatarQuote, setAvatarQuote] = useState<{ type: UserType; text: string } | null>(null);
-  const [isQuoteVisible, setIsQuoteVisible] = useState(false);
+  // ---------- 头像长按刷新（3 秒振动 + 版本更新重载） ----------
+  const [isAvatarShaking, setIsAvatarShaking] = useState<UserType | null>(null);
+  const [avatarShakeIntensity, setAvatarShakeIntensity] = useState(0);
   const longPressTimer = useRef<number | null>(null);
   const isLongPress = useRef(false);
   const pressStartTime = useRef<number>(0);
+  const shakeAnimationRef = useRef<number | null>(null);
 
-  // 开始长按头像：启动振动循环，5秒后显示随机情话
+  // 播放刷新音效（递增频率）
+  const playRefreshSound = (progress: number) => {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new AudioContextClass();
+    }
+    const audioCtx = audioCtxRef.current;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    const now = audioCtx.currentTime;
+    // 频率从300Hz升到800Hz
+    const freq = 300 + progress * 500;
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(freq, now);
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.1, now + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+    oscillator.start(now);
+    oscillator.stop(now + 0.08);
+  };
+
+  // 播放成功音效
+  const playSuccessSound = () => {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new AudioContextClass();
+    }
+    const audioCtx = audioCtxRef.current;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    const now = audioCtx.currentTime;
+    oscillator.type = 'sine';
+    // 成功音：上升音阶
+    oscillator.frequency.setValueAtTime(523, now); // C5
+    oscillator.frequency.setValueAtTime(659, now + 0.1); // E5
+    oscillator.frequency.setValueAtTime(784, now + 0.2); // G5
+    gainNode.gain.setValueAtTime(0.15, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+    oscillator.start(now);
+    oscillator.stop(now + 0.4);
+  };
+
+  // 开始长按头像：启动振动循环，3秒后触发刷新
   const handleAvatarPressStart = (type: UserType) => {
     isLongPress.current = false;
     pressStartTime.current = Date.now();
-    
-    // 重置状态
-    setAvatarQuote(null);
-    setIsQuoteVisible(false);
+    setIsAvatarShaking(type);
+    setAvatarShakeIntensity(0);
 
     const startTime = Date.now();
+    let lastSoundTime = 0;
     
-    // 振动循环函数：随着时间推移振动间隔变短
+    // 振动循环函数：随着时间推移振动间隔变短，强度增加
     const vibrateLoop = () => {
       const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / 3000, 1); // 3秒阈值
       
-      // 5秒阈值
-      if (elapsed >= 5000) {
+      // 更新振动强度（用于CSS动画）
+      setAvatarShakeIntensity(progress);
+      
+      // 3秒阈值达成
+      if (elapsed >= 3000) {
         isLongPress.current = true;
-        if (navigator.vibrate) navigator.vibrate([200]); // 成功振动
+        if (navigator.vibrate) navigator.vibrate([300, 100, 300]); // 成功振动模式
+        playSuccessSound();
         
-        const randomQuote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-        setAvatarQuote({ type, text: randomQuote });
+        // 清除缓存并重新加载
+        setIsAvatarShaking(null);
+        setAvatarShakeIntensity(0);
         
-        // 平滑淡入
-        requestAnimationFrame(() => setIsQuoteVisible(true));
-        
-        // 5秒后自动隐藏
-        setTimeout(() => {
-          setIsQuoteVisible(false);
-          setTimeout(() => setAvatarQuote(null), 500); // 等待淡出
-        }, 5000);
+        // 显示提示后刷新
+        setTimeout(async () => {
+          // 清除所有缓存层
+          clearMemoryCache(); // 内存缓存
+          await clearIndexedDBCache(); // IndexedDB 缓存
+          localStorage.removeItem('us_app_memories'); // localStorage
+          sessionStorage.clear();
+          // 强制重新加载（绕过缓存）
+          window.location.reload();
+        }, 500);
         
         return;
       }
 
-      // 计算延迟：500ms -> 50ms
-      const progress = elapsed / 5000;
-      const delay = 500 - (progress * 450); 
+      // 计算延迟：400ms -> 80ms（更快的反馈）
+      const delay = 400 - (progress * 320);
       
-      if (navigator.vibrate) navigator.vibrate(30);
+      // 手机震动
+      if (navigator.vibrate) {
+        const vibrateDuration = 20 + Math.floor(progress * 30); // 20ms -> 50ms
+        navigator.vibrate(vibrateDuration);
+      }
+      
+      // 音效（每150ms播放一次）
+      if (elapsed - lastSoundTime > 150) {
+        playRefreshSound(progress);
+        lastSoundTime = elapsed;
+      }
       
       longPressTimer.current = window.setTimeout(vibrateLoop, delay);
     };
@@ -377,16 +450,22 @@ function App() {
     vibrateLoop();
   };
 
-  // 结束长按：清除定时器，停止振动
+  // 结束长按：清除定时器，停止振动和动画
   const handleAvatarPressEnd = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    // Stop vibration if released early
-    if (!isLongPress.current) {
-       // navigator.vibrate(0) cancels vibration on some devices
-       if (navigator.vibrate) navigator.vibrate(0);
+    if (shakeAnimationRef.current) {
+      cancelAnimationFrame(shakeAnimationRef.current);
+      shakeAnimationRef.current = null;
+    }
+    // 重置状态
+    setIsAvatarShaking(null);
+    setAvatarShakeIntensity(0);
+    // 停止振动
+    if (!isLongPress.current && navigator.vibrate) {
+      navigator.vibrate(0);
     }
   };
 
@@ -1030,15 +1109,14 @@ function App() {
           
           <div className="max-w-xl mx-auto px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp relative">
-              {avatarQuote?.type === UserType.HER && (
-                 <div 
-                   className={`absolute -top-24 left-1/2 -translate-x-1/2 w-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-4 rounded-2xl shadow-xl border border-rose-100 dark:border-slate-600 z-50 origin-bottom transition-all duration-500 ease-in-out ${isQuoteVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4'}`}
-                 >
-                   <p className="text-xs text-slate-600 dark:text-slate-300 font-serif text-center leading-relaxed whitespace-pre-wrap">
-                     {avatarQuote.text}
-                   </p>
-                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/90 dark:bg-slate-800/90 rotate-45 border-b border-r border-rose-100 dark:border-slate-600"></div>
-                 </div>
+              {/* 长按刷新提示 */}
+              {isAvatarShaking === UserType.HER && (
+                <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-rose-200 dark:border-slate-600 z-50 whitespace-nowrap">
+                  <p className="text-xs text-rose-500 dark:text-rose-400 font-medium flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {avatarShakeIntensity < 1 ? `刷新中... ${Math.floor(avatarShakeIntensity * 100)}%` : '正在重载...'}
+                  </p>
+                </div>
               )}
               <div 
                 onMouseDown={() => handleAvatarPressStart(UserType.HER)}
@@ -1046,7 +1124,15 @@ function App() {
                 onMouseLeave={handleAvatarPressEnd}
                 onTouchStart={() => handleAvatarPressStart(UserType.HER)}
                 onTouchEnd={handleAvatarPressEnd}
-                className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-900/30 mb-6 text-3xl shadow-inner transition-transform duration-500 cursor-pointer select-none ${avatarQuote?.type === UserType.HER ? 'scale-125 animate-bounce' : 'hover:scale-110'}`}
+                className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-50 dark:bg-rose-900/30 mb-6 text-3xl shadow-inner transition-transform cursor-pointer select-none hover:scale-110`}
+                style={{
+                  animation: isAvatarShaking === UserType.HER 
+                    ? `avatarShake ${0.1 - avatarShakeIntensity * 0.06}s ease-in-out infinite` 
+                    : 'none',
+                  transform: isAvatarShaking === UserType.HER 
+                    ? `scale(${1 + avatarShakeIntensity * 0.2})` 
+                    : undefined
+                }}
               >
                 {getAvatar(UserType.HER)}
               </div>
@@ -1120,15 +1206,14 @@ function App() {
 
            <div className="max-w-xl mx-auto px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp relative">
-              {avatarQuote?.type === UserType.HIM && (
-                 <div 
-                   className={`absolute -top-24 left-1/2 -translate-x-1/2 w-40 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-4 rounded-2xl shadow-xl border border-sky-100 dark:border-slate-600 z-50 origin-bottom transition-all duration-500 ease-in-out ${isQuoteVisible ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-90 translate-y-4'}`}
-                 >
-                   <p className="text-xs text-slate-600 dark:text-slate-300 font-serif text-center leading-relaxed whitespace-pre-wrap">
-                     {avatarQuote.text}
-                   </p>
-                   <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/90 dark:bg-slate-800/90 rotate-45 border-b border-r border-sky-100 dark:border-slate-600"></div>
-                 </div>
+              {/* 长按刷新提示 */}
+              {isAvatarShaking === UserType.HIM && (
+                <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-sky-200 dark:border-slate-600 z-50 whitespace-nowrap">
+                  <p className="text-xs text-sky-500 dark:text-sky-400 font-medium flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {avatarShakeIntensity < 1 ? `刷新中... ${Math.floor(avatarShakeIntensity * 100)}%` : '正在重载...'}
+                  </p>
+                </div>
               )}
               <div 
                 onMouseDown={() => handleAvatarPressStart(UserType.HIM)}
@@ -1136,7 +1221,15 @@ function App() {
                 onMouseLeave={handleAvatarPressEnd}
                 onTouchStart={() => handleAvatarPressStart(UserType.HIM)}
                 onTouchEnd={handleAvatarPressEnd}
-                className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 dark:bg-sky-900/30 mb-6 text-3xl shadow-inner transition-transform duration-500 cursor-pointer select-none ${avatarQuote?.type === UserType.HIM ? 'scale-125 animate-bounce' : 'hover:scale-110'}`}
+                className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-50 dark:bg-sky-900/30 mb-6 text-3xl shadow-inner transition-transform cursor-pointer select-none hover:scale-110`}
+                style={{
+                  animation: isAvatarShaking === UserType.HIM 
+                    ? `avatarShake ${0.1 - avatarShakeIntensity * 0.06}s ease-in-out infinite` 
+                    : 'none',
+                  transform: isAvatarShaking === UserType.HIM 
+                    ? `scale(${1 + avatarShakeIntensity * 0.2})` 
+                    : undefined
+                }}
               >
                 {getAvatar(UserType.HIM)}
               </div>
