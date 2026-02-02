@@ -277,27 +277,27 @@
   100% { background-position: 0% 50%; }
 }
 
-/* 覆盖层绽放动画：模糊绽放效果，用于过渡场景 */
+/* 覆盖层绽放动画：背景缓入，先淡入再保持可见 */
 @keyframes overlay-bloom {
   0% {
     opacity: 0;
-    filter: blur(12px);
+    filter: blur(20px);
   }
-  30% {
+  55% {
     opacity: 1;
     filter: blur(4px);
   }
   100% {
-    opacity: 0;
-    filter: blur(24px);
+    opacity: 1;
+    filter: blur(4px);
   }
 }
 
 .overlay-bloom {
-  animation: overlay-bloom 0.9s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  animation: overlay-bloom 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* 覆盖层表情动画：表情符号弹出效果，用于可爱提示 */
+/* 覆盖层表情动画：表情符号弹出效果，结束后保持可见 */
 @keyframes overlay-emoji {
   0% {
     opacity: 0;
@@ -308,8 +308,8 @@
     transform: translateY(0) scale(1.05);
   }
   100% {
-    opacity: 0;
-    transform: translateY(-10px) scale(1);
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -317,7 +317,7 @@
   animation: overlay-emoji 0.9s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
 }
 
-/* 覆盖层环形动画：环形扩散效果，用于强调元素 */
+/* 覆盖层环形动画：环形扩散效果，结束后保持可见 */
 @keyframes overlay-ring {
   0% {
     transform: scale(0.7);
@@ -327,13 +327,81 @@
     opacity: 0.9;
   }
   100% {
-    transform: scale(1.25);
-    opacity: 0;
+    transform: scale(1.2);
+    opacity: 0.8;
   }
 }
 
 .overlay-ring {
   animation: overlay-ring 0.9s ease-out forwards;
+}
+
+/* 圆环进度到 100% 时短暂高光，增强「填满」反馈 */
+.overlay-ring-complete {
+  animation: overlay-ring-complete 0.6s ease-out forwards;
+}
+
+@keyframes overlay-ring-complete {
+  0% {
+    filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.4));
+  }
+  40% {
+    filter: drop-shadow(0 0 12px rgba(168, 85, 247, 0.6));
+  }
+  100% {
+    filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.2));
+  }
+}
+
+/* 覆盖层停留时呼吸动画：轻微缩放，进入动画结束后开始 */
+@keyframes overlay-breathe {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(0) scale(1.04);
+  }
+}
+
+.overlay-breathe {
+  animation: overlay-breathe 2.2s ease-in-out infinite;
+  animation-delay: 0.95s;
+}
+
+/* 覆盖层背景缓出：收回时渐变淡出，避免突然变色 */
+@keyframes overlay-bg-fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.overlay-bg-fade-out {
+  animation: overlay-bg-fade-out 0.45s ease-out forwards;
+}
+
+/* 覆盖层收回动画：轻微缩小淡出，干净不花哨 */
+@keyframes overlay-retract {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.94);
+  }
+}
+
+.overlay-retract {
+  animation: overlay-retract 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 覆盖层「正在加载」文案收回时淡出，不突然消失 */
+@keyframes overlay-loading-text-fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.overlay-loading-text-fade-out {
+  animation: overlay-loading-text-fade-out 0.35s ease-out forwards;
 }
 
 /* 互锁动画：左右交替移动，营造齿轮转动效果 */

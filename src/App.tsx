@@ -154,6 +154,8 @@ function App() {
   const [activeTab, setActiveTab] = useState<UserType>(UserType.HER);
   const [isLoading, setIsLoading] = useState(true);
   const [phase, setPhase] = useState<'login' | 'transition' | 'main'>('login');
+  const [transitionRetracting, setTransitionRetracting] = useState(false);
+  const [transitionRingProgress, setTransitionRingProgress] = useState(0);
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const [stars, setStars] = useState<Star[]>([]);
   const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
@@ -357,6 +359,35 @@ function App() {
     gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
     oscillator.start(now);
     oscillator.stop(now + 0.08);
+  };
+
+  // 播放加载完成音效：柔和两音上升（G4→C5），像「好了」的轻提示
+  const transitionEnteredAtRef = useRef<number>(0);
+  const playLoadCompleteSound = () => {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    if (!audioCtxRef.current || audioCtxRef.current.state === 'closed') {
+      audioCtxRef.current = new AudioContextClass();
+    }
+    const audioCtx = audioCtxRef.current;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const gainNode = audioCtx.createGain();
+    gainNode.connect(audioCtx.destination);
+    gainNode.gain.setValueAtTime(0, now);
+    gainNode.gain.linearRampToValueAtTime(0.06, now + 0.02);
+    gainNode.gain.exponentialRampToValueAtTime(0.008, now + 0.22);
+
+    const playNote = (freq: number, start: number, duration: number) => {
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      osc.connect(gainNode);
+      osc.start(start);
+      osc.stop(start + duration);
+    };
+    playNote(392, now, 0.1);           // G4
+    playNote(523.25, now + 0.1, 0.12); // C5
   };
 
   // 播放成功音效
@@ -564,6 +595,74 @@ function App() {
     };
   }, []);
 
+  // 离开过渡层时重置「已调度收回」与圆环进度
+  useEffect(() => {
+    if (phase !== 'transition') {
+      retractScheduledRef.current = false;
+      setTransitionRingProgress(0);
+    }
+  }, [phase]);
+
+  // 进入过渡层时记录时间，用于判断是否「真正有过加载」再播加载完成音
+  useEffect(() => {
+    if (phase === 'transition') transitionEnteredAtRef.current = Date.now();
+  }, [phase]);
+
+  // 过渡层圆环进度：进入时 0→90% 用 RAF + ease-out 模拟，加载完成时平滑到 100%
+  const transitionProgressRafRef = useRef<number | null>(null);
+  const LOAD_COMPLETE_SOUND_MIN_MS = 500; // 至少经历约 500ms 才播加载完成音，避免与选她/他的点击音重叠
+  useEffect(() => {
+    if (phase !== 'transition') return;
+    if (!isLoading) {
+      const elapsed = Date.now() - transitionEnteredAtRef.current;
+      if (elapsed >= LOAD_COMPLETE_SOUND_MIN_MS) playLoadCompleteSound();
+      setTransitionRingProgress(100);
+      return;
+    }
+    setTransitionRingProgress(0);
+    const duration = 1600;
+    const maxProgress = 90;
+    const startTime = performance.now();
+    const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+    const tick = (now: number) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      const eased = easeOutCubic(t);
+      const p = maxProgress * eased;
+      setTransitionRingProgress(p);
+      if (t < 1) {
+        transitionProgressRafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    transitionProgressRafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (transitionProgressRafRef.current != null) {
+        cancelAnimationFrame(transitionProgressRafRef.current);
+        transitionProgressRafRef.current = null;
+      }
+    };
+  }, [phase, isLoading]);
+
+  // 加载完成且处于过渡层时，仅一次延迟后触发收回（避免 effect 重跑反复重置计时）
+  const retractTimeoutRef = useRef<number | null>(null);
+  const retractScheduledRef = useRef(false);
+  useEffect(() => {
+    if (phase !== 'transition' || isLoading || transitionRetracting) return;
+    if (retractScheduledRef.current) return;
+    retractScheduledRef.current = true;
+    const minStayMs = 800;
+    retractTimeoutRef.current = window.setTimeout(() => {
+      retractTimeoutRef.current = null;
+      setTransitionRetracting(true);
+    }, minStayMs);
+    return () => {
+      if (retractTimeoutRef.current) {
+        clearTimeout(retractTimeoutRef.current);
+        retractTimeoutRef.current = null;
+      }
+    };
+  }, [phase, isLoading, transitionRetracting]);
+
   const scrollRafRef = useRef<number | null>(null);
   const handleScroll = (e: React.UIEvent<HTMLDivElement>, type: UserType) => {
     const scrollTop = e.currentTarget.scrollTop;
@@ -641,9 +740,6 @@ function App() {
     setCurrentUser(type);
     setActiveTab(type);
     setPhase('transition');
-    window.setTimeout(() => {
-      setPhase('main');
-    }, 900);
   };
 
   // ---------- 点击星星特效（节流 100ms，最多 10 颗） ----------
@@ -1069,7 +1165,7 @@ function App() {
         </div>
         
         {/* 加载遮罩 */}
-        {isLoading && (
+        {phase === 'main' && isLoading && (
           <div className="absolute inset-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
             <Loader2 className="animate-spin text-slate-800 dark:text-slate-200" size={32} />
           </div>
@@ -1315,19 +1411,65 @@ function App() {
               currentUser === UserType.HER
                 ? 'from-rose-200/80 via-purple-200/70 to-sky-200/80'
                 : 'from-sky-200/80 via-purple-200/70 to-rose-200/80'
-            }`}
+            } ${transitionRetracting ? 'overlay-bg-fade-out' : ''}`}
           />
-          <div className="relative z-10 flex flex-col items-center gap-4 overlay-emoji">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full border border-white/80 overlay-ring" />
-
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_18px_45px_rgba(15,23,42,0.18)] flex items-center justify-center text-5xl md:text-6xl relative z-10">
+          <div
+            className={`relative z-10 flex flex-col items-center gap-4 overlay-emoji ${transitionRetracting ? 'overlay-retract' : ''}`}
+            onAnimationEnd={(e) => {
+              if (String(e.animationName).includes('overlay-retract')) {
+                retractScheduledRef.current = false;
+                setPhase('main');
+                setTransitionRetracting(false);
+              }
+            }}
+          >
+            <div className="relative flex items-center justify-center overflow-visible">
+              <div className="absolute -inset-2 overlay-ring">
+                <svg className="w-full h-full drop-shadow-[0_0_8px_rgba(168,85,247,0.2)]" viewBox="0 0 100 100">
+                  <defs>
+                    <linearGradient id="overlay-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#fb7185" />
+                      <stop offset="50%" stopColor="#a855f7" />
+                      <stop offset="100%" stopColor="#38bdf8" />
+                    </linearGradient>
+                  </defs>
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.2)"
+                    strokeWidth="3"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="45"
+                    fill="none"
+                    stroke="url(#overlay-ring-gradient)"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeDasharray={282.74}
+                    strokeDashoffset={282.74 * (1 - transitionRingProgress / 100)}
+                    transform="rotate(-90 50 50)"
+                    className={`transition-[stroke-dashoffset] ease-out ${transitionRingProgress >= 100 ? 'duration-500 overlay-ring-complete' : 'duration-150'}`}
+                  />
+                </svg>
+              </div>
+              <div className={`relative z-10 w-24 h-24 md:w-32 md:h-32 rounded-full bg-white/80 backdrop-blur-xl border border-white/70 shadow-[0_18px_45px_rgba(15,23,42,0.18)] flex items-center justify-center text-5xl md:text-6xl ${!transitionRetracting ? 'overlay-breathe' : ''}`}>
                 {getAvatar(currentUser)}
               </div>
             </div>
             <span className="font-display text-5xl md:text-6xl tracking-tight text-slate-800/90">
               Us.
             </span>
+            {/* 加载文案暂时注释
+            <span
+              className={`font-serif text-sm md:text-base italic text-white/90 tracking-wide ${transitionRetracting ? 'overlay-loading-text-fade-out' : ''}`}
+            >
+              正在加载我们的回忆…
+            </span>
+            */}
           </div>
         </div>
       )}
