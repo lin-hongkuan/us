@@ -9,7 +9,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './types';
-import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty } from './services/storageService';
+import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty, subscribeToMemoryChanges, unsubscribeFromMemoryChanges } from './services/storageService';
 import { subscribeToCacheUpdates } from './services/cacheService';
 import { MemoryCard } from './components/MemoryCard';
 import { TypewriterText } from './components/TypewriterText';
@@ -467,6 +467,9 @@ function App() {
       const data = await getMemories();
       setMemories(data);
       setIsLoading(false);
+      
+      // 【新增】启动实时订阅，监听云端数据变化
+      subscribeToMemoryChanges();
     };
     fetchData();
     
@@ -477,6 +480,8 @@ function App() {
     
     return () => {
       unsubscribe();
+      // 【新增】组件卸载时取消实时订阅
+      unsubscribeFromMemoryChanges();
     };
   }, []);
 

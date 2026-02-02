@@ -15,9 +15,10 @@
  * - 数据库和应用模型之间的类型安全数据映射
  * - 【优化】三层缓存策略：内存 > IndexedDB > 云端
  * - 【优化】Cache-First 加载策略，毫秒级响应
+ * - 【优化】Supabase Realtime 实时订阅，自动同步数据变化
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import { Memory, UserType, CreateMemoryDTO } from '../types';
 import {
   getMemoryCache,
@@ -46,7 +47,106 @@ const SUPABASE_KEY: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzd
 const isConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL.startsWith('http');
 
 /** Supabase客户端实例 - 仅在正确配置时创建 */
-const supabase = isConfigured ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const supabase = isConfigured ? createClient(SUPABASE_URL, SUPABASE_KEY, {
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
+}) : null;
+
+// ==========================================
+// Realtime 实时订阅
+// ==========================================
+
+let realtimeChannel: RealtimeChannel | null = null;
+let isRealtimeSubscribed = false;
+
+/**
+ * 订阅记忆表的实时变化
+ * 当其他用户添加、修改、删除记忆时，自动同步到本地
+ */
+export const subscribeToMemoryChanges = (): void => {
+  if (!supabase || isRealtimeSubscribed) return;
+  
+  isRealtimeSubscribed = true;
+  
+  realtimeChannel = supabase
+    .channel('memories-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // 监听所有变化：INSERT, UPDATE, DELETE
+        schema: 'public',
+        table: 'memories'
+      },
+      async (payload) => {
+        console.log('Realtime update received:', payload.eventType);
+        
+        const cachedMemories = getMemoryCache() || [];
+        let updatedMemories: Memory[];
+        
+        switch (payload.eventType) {
+          case 'INSERT': {
+            const newMemory = mapRowToMemory(payload.new);
+            // 检查是否已存在（可能是自己刚添加的）
+            const exists = cachedMemories.some(m => m.id === newMemory.id);
+            if (!exists) {
+              updatedMemories = [newMemory, ...cachedMemories];
+              setMemoryCache(updatedMemories);
+              await addToIndexedDB(newMemory);
+              notifyCacheUpdate(updatedMemories);
+              // 预加载新图片
+              if (newMemory.imageUrls?.length || newMemory.imageUrl) {
+                preloadImages(newMemory.imageUrls || [newMemory.imageUrl!]);
+              }
+            }
+            break;
+          }
+          
+          case 'UPDATE': {
+            const updatedMemory = mapRowToMemory(payload.new);
+            updatedMemories = cachedMemories.map(m => 
+              m.id === updatedMemory.id ? updatedMemory : m
+            );
+            setMemoryCache(updatedMemories);
+            await updateInIndexedDB(updatedMemory);
+            notifyCacheUpdate(updatedMemories);
+            break;
+          }
+          
+          case 'DELETE': {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              updatedMemories = cachedMemories.filter(m => m.id !== deletedId);
+              setMemoryCache(updatedMemories);
+              await removeFromIndexedDB(deletedId);
+              notifyCacheUpdate(updatedMemories);
+            }
+            break;
+          }
+        }
+      }
+    )
+    .subscribe((status) => {
+      console.log('Realtime subscription status:', status);
+      if (status === 'CHANNEL_ERROR') {
+        console.error('Failed to subscribe to realtime changes');
+        isRealtimeSubscribed = false;
+      }
+    });
+};
+
+/**
+ * 取消实时订阅
+ */
+export const unsubscribeFromMemoryChanges = (): void => {
+  if (realtimeChannel) {
+    realtimeChannel.unsubscribe();
+    realtimeChannel = null;
+    isRealtimeSubscribed = false;
+  }
+};
 
 // ==========================================
 // 本地存储回退
@@ -363,6 +463,25 @@ export const getMemories = async (): Promise<Memory[]> => {
 let isSyncing = false;
 const SYNC_TIMEOUT = 3000; // 3秒超时
 
+/**
+ * 深度比较两个记忆数组是否相同
+ */
+const areMemoriesEqual = (a: Memory[] | null, b: Memory[]): boolean => {
+  if (!a) return false;
+  if (a.length !== b.length) return false;
+  
+  // 创建 ID 到内容的映射进行比较
+  const aMap = new Map(a.map(m => [m.id, JSON.stringify({ content: m.content, imageUrls: m.imageUrls })]));
+  
+  for (const memory of b) {
+    const aContent = aMap.get(memory.id);
+    const bContent = JSON.stringify({ content: memory.content, imageUrls: memory.imageUrls });
+    if (aContent !== bContent) return false;
+  }
+  
+  return true;
+};
+
 const syncFromCloudInBackground = async (): Promise<void> => {
   if (isSyncing || !supabase) return;
   
@@ -392,10 +511,8 @@ const syncFromCloudInBackground = async (): Promise<void> => {
     const cloudMemories = (data || []).map(mapRowToMemory);
     const cachedMemories = getMemoryCache();
     
-    // 检查数据是否有变化（简单比较长度和最新记录的时间戳）
-    const hasChanges = !cachedMemories || 
-      cachedMemories.length !== cloudMemories.length ||
-      (cachedMemories[0]?.createdAt !== cloudMemories[0]?.createdAt);
+    // 【改进】使用深度比较检测数据变化
+    const hasChanges = !areMemoriesEqual(cachedMemories, cloudMemories);
     
     if (hasChanges) {
       // 更新缓存
