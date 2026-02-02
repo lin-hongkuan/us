@@ -148,13 +148,14 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     <div 
       data-sound={isHer ? 'her' : 'him'}
       className={`
-        relative group p-6 md:p-8 mb-8 md:mb-12 rounded-2xl md:rounded-3xl border
+        relative group p-7 md:p-8 mb-8 md:mb-12 rounded-2xl md:rounded-3xl border overflow-visible
         transform-gpu
-        md:transition-[border-color,box-shadow,transform] md:duration-300
-        md:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] md:dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] md:hover:-translate-y-2
+        transition-[border-color,box-shadow,transform] duration-300
+        hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.25)] md:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.08)] md:dark:hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] hover:-translate-y-2
+        active:scale-[0.99]
         ${isHer 
-          ? 'bg-white dark:bg-slate-800 border-rose-100/50 dark:border-rose-900/50 md:hover:border-rose-200 md:dark:hover:border-rose-700' 
-          : 'bg-white dark:bg-slate-800 border-sky-100/50 dark:border-sky-900/50 md:hover:border-sky-200 md:dark:hover:border-sky-700'
+          ? 'bg-white dark:bg-slate-800 border-rose-100/50 dark:border-rose-900/50 hover:border-rose-200 dark:hover:border-rose-700' 
+          : 'bg-white dark:bg-slate-800 border-sky-100/50 dark:border-sky-900/50 hover:border-sky-200 dark:hover:border-sky-700'
         }
       `}
     >
@@ -378,13 +379,13 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
-            className="w-full bg-transparent border-b border-slate-200 dark:border-slate-600 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-0 p-0 font-serif text-lg md:text-xl leading-loose text-slate-700 dark:text-slate-200 tracking-wide resize-none outline-none"
+            className="w-full bg-transparent border-b border-slate-200 dark:border-slate-600 focus:border-slate-400 dark:focus:border-slate-500 focus:ring-0 p-0 font-serif text-base md:text-xl leading-loose text-slate-700 dark:text-slate-200 tracking-wide resize-none outline-none"
             rows={Math.max(3, editContent.split('\n').length)}
             autoFocus
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <p className="font-serif text-lg md:text-xl leading-loose text-slate-700 dark:text-slate-200 tracking-wide whitespace-pre-wrap">
+          <p className="font-serif text-base md:text-xl leading-loose text-slate-700 dark:text-slate-200 tracking-wide whitespace-pre-wrap">
             {memory.content}
           </p>
         )}

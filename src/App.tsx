@@ -1192,7 +1192,7 @@ function App() {
           onMouseEnter={() => setHoveredSide(UserType.HER)}
           onMouseLeave={() => setHoveredSide(null)}
           className={`
-            flex-1 h-full overflow-y-auto no-scrollbar relative z-10
+            flex-1 h-full overflow-y-auto overflow-x-visible no-scrollbar relative z-10
             transform-gpu overscroll-contain
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             bg-gradient-to-r from-rose-100/30 dark:from-rose-900/10 via-rose-50/10 dark:via-transparent to-transparent md:bg-none
@@ -1203,7 +1203,7 @@ function App() {
           {/* Spacer */}
           <div className="h-48 md:h-32 w-full" />
           
-          <div className="max-w-xl mx-auto px-8 pb-32">
+          <div className="max-w-xl mx-auto px-4 md:px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp relative">
               {/* 长按刷新提示 */}
               {isAvatarShaking === UserType.HER && (
@@ -1263,7 +1263,7 @@ function App() {
                 herMemories.map((m, i) => (
                   <div 
                     key={m.id} 
-                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4"
+                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
                     {/* 时间轴节点 */}
@@ -1289,7 +1289,7 @@ function App() {
            onMouseEnter={() => setHoveredSide(UserType.HIM)}
            onMouseLeave={() => setHoveredSide(null)}
            className={`
-            flex-1 h-full overflow-y-auto no-scrollbar relative z-10
+            flex-1 h-full overflow-y-auto overflow-x-visible no-scrollbar relative z-10
             transform-gpu overscroll-contain
             transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
             bg-gradient-to-l from-sky-100/30 dark:from-sky-900/10 via-sky-50/10 dark:via-transparent to-transparent md:bg-none
@@ -1300,7 +1300,7 @@ function App() {
            {/* Spacer */}
            <div className="h-48 md:h-32 w-full" />
 
-           <div className="max-w-xl mx-auto px-8 pb-32">
+           <div className="max-w-xl mx-auto px-4 md:px-8 pb-32">
             <div className="text-center mb-20 animate-fadeInUp relative">
               {/* 长按刷新提示 */}
               {isAvatarShaking === UserType.HIM && (
@@ -1348,7 +1348,7 @@ function App() {
               />
             </div>
 
-            <div className="space-y-12 relative">
+            <div className="space-y-6 md:space-y-12 relative">
               {/* 时间轴线条 */}
               <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-sky-200/50 dark:from-sky-500/30 via-sky-200/30 dark:via-sky-500/15 to-transparent hidden md:block"></div>
 
@@ -1360,7 +1360,7 @@ function App() {
                 hisMemories.map((m, i) => (
                   <div 
                     key={m.id} 
-                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4"
+                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
                     style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
                   >
                     {/* 时间轴节点 */}
