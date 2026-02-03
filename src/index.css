@@ -530,6 +530,84 @@
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* Logo 可爱小动画：轻柔呼吸缩放 + 一点点光晕 */
+@keyframes logo-breathe {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(251, 113, 133, 0.15));
+  }
+  50% {
+    transform: scale(1.03);
+    filter: drop-shadow(0 0 28px rgba(251, 113, 133, 0.25)) drop-shadow(0 0 40px rgba(168, 85, 247, 0.12));
+  }
+}
+
+.logo-cute {
+  animation: logo-breathe 3s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+/* 天数数字可爱小动画：轻柔心跳感 */
+@keyframes days-number-pulse {
+  0%, 100% {
+    transform: scale(1);
+    text-shadow: 0 4px 12px rgba(244, 63, 94, 0.2);
+  }
+  50% {
+    transform: scale(1.06);
+    text-shadow: 0 6px 20px rgba(244, 63, 94, 0.35), 0 0 24px rgba(244, 63, 94, 0.15);
+  }
+}
+
+.days-number-cute {
+  animation: days-number-pulse 2.2s ease-in-out infinite;
+  transform-origin: center center;
+}
+
+/* 登录页卡片：高级感样式（分层阴影 + 顶部高光 + 微妙渐变）+ 悬停与身份卡一致的上浮与阴影 */
+.login-card {
+  box-shadow:
+    0 20px 60px -15px rgba(0, 0, 0, 0.06),
+    0 40px 90px -25px rgba(251, 113, 133, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transition: box-shadow 0.5s ease;
+}
+
+.login-card:hover {
+  box-shadow:
+    0 28px 60px -15px rgba(0, 0, 0, 0.08),
+    0 48px 90px -25px rgba(251, 113, 133, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.login-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, transparent 38%);
+}
+
+.dark .login-card {
+  box-shadow:
+    0 20px 60px -15px rgba(0, 0, 0, 0.3),
+    0 40px 90px -25px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark .login-card:hover {
+  box-shadow:
+    0 28px 60px -15px rgba(0, 0, 0, 0.35),
+    0 48px 90px -25px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .login-card::before {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 45%);
+}
+
 /* 登录页卡片：像浮在水面上缓慢移动与轻微旋转 */
 @keyframes login-card-float {
   0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }

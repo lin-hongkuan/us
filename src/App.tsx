@@ -850,7 +850,8 @@ function App() {
            <div className="absolute top-[20%] left-[20%] w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-purple-200/30 dark:bg-purple-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[40px] md:blur-[100px] opacity-50 md:animate-blob md:animation-delay-4000 hidden md:block" />
         </div>
 
-        <div className="max-w-3xl w-full bg-white/90 md:bg-white/60 dark:bg-slate-800/90 md:dark:bg-slate-800/60 md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/60 dark:border-slate-700/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20 login-card-float overflow-hidden">
+        <div className="max-w-3xl w-full transition-transform duration-500 hover:-translate-y-2">
+          <div className="login-card w-full bg-white/90 md:bg-white/60 dark:bg-slate-800/90 md:dark:bg-slate-800/60 md:backdrop-blur-2xl rounded-[3rem] border border-white/60 dark:border-slate-700/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20 login-card-float overflow-hidden">
           {/* 卡片内部：光带扫过 + 噪点呼吸 */}
           <div className="login-card-texture" aria-hidden="true">
             <div className="login-card-shimmer" />
@@ -860,7 +861,7 @@ function App() {
           {/* Left Side: Brand */}
           <div className="flex-1 text-center md:text-left relative z-10 flex flex-col justify-center">
              <h1 
-               className="font-display text-[8rem] md:text-[11rem] font-normal tracking-tighter leading-[0.8] select-none mb-8 md:mb-12 text-transparent bg-clip-text bg-cover texture-text"
+               className="font-display text-[8rem] md:text-[11rem] font-normal tracking-tighter leading-[0.8] select-none mb-8 md:mb-12 text-transparent bg-clip-text bg-cover texture-text logo-cute"
                style={{
                  backgroundImage: `linear-gradient(135deg, #fb7185 0%, #a855f7 50%, #38bdf8 100%), url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
                  backgroundBlendMode: 'hard-light',
@@ -875,7 +876,7 @@ function App() {
                 <div className="flex flex-col gap-1.5 animate-fadeInUp items-center md:items-start" style={{ animationDelay: '0.2s' }}>
                    <div className="flex items-baseline justify-center md:justify-start gap-2 text-rose-500 dark:text-rose-400 mb-1 select-none group w-full md:w-auto">
                       <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100 text-right">在一起已经</span>
-                      <span className="font-display text-4xl leading-none tabular-nums tracking-tight transition-all duration-700 ease-out group-hover:scale-110 group-hover:text-rose-600 dark:group-hover:text-rose-300 min-w-[3ch] text-center" style={{ textShadow: '0 4px 12px rgba(244, 63, 94, 0.2)' }}>
+                      <span className="font-display text-4xl leading-none tabular-nums tracking-tight transition-all duration-700 ease-out group-hover:scale-110 group-hover:text-rose-600 dark:group-hover:text-rose-300 min-w-[3ch] text-center days-number-cute" style={{ textShadow: '0 4px 12px rgba(244, 63, 94, 0.2)' }}>
                         {displayDays}
                       </span>
                       <span className="text-[10px] font-bold tracking-[0.2em] uppercase opacity-70 transition-opacity group-hover:opacity-100 text-left">天了！</span>
@@ -957,6 +958,7 @@ function App() {
             <p className="text-center text-slate-300 dark:text-slate-500 text-[10px] mt-4 font-bold tracking-[0.3em] uppercase">请问你是？</p>
           </div>
 
+          </div>
         </div>
 
         {/* 点击星星特效 */}
