@@ -530,6 +530,20 @@
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* 登录页卡片：像浮在水面上缓慢移动与轻微旋转 */
+@keyframes login-card-float {
+  0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+  20% { transform: translateY(-18px) translateX(10px) rotate(1deg); }
+  40% { transform: translateY(-6px) translateX(-10px) rotate(-0.9deg); }
+  60% { transform: translateY(14px) translateX(-12px) rotate(0.7deg); }
+  80% { transform: translateY(10px) translateX(10px) rotate(-0.5deg); }
+}
+
+.login-card-float {
+  animation: login-card-float 12s ease-in-out infinite;
+  will-change: transform;
+}
+
 /* 登录页卡片内部：光带缓慢扫过 + 噪点轻微呼吸 */
 @keyframes login-card-shimmer {
   0% { background-position: 200% 50%; }

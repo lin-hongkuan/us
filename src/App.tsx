@@ -850,7 +850,7 @@ function App() {
            <div className="absolute top-[20%] left-[20%] w-[400px] md:w-[600px] h-[400px] md:h-[600px] bg-purple-200/30 dark:bg-purple-500/15 rounded-full md:mix-blend-multiply dark:md:mix-blend-screen filter blur-[40px] md:blur-[100px] opacity-50 md:animate-blob md:animation-delay-4000 hidden md:block" />
         </div>
 
-        <div className="max-w-3xl w-full bg-white/90 md:bg-white/60 dark:bg-slate-800/90 md:dark:bg-slate-800/60 md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/60 dark:border-slate-700/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20 overflow-hidden">
+        <div className="max-w-3xl w-full bg-white/90 md:bg-white/60 dark:bg-slate-800/90 md:dark:bg-slate-800/60 md:backdrop-blur-2xl rounded-[3rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] dark:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/60 dark:border-slate-700/60 p-8 md:p-16 relative z-10 flex flex-col md:flex-row items-center gap-12 md:gap-20 login-card-float overflow-hidden">
           {/* 卡片内部：光带扫过 + 噪点呼吸 */}
           <div className="login-card-texture" aria-hidden="true">
             <div className="login-card-shimmer" />
