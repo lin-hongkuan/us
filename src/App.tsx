@@ -7,14 +7,15 @@
  * - 性能：Header 显隐用 ref 不触发重渲染；记忆列表项 content-visibility；彩蛋/弹窗懒加载
  */
 
-import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback, lazy, Suspense } from 'react';
 import { UserType, Memory, getAvatar, getDailyAvatars, APP_UPDATE } from './types';
 import { getMemories, saveMemory, deleteMemory, updateMemory, seedDataIfEmpty, subscribeToMemoryChanges, unsubscribeFromMemoryChanges } from './services/storageService';
 import { subscribeToCacheUpdates, clearMemoryCache, clearIndexedDBCache } from './services/cacheService';
 import { MemoryCard } from './components/MemoryCard';
 import { TypewriterText } from './components/TypewriterText';
 import { PresenceIndicator } from './components/PresenceIndicator';
-import { PenTool, User, Loader2, Moon, Sun, Bell, Star as StarIcon, X, Heart, Frown, Sparkles } from 'lucide-react';
+import { ClickStarOverlay, dispatchStarPop } from './components/ClickStarOverlay';
+import { PenTool, User, Loader2, Moon, Sun, Star as StarIcon, X, Heart, Frown } from 'lucide-react';
 
 // ---------- 懒加载组件（按需加载，减轻首包） ----------
 const Composer = lazy(() => import('./components/Composer').then(m => ({ default: m.Composer })));
@@ -31,13 +32,6 @@ const LazyLoadingFallback = () => (
     </div>
   </div>
 );
-
-/** 点击产生的星星特效：用于登录/主界面点击反馈 */
-interface Star {
-  id: number;
-  x: number;
-  y: number;
-}
 
 /** 角落常驻星光：位置 + 尺寸/延迟/时长，由 CSS 做闪烁 */
 interface AmbientStar {
@@ -157,9 +151,8 @@ function App() {
   const [transitionRetracting, setTransitionRetracting] = useState(false);
   const [transitionRingProgress, setTransitionRingProgress] = useState(0);
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
-  const [stars, setStars] = useState<Star[]>([]);
-  const [touchStart, setTouchStart] = useState<{ x: number; y: number } | null>(null);
-  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchEndRef = useRef<{ x: number; y: number } | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const stored = window.localStorage.getItem('dark_mode');
@@ -199,8 +192,6 @@ function App() {
       ...spot
     }));
   });
-  const starIdRef = useRef(0);
-
   // ---------- 主题与音效 ----------
   useEffect(() => {
     if (darkMode) {
@@ -211,7 +202,7 @@ function App() {
     window.localStorage.setItem('dark_mode', String(darkMode));
   }, [darkMode]);
 
-  const toggleDarkMode = () => setDarkMode(prev => !prev);
+  const toggleDarkMode = useCallback(() => setDarkMode(prev => !prev), []);
 
   const handleQuoteClick = (e: React.MouseEvent<HTMLParagraphElement>) => {
     e.stopPropagation();
@@ -235,7 +226,7 @@ function App() {
   }, [currentQuote, quoteIndex]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const playClickSound = (type: 'default' | 'her' | 'him' | 'action' | 'stamp' = 'default') => {
+  const playClickSound = useCallback((type: 'default' | 'her' | 'him' | 'action' | 'stamp' = 'default') => {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioContextClass) return;
 
@@ -308,7 +299,7 @@ function App() {
       oscillator.start(now);
       oscillator.stop(now + 0.15);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -319,7 +310,7 @@ function App() {
     };
     window.addEventListener('mousedown', handleClick, { passive: true });
     return () => window.removeEventListener('mousedown', handleClick);
-  }, []);
+  }, [playClickSound]);
 
   // ---------- 滚动与 Header（ref 控制显隐，不触发重渲染） ----------
   const headerRef = useRef<HTMLElement>(null);
@@ -702,7 +693,7 @@ function App() {
     if (!currentUser) return;
     const newMem = await saveMemory({ content, author: currentUser, imageUrls });
     if (newMem) {
-      setMemories([newMem, ...memories]);
+      setMemories((prev) => [newMem, ...prev]);
       setIsComposerOpen(false);
       
       // Trigger Stamp Effect
@@ -711,22 +702,22 @@ function App() {
       if (navigator.vibrate) {
         navigator.vibrate(50);
       }
-      setTimeout(() => setShowStamp(false), 1500);
+      window.setTimeout(() => setShowStamp(false), 1500);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     if (window.confirm('确定要删除这条记忆吗？')) {
       const success = await deleteMemory(id);
       if (success) {
-        setMemories(memories.filter(m => m.id !== id));
+        setMemories((prev) => prev.filter(m => m.id !== id));
       } else {
         alert("删除失败");
       }
     }
-  };
+  }, []);
 
-  const handleUpdateMemory = async (id: string, content: string, imageUrls?: string[] | null) => {
+  const handleUpdateMemory = useCallback(async (id: string, content: string, imageUrls?: string[] | null) => {
     const updated = await updateMemory(id, content, imageUrls);
     if (updated) {
       setMemories(prev => prev.map(m => m.id === id ? updated : m));
@@ -734,61 +725,37 @@ function App() {
       return true;
     }
     return false;
-  };
+  }, [playClickSound]);
 
-  const handleChooseUser = (type: UserType) => {
+  const handleChooseUser = useCallback((type: UserType) => {
     setCurrentUser(type);
     setActiveTab(type);
     setPhase('transition');
-  };
+  }, []);
 
-  // ---------- 点击星星特效（节流 100ms，最多 10 颗） ----------
-  const maxStars = 10;
-  const lastStarClickTimeRef = useRef(0);
   const handleGlobalClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const now = Date.now();
-    if (now - lastStarClickTimeRef.current < 100) return;
-    lastStarClickTimeRef.current = now;
-
-    const x = e.clientX;
-    const y = e.clientY;
-    
-    // 限制最大星星数量，防止高频点击时累积
-    if (stars.length >= maxStars) {
-      // 复用最旧的星星位置
-      setStars(prev => {
-        const newStars = [...prev];
-        newStars[0] = { id: starIdRef.current++, x, y };
-        return [...newStars.slice(1), newStars[0]];
-      });
-    } else {
-      const id = starIdRef.current++;
-      setStars(prev => [...prev, { id, x, y }]);
-    }
-
-    // 700ms 后移除，避免内存累积
-    window.setTimeout(() => {
-      setStars(prev => prev.slice(1));
-    }, 700);
+    dispatchStarPop(e.clientX, e.clientY);
   };
 
   // ---------- 移动端左右滑切换她/他 ----------
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null); // 重置结束位置
-    setTouchStart({
+    touchEndRef.current = null;
+    touchStartRef.current = {
       x: e.targetTouches[0].clientX,
       y: e.targetTouches[0].clientY
-    });
+    };
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd({
+    touchEndRef.current = {
       x: e.targetTouches[0].clientX,
       y: e.targetTouches[0].clientY
-    });
+    };
   };
 
   const handleTouchEnd = () => {
+    const touchStart = touchStartRef.current;
+    const touchEnd = touchEndRef.current;
     if (!touchStart || !touchEnd) return;
 
     const distanceX = touchStart.x - touchEnd.x;
@@ -809,10 +776,45 @@ function App() {
         playClickSound('her');
       }
     }
+
+    touchStartRef.current = null;
+    touchEndRef.current = null;
   };
 
   const herMemories = useMemo(() => memories.filter(m => m.author === UserType.HER), [memories]);
   const hisMemories = useMemo(() => memories.filter(m => m.author === UserType.HIM), [memories]);
+  const herMemoryCards = useMemo(() => herMemories.map((m, i) => (
+    <div
+      key={m.id}
+      className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
+      style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
+    >
+      {/* 时间轴节点 */}
+      <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-rose-300 dark:bg-rose-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(253,164,175,0.2)] dark:shadow-[0_0_0_4px_rgba(244,63,94,0.2)]"></div>
+      <MemoryCard
+        memory={m}
+        onDelete={handleDelete}
+        onUpdate={handleUpdateMemory}
+        currentUser={currentUser}
+      />
+    </div>
+  )), [herMemories, currentUser, handleDelete, handleUpdateMemory]);
+  const hisMemoryCards = useMemo(() => hisMemories.map((m, i) => (
+    <div
+      key={m.id}
+      className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
+      style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
+    >
+      {/* 时间轴节点 */}
+      <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-sky-300 dark:bg-sky-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(186,230,253,0.2)] dark:shadow-[0_0_0_4px_rgba(56,189,248,0.2)]"></div>
+      <MemoryCard
+        memory={m}
+        onDelete={handleDelete}
+        onUpdate={handleUpdateMemory}
+        currentUser={currentUser}
+      />
+    </div>
+  )), [hisMemories, currentUser, handleDelete, handleUpdateMemory]);
 
   // ---------- 渲染：登录页 ----------
   if (phase === 'login' || !currentUser) {
@@ -961,18 +963,7 @@ function App() {
           </div>
         </div>
 
-        {/* 点击星星特效 */}
-        <div className="pointer-events-none fixed inset-0 z-50">
-          {stars.map(star => (
-            <div
-              key={star.id}
-              className="pointer-events-none absolute text-yellow-300 text-xl select-none star-pop drop-shadow-[0_0_6px_rgba(250,204,21,0.8)]"
-              style={{ left: star.x, top: star.y }}
-            >
-              ★
-            </div>
-          ))}
-        </div>
+        <ClickStarOverlay />
       </div>
     );
   }
@@ -1267,22 +1258,7 @@ function App() {
                    Waiting for her story...
                 </div>
               ) : (
-                herMemories.map((m, i) => (
-                  <div 
-                    key={m.id} 
-                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
-                    style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
-                  >
-                    {/* 时间轴节点 */}
-                    <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-rose-300 dark:bg-rose-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(253,164,175,0.2)] dark:shadow-[0_0_0_4px_rgba(244,63,94,0.2)]"></div>
-                    <MemoryCard 
-                      memory={m} 
-                      onDelete={handleDelete} 
-                      onUpdate={handleUpdateMemory}
-                      currentUser={currentUser} 
-                    />
-                  </div>
-                ))
+                herMemoryCards
               )}
             </div>
           </div>
@@ -1364,22 +1340,7 @@ function App() {
                    Waiting for his story...
                 </div>
               ) : (
-                hisMemories.map((m, i) => (
-                  <div 
-                    key={m.id} 
-                    className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
-                    style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
-                  >
-                    {/* 时间轴节点 */}
-                    <div className="absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full bg-sky-300 dark:bg-sky-500 border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500 shadow-[0_0_0_4px_rgba(186,230,253,0.2)] dark:shadow-[0_0_0_4px_rgba(56,189,248,0.2)]"></div>
-                    <MemoryCard 
-                      memory={m} 
-                      onDelete={handleDelete} 
-                      onUpdate={handleUpdateMemory}
-                      currentUser={currentUser} 
-                    />
-                  </div>
-                ))
+                hisMemoryCards
               )}
             </div>
           </div>
@@ -1397,18 +1358,7 @@ function App() {
         </Suspense>
       )}
 
-      {/* Click Stars Effect */}
-      <div className="pointer-events-none fixed inset-0 z-50">
-        {stars.map(star => (
-          <div
-            key={star.id}
-            className="pointer-events-none absolute text-yellow-300 text-xl select-none star-pop drop-shadow-[0_0_6px_rgba(250,204,21,0.8)]"
-            style={{ left: star.x, top: star.y }}
-          >
-            ★
-          </div>
-        ))}
-      </div>
+      <ClickStarOverlay />
 
       {/* Login -> Main Transition Overlay */}
       {phase === 'transition' && currentUser && (

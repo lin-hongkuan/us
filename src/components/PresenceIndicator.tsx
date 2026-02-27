@@ -42,7 +42,7 @@ const GOODBYE_MESSAGES = [
   '暂别片刻，思念不减 🌙'
 ];
 
-export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
+export const PresenceIndicator: React.FC<PresenceIndicatorProps> = React.memo(({
   currentUser,
   darkMode = false
 }) => {
@@ -367,6 +367,8 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = ({
       `}</style>
     </>
   );
-};
+});
+
+PresenceIndicator.displayName = 'PresenceIndicator';
 
 export default PresenceIndicator;

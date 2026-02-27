@@ -32,7 +32,7 @@ interface TypewriterTextProps {
  * 打字机效果文字组件
  * 逐字符显示文本并带有闪烁光标
  */
-export const TypewriterText: React.FC<TypewriterTextProps> = ({
+export const TypewriterText: React.FC<TypewriterTextProps> = React.memo(({
   text,
   delay = 100,
   className = "",
@@ -82,4 +82,6 @@ export const TypewriterText: React.FC<TypewriterTextProps> = ({
       ></span>
     </span>
   );
-};
+});
+
+TypewriterText.displayName = 'TypewriterText';

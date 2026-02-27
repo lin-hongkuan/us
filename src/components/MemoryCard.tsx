@@ -19,6 +19,18 @@ interface MemoryCardProps {
   currentUser: UserType;
 }
 
+const areImageUrlsEqual = (a?: string[], b?: string[]): boolean => {
+  if (a === b) return true;
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDelete, onUpdate, currentUser }) => {
   // ---------- 编辑与图片状态 ----------
   const [isEditing, setIsEditing] = useState(false);
@@ -33,6 +45,27 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 全屏查看时锁定背景滚动，并支持 ESC 关闭（主要改善桌面端体验）
+  useEffect(() => {
+    if (expandedImageIndex === null) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setExpandedImageIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [expandedImageIndex]);
 
   const isHer = memory.author === UserType.HER;
 
@@ -325,12 +358,11 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                   </>
                 )}
 
-                <LazyImage 
-                  src={displayImages[expandedImageIndex].url} 
-                  alt="Full screen memory" 
-                  className="max-w-[95vw] max-h-[95vh] rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
-                  imgClassName="w-full h-full object-contain"
-                  onClick={(e) => e.stopPropagation()} 
+                <img 
+                  src={displayImages[expandedImageIndex].url}
+                  alt="Full screen memory"
+                  className="w-auto h-auto max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
+                  onClick={(e) => e.stopPropagation()}
                 />
                 
                 {/* Image Counter */}
@@ -472,7 +504,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     prevProps.memory.id === nextProps.memory.id &&
     prevProps.memory.content === nextProps.memory.content &&
     prevProps.memory.imageUrl === nextProps.memory.imageUrl &&
-    JSON.stringify(prevProps.memory.imageUrls) === JSON.stringify(nextProps.memory.imageUrls) &&
+    areImageUrlsEqual(prevProps.memory.imageUrls, nextProps.memory.imageUrls) &&
     prevProps.currentUser === nextProps.currentUser
   );
 });
