@@ -62,6 +62,12 @@ const supabase = isConfigured ? createClient(SUPABASE_URL, SUPABASE_KEY, {
 let realtimeChannel: RealtimeChannel | null = null;
 let isRealtimeSubscribed = false;
 
+const getRealtimeBaseMemories = async (): Promise<Memory[]> => {
+  const inMemory = getMemoryCache();
+  if (inMemory) return inMemory;
+  return (await getIndexedDBMemories()) || [];
+};
+
 /**
  * 订阅记忆表的实时变化
  * 当其他用户添加、修改、删除记忆时，自动同步到本地
@@ -87,9 +93,8 @@ export const subscribeToMemoryChanges = (): void => {
       },
       async (payload) => {
         console.log('Realtime update received:', payload.eventType);
-        
-        // 关键修复：确保每次触发都拉取最新缓存，防止闭包过时
-        const cachedMemories = await getIndexedDBMemories() || [];
+
+        const cachedMemories = await getRealtimeBaseMemories();
         let updatedMemories: Memory[];
         
         switch (payload.eventType) {
@@ -468,29 +473,51 @@ export const getMemories = async (): Promise<Memory[]> => {
  */
 let isSyncing = false;
 const SYNC_TIMEOUT = 3000; // 3秒超时
+const MIN_SYNC_INTERVAL = 12_000;
+let lastSyncStartAt = 0;
 
 /**
  * 深度比较两个记忆数组是否相同
  */
+const areStringArraysEqual = (a?: string[], b?: string[]): boolean => {
+  if (a === b) return true;
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+};
+
 const areMemoriesEqual = (a: Memory[] | null, b: Memory[]): boolean => {
   if (!a) return false;
   if (a.length !== b.length) return false;
-  
-  // 创建 ID 到内容的映射进行比较
-  const aMap = new Map(a.map(m => [m.id, JSON.stringify({ content: m.content, imageUrls: m.imageUrls })]));
-  
-  for (const memory of b) {
-    const aContent = aMap.get(memory.id);
-    const bContent = JSON.stringify({ content: memory.content, imageUrls: memory.imageUrls });
-    if (aContent !== bContent) return false;
+
+  for (let i = 0; i < b.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (
+      left.id !== right.id ||
+      left.content !== right.content ||
+      left.author !== right.author ||
+      left.createdAt !== right.createdAt ||
+      left.imageUrl !== right.imageUrl ||
+      !areStringArraysEqual(left.imageUrls, right.imageUrls)
+    ) {
+      return false;
+    }
   }
-  
+
   return true;
 };
 
 const syncFromCloudInBackground = async (): Promise<void> => {
-  if (isSyncing || !supabase) return;
-  
+  if (!supabase || isSyncing) return;
+  const now = Date.now();
+  if (now - lastSyncStartAt < MIN_SYNC_INTERVAL) return;
+
+  lastSyncStartAt = now;
   isSyncing = true;
   
   try {

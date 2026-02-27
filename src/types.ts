@@ -59,22 +59,42 @@ export const AVATAR_PAIRS: AvatarConfig[] = [
   
 ];
 
+const AVATAR_ROTATE_INTERVAL_MS = 1000 * 60 * 10;
+const FALLBACK_AVATAR_PAIR: AvatarConfig = {
+  her: '💗',
+  him: '💗',
+  theme: '#f43f5e',
+  bg: '#fff1f2',
+  desc: '你在，就很甜'
+};
+
+let cachedAvatarInterval = -1;
+let cachedAvatarPair: AvatarConfig | null = null;
+
 export const getDailyAvatars = (): AvatarConfig => {
   const now = Date.now();
-  // 15分钟更新逻辑
-  const intervalIndex = Math.floor(now / (1000 * 60 * 10));
+  const intervalIndex = Math.floor(now / AVATAR_ROTATE_INTERVAL_MS);
+
+  if (cachedAvatarPair && cachedAvatarInterval === intervalIndex) {
+    return cachedAvatarPair;
+  }
+
   const index = intervalIndex % AVATAR_PAIRS.length;
-  const pair = AVATAR_PAIRS[index];
+  const pair = AVATAR_PAIRS[index] ?? FALLBACK_AVATAR_PAIR;
 
   // 纪念日检测
   const startDate = new Date('2024-08-20').getTime();
   const diffDays = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 500) {
-    return { her: '🐧', him: '🐧', theme: '#0ea5e9', bg: '#f0f9ff', desc: '第500天，还是选你' };
+    cachedAvatarPair = { her: '🐧', him: '🐧', theme: '#0ea5e9', bg: '#f0f9ff', desc: '第500天，还是选你' };
+    cachedAvatarInterval = intervalIndex;
+    return cachedAvatarPair;
   }
 
-  return pair;
+  cachedAvatarPair = pair;
+  cachedAvatarInterval = intervalIndex;
+  return cachedAvatarPair;
 };
 
 export const getAvatar = (author: UserType) => {
@@ -109,13 +129,13 @@ export interface UpdateInfo {
 }
 
 export const APP_UPDATE: UpdateInfo = {
-  version: 'v5.2.1',
-  date: '2026-01-16',
+  version: 'v5.3.0',
+  date: '2026-02-27',
   content: [
-    '1. 新增双人在线状态功能！当你们同时在线时，会在右下角显示"对方也正在想你噢"的甜蜜提示 💕',
-    '2. 利用 Supabase Realtime 实时同步，跨设备也能感应到彼此的存在 ✨',
-    '3. 性能小优化，加载更快更流畅 🚀',
-    '4. 修复了一些小问题，提升整体稳定性 🛠️',
-    '5. 最喜欢婷婷小可爱了~  🎶'
+    '双人在线 Presence 重制：上线时会看到双头像、心形连线、渐变边框和一整圈小爱心粒子爆开，还会有轻轻的提示音；对方下线时也会用温柔的小句子跟你说再见 ✨',
+    '点击星星彩蛋独立成组件：页面任何地方点一下，星星都会在背景层绽放，不再挤占主界面渲染，让点击反馈更顺滑、代码也更干净 🌟',
+    '记忆卡片图片接入 LazyImage：主图、缩略图和全屏查看都改用统一的懒加载组件，支持骨架屏渐入和按需加载，长列表里刷图不会一卡一卡了 📷',
+    'LazyImage 本身更灵活：容器和图片样式分离（className / imgClassName）、宽高可按需传入，还能拿到点击事件，之后要做瀑布流或特殊排版会更好用 🌈',
+    'Supabase Realtime 订阅修复：现在会先清掉旧 channel、再用 IndexedDB 里的最新缓存来合并变更，断线重连或多 tab 打开时也能更稳定地同步你们的回忆 ☁️'
   ]
 };

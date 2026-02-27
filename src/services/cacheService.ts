@@ -364,9 +364,13 @@ export const preloadImage = (url: string): Promise<void> => {
 };
 
 /**
- * 批量预加载图片
+ * 批量预加载图片（限制并发为 3，避免弱网下抢占带宽拖慢首屏）
  */
 export const preloadImages = async (urls: string[]): Promise<void> => {
   const uniqueUrls = [...new Set(urls.filter(url => url && !url.startsWith('data:')))];
-  await Promise.all(uniqueUrls.slice(0, 10).map(preloadImage)); // 最多预加载10张
+  const batch = uniqueUrls.slice(0, 10);
+  const concurrency = 3;
+  for (let i = 0; i < batch.length; i += concurrency) {
+    await Promise.all(batch.slice(i, i + concurrency).map(preloadImage));
+  }
 };

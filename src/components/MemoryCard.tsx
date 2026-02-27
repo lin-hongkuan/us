@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom';
 import { Memory, UserType, getAvatar } from '../types';
 import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash, Download, Maximize2 } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
-import { LazyImage } from './LazyImage';
+import { LazyImage, getResizedUrl } from './LazyImage';
 
 interface MemoryCardProps {
   memory: Memory;
@@ -44,10 +44,14 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
   const [expandedImageIndex, setExpandedImageIndex] = useState<number | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
+  const [fullscreenLoaded, setFullscreenLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewUrlsRef = useRef<string[]>([]);
+  previewUrlsRef.current = newImagePreviews;
 
-  // 全屏查看时锁定背景滚动，并支持 ESC 关闭（主要改善桌面端体验）
+  // 全屏查看时锁定背景滚动，并支持 ESC 关闭
   useEffect(() => {
+    setFullscreenLoaded(false);
     if (expandedImageIndex === null) return;
 
     const originalOverflow = document.body.style.overflow;
@@ -71,11 +75,23 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
 
   /** 外部 memory 变更时同步到本地编辑态 */
   useEffect(() => {
+    previewUrlsRef.current.forEach(url => {
+      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
     setEditContent(memory.content);
     setEditImageUrls(memory.imageUrls || (memory.imageUrl ? [memory.imageUrl] : []));
     setEditImageFiles([]);
     setNewImagePreviews([]);
   }, [memory]);
+
+  // 组件卸载时回收所有 blob URL
+  useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach(url => {
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+      });
+    };
+  }, []);
 
   const canModify = currentUser === memory.author;
   const date = new Date(memory.createdAt);
@@ -94,7 +110,6 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
 
     const validFiles: File[] = [];
     const newPreviews: string[] = [];
-    let processed = 0;
 
     files.forEach(file => {
       if (file.size > 50 * 1024 * 1024) {
@@ -102,19 +117,13 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
         return;
       }
       validFiles.push(file);
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newPreviews.push(reader.result as string);
-        processed++;
-        if (processed === files.length) {
-          setEditImageFiles(prev => [...prev, ...validFiles]);
-          setNewImagePreviews(prev => [...prev, ...newPreviews]);
-        }
-      };
-      reader.readAsDataURL(file);
+      newPreviews.push(URL.createObjectURL(file));
     });
-    
+
+    if (validFiles.length > 0) {
+      setEditImageFiles(prev => [...prev, ...validFiles]);
+      setNewImagePreviews(prev => [...prev, ...newPreviews]);
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -125,11 +134,16 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
   };
 
   const handleRemoveNewImage = (index: number) => {
+    const url = newImagePreviews[index];
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
     setEditImageFiles(prev => prev.filter((_, i) => i !== index));
     setNewImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleCancelEdit = () => {
+    newImagePreviews.forEach(url => {
+      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
     setEditContent(memory.content);
     setEditImageUrls(memory.imageUrls || (memory.imageUrl ? [memory.imageUrl] : []));
     setEditImageFiles([]);
@@ -159,6 +173,9 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
         
         const success = await onUpdate(memory.id, editContent, finalUrls.length > 0 ? finalUrls : null);
         if (success) {
+          newImagePreviews.forEach(url => {
+            if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+          });
           setIsEditing(false);
           setEditImageFiles([]);
           setNewImagePreviews([]);
@@ -302,7 +319,8 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                     }`}
                   >
                     <LazyImage 
-                      src={img.url} 
+                      src={getResizedUrl(img.url, 128, 128)} 
+                      fallbackSrc={img.url}
                       alt={`Thumbnail ${index + 1}`} 
                       className="w-full h-full"
                     />
@@ -358,12 +376,18 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                   </>
                 )}
 
-                <img 
-                  src={displayImages[expandedImageIndex].url}
-                  alt="Full screen memory"
-                  className="w-auto h-auto max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
-                  onClick={(e) => e.stopPropagation()}
-                />
+                <div className="relative flex items-center justify-center">
+                  {!fullscreenLoaded && (
+                    <Loader2 className="absolute w-8 h-8 text-white/70 animate-spin" />
+                  )}
+                  <img 
+                    src={displayImages[expandedImageIndex].url}
+                    alt="Full screen memory"
+                    className={`w-auto h-auto max-w-[90vw] max-h-[80vh] object-contain rounded-lg shadow-2xl transition-opacity duration-300 ${fullscreenLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    onLoad={() => setFullscreenLoaded(true)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
                 
                 {/* Image Counter */}
                 {displayImages.length > 1 && (

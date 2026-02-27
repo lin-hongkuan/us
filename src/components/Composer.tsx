@@ -14,7 +14,7 @@
  * - 响应式设计和背景模糊
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { UserType } from '../types';
 import { Send, X, ImagePlus } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
@@ -46,6 +46,18 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   const [isProcessing, setIsProcessing] = useState(false);
   // 隐藏文件输入的引用
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 持有最新 preview URL 列表，供卸载时回收
+  const previewUrlsRef = useRef<string[]>([]);
+  previewUrlsRef.current = imagePreviews;
+
+  // 组件卸载时回收所有 blob URL
+  useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach(url => {
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+      });
+    };
+  }, []);
 
   // 根据当前用户确定的UI主题
   const isHer = currentUser === UserType.HER;
@@ -68,7 +80,10 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
       }
 
       await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined);
-      // Reset form after successful save
+      // 回收 blob URL 后重置表单
+      imagePreviews.forEach(url => {
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+      });
       setText('');
       setImagePreviews([]);
       setImageFiles([]);
@@ -80,51 +95,36 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
     }
   };
 
-  // 选择图片：校验类型/大小，生成预览并存储文件
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const newFiles: File[] = [];
-    
-    // Process each selected file
+    const newPreviews: string[] = [];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
-      // Check file type
-      if (!file.type.startsWith('image/')) {
-        continue;
-      }
-
-      // Check file size (max 50MB before compression)
+      if (!file.type.startsWith('image/')) continue;
       if (file.size > 50 * 1024 * 1024) {
         alert(`图片 ${file.name} 大小超过50MB`);
         continue;
       }
-      
       newFiles.push(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result) {
-          setImagePreviews(prev => [...prev, e.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
+      newPreviews.push(URL.createObjectURL(file));
     }
 
-    // Store the files for later upload
-    setImageFiles(prev => [...prev, ...newFiles]);
-    
-    // Reset file input
+    if (newFiles.length > 0) {
+      setImageFiles(prev => [...prev, ...newFiles]);
+      setImagePreviews(prev => [...prev, ...newPreviews]);
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // 移除已选图片
   const handleRemoveImage = (index: number) => {
+    const url = imagePreviews[index];
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
     setImageFiles(prev => prev.filter((_, i) => i !== index));
     if (fileInputRef.current) {
