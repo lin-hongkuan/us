@@ -180,10 +180,10 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
           <div className="mb-4">
             {/* Main Preview Image */}
             <div className="relative rounded-xl overflow-hidden group/image mb-2">
-              <img 
+              <LazyImage 
                 src={displayImages[mainPreviewIndex].url} 
                 alt={`Memory Main`} 
-                className={`w-full object-cover transition-all duration-300 cursor-pointer ${
+                className={`w-full transition-all duration-300 cursor-pointer ${
                   isImageExpanded ? 'max-h-[75vh]' : 'max-h-64'
                 }`}
                 onClick={(e) => {
@@ -268,10 +268,10 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                         : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <img 
+                    <LazyImage 
                       src={img.url} 
                       alt={`Thumbnail ${index + 1}`} 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full"
                     />
                   </button>
                 ))}
@@ -325,10 +325,11 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                   </>
                 )}
 
-                <img 
+                <LazyImage 
                   src={displayImages[expandedImageIndex].url} 
                   alt="Full screen memory" 
-                  className="max-w-[95vw] max-h-[95vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
+                  className="max-w-[95vw] max-h-[95vh] rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
+                  imgClassName="w-full h-full object-contain"
                   onClick={(e) => e.stopPropagation()} 
                 />
                 

@@ -71,6 +71,11 @@ export const subscribeToMemoryChanges = (): void => {
   
   isRealtimeSubscribed = true;
   
+  // 如果已存在channel先清理，防范并发调用遗留
+  if (realtimeChannel) {
+    supabase.removeChannel(realtimeChannel);
+  }
+  
   realtimeChannel = supabase
     .channel('memories-changes')
     .on(
@@ -83,7 +88,8 @@ export const subscribeToMemoryChanges = (): void => {
       async (payload) => {
         console.log('Realtime update received:', payload.eventType);
         
-        const cachedMemories = getMemoryCache() || [];
+        // 关键修复：确保每次触发都拉取最新缓存，防止闭包过时
+        const cachedMemories = await getIndexedDBMemories() || [];
         let updatedMemories: Memory[];
         
         switch (payload.eventType) {
@@ -141,8 +147,8 @@ export const subscribeToMemoryChanges = (): void => {
  * 取消实时订阅
  */
 export const unsubscribeFromMemoryChanges = (): void => {
-  if (realtimeChannel) {
-    realtimeChannel.unsubscribe();
+  if (realtimeChannel && supabase) {
+    supabase.removeChannel(realtimeChannel);
     realtimeChannel = null;
     isRealtimeSubscribed = false;
   }

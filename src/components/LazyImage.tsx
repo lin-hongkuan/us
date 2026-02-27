@@ -16,6 +16,7 @@ interface LazyImageProps {
   src: string;
   alt?: string;
   className?: string;
+  imgClassName?: string;
   placeholderClassName?: string;
   /** 预加载阈值，距离视口多少像素时开始加载 */
   threshold?: number;
@@ -24,7 +25,7 @@ interface LazyImageProps {
   /** 图片加载失败回调 */
   onError?: () => void;
   /** 点击回调 */
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
   /** 是否显示骨架屏 */
   showSkeleton?: boolean;
   /** 图片宽度（用于骨架屏） */
@@ -39,6 +40,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   src,
   alt = '',
   className = '',
+  imgClassName = 'w-full h-full object-cover',
   placeholderClassName = '',
   threshold = 200,
   onLoad,
@@ -109,10 +111,10 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative overflow-hidden ${placeholderClassName}`}
+      className={`relative overflow-hidden ${className} ${placeholderClassName}`}
       style={{
-        width: width || '100%',
-        height: height || 'auto',
+        ...(width ? { width } : {}),
+        ...(height ? { height } : {}),
         ...style,
       }}
       onClick={onClick}
@@ -136,16 +138,11 @@ export const LazyImage: React.FC<LazyImageProps> = ({
           alt={alt}
           className={`transition-opacity duration-300 ease-in-out ${
             isLoaded ? 'opacity-100' : 'opacity-0'
-          } ${className}`}
+          } ${imgClassName}`}
           onLoad={handleLoad}
           onError={handleError}
           loading="lazy"
           decoding="async"
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-          }}
         />
       )}
 
