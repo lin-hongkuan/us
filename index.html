@@ -9,14 +9,14 @@
     <link rel="icon" type="image/png" href="icon.png">
     
     <!-- 【优化】DNS 预解析 - 提前解析域名，减少连接延迟 -->
-    <link rel="dns-prefetch" href="https://uiczraluplwdupdigkar.supabase.co">
     <link rel="dns-prefetch" href="https://fonts.googleapis.com">
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     
     <!-- 【优化】预连接关键资源 - 提前建立连接 -->
-    <link rel="preconnect" href="https://uiczraluplwdupdigkar.supabase.co" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Supabase DNS 预解析由 Vite 构建时注入（见 vite.config.ts htmlPlugin） -->
     
     <!-- 【优化】字体异步加载 - 使用 display=swap 不阻塞渲染 -->
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500&family=Skranji:wght@400;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">

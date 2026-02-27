@@ -34,19 +34,14 @@ import {
 } from './cacheService';
 
 // ==========================================
-// SUPABASE配置
+// SUPABASE配置（从环境变量读取，见 .env.example）
 // ==========================================
 
-/** Supabase项目URL - 请替换为您的实际Supabase URL */
-const SUPABASE_URL: string = 'https://uiczraluplwdupdigkar.supabase.co';
+const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? '';
+const SUPABASE_KEY: string = import.meta.env.VITE_SUPABASE_KEY ?? '';
 
-/** Supabase匿名密钥 - 请替换为您的实际Supabase密钥 */
-const SUPABASE_KEY: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpY3pyYWx1cGx3ZHVwZGlna2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNjQzNDMsImV4cCI6MjA4MDg0MDM0M30.xS-mEzW1i1sPrhfAOgQNb6pux7bZjqKQiVe3LU0TbVo';
+const isConfigured = !!SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL.startsWith('http');
 
-/** 检查Supabase凭据是否正确配置 */
-const isConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL.startsWith('http');
-
-/** Supabase客户端实例 - 仅在正确配置时创建 */
 const supabase = isConfigured ? createClient(SUPABASE_URL, SUPABASE_KEY, {
   realtime: {
     params: {

@@ -33,6 +33,16 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        {
+          name: 'inject-supabase-dns-prefetch',
+          transformIndexHtml(html) {
+            const supabaseUrl = env.VITE_SUPABASE_URL;
+            if (!supabaseUrl || supabaseUrl === 'YOUR_SUPABASE_URL' || !supabaseUrl.startsWith('http')) return html;
+            const origin = new URL(supabaseUrl).origin;
+            const tags = `<link rel="dns-prefetch" href="${origin}">\n    <link rel="preconnect" href="${origin}" crossorigin>`;
+            return html.replace('<!-- Supabase DNS 预解析由 Vite 构建时注入（见 vite.config.ts htmlPlugin） -->', tags);
+          },
+        },
         VitePWA({
           registerType: 'autoUpdate',
           includeAssets: ['icon.png'],
