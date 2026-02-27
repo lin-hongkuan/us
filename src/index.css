@@ -128,10 +128,15 @@
     opacity: 0;
   }
 
+  .header-visibility {
+    contain: layout style;
+  }
+
   /* 记忆卡片列表项：视口外跳过 layout/paint；overflow:visible 保证顶部胶带不被裁掉 */
   .memory-card-wrapper {
     content-visibility: auto;
     contain-intrinsic-size: 0 400px;
+    contain: layout style paint;
     overflow: visible;
   }
 

@@ -18,30 +18,17 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           output: {
             manualChunks: {
-              // React 核心 - 首屏必需，优先加载
               'react-vendor': ['react', 'react-dom'],
-              // Supabase - 云端服务，可延迟加载
               'supabase': ['@supabase/supabase-js'],
-              // Matter.js - 物理引擎，仅游戏功能使用
               'matter': ['matter-js'],
-              // date-fns - 日期处理库
               'date-fns': ['date-fns'],
-              // lucide-react - 图标库
               'icons': ['lucide-react'],
             },
           },
         },
-        // 压缩配置
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: mode === 'production', // 生产环境移除 console
-            drop_debugger: true,
-          },
-        },
-        // chunk 大小警告阈值
+        minify: 'esbuild',
+        cssTarget: 'chrome100',
         chunkSizeWarningLimit: 500,
-        // 资源内联阈值（小于 4kb 的资源内联为 base64）
         assetsInlineLimit: 4096,
       },
       plugins: [

@@ -1,7 +1,5 @@
 /**
- * ==========================================
  * 在线状态服务 (Presence Service)
- * ==========================================
  *
  * 利用 Supabase Realtime Presence 功能，
  * 检测两个用户是否同时在线。
@@ -11,37 +9,28 @@
 import { createClient, RealtimeChannel } from '@supabase/supabase-js';
 import { UserType } from '../types';
 
-// Supabase 配置（与 storageService 保持一致）
 const SUPABASE_URL: string = 'https://uiczraluplwdupdigkar.supabase.co';
 const SUPABASE_KEY: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpY3pyYWx1cGx3ZHVwZGlna2FyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNjQzNDMsImV4cCI6MjA4MDg0MDM0M30.xS-mEzW1i1sPrhfAOgQNb6pux7bZjqKQiVe3LU0TbVo';
 
 const isConfigured = SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL.startsWith('http');
 
-// 为 Presence 创建单独的 Supabase 客户端
 const supabase = isConfigured ? createClient(SUPABASE_URL, SUPABASE_KEY, {
   realtime: {
     params: {
-      eventsPerSecond: 2
+      eventsPerSecond: 10
     }
   }
 }) : null;
 
-// Presence 频道名称
 const PRESENCE_CHANNEL = 'us-presence-room';
 
-// 存储当前频道引用
 let channel: RealtimeChannel | null = null;
-
-// 当前实例的唯一 ID（每次页面加载都生成新的，不使用 sessionStorage）
 let instanceId: string | null = null;
 
-// 回调函数类型
 type PresenceCallback = (partnerOnline: boolean, partnerUser: UserType | null) => void;
 
-// 订阅者列表
 let subscribers: PresenceCallback[] = [];
 
-// 当前在线用户状态
 let currentPresenceState: {
   myUser: UserType | null;
   partnerOnline: boolean;
@@ -52,10 +41,17 @@ let currentPresenceState: {
   partnerUser: null
 };
 
-/**
- * 生成唯一的实例 ID
- * 每次页面加载都生成新的，确保同一浏览器的多个标签页有不同的 ID
- */
+// 重连 & 心跳
+let retryCount = 0;
+const MAX_RETRIES = 5;
+const RETRY_DELAY_BASE = 2000;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+const HEARTBEAT_INTERVAL = 25_000;
+
+let listenersBound = false;
+
 const getInstanceId = (): string => {
   if (!instanceId) {
     instanceId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}-${Math.random().toString(36).substring(2, 5)}`;
@@ -63,25 +59,134 @@ const getInstanceId = (): string => {
   return instanceId;
 };
 
+const notifySubscribers = (): void => {
+  subscribers.forEach(cb => cb(currentPresenceState.partnerOnline, currentPresenceState.partnerUser));
+};
+
+/**
+ * 检查伴侣是否在线
+ */
+const checkPartnerPresence = (
+  presenceState: Record<string, any[]>,
+  myInstanceId: string
+): void => {
+  const myUser = currentPresenceState.myUser;
+  if (!myUser) return;
+
+  const allPresences = Object.values(presenceState).flat();
+
+  const partner = allPresences.find(p => {
+    return p.instance_id !== myInstanceId && p.user_type !== myUser;
+  });
+
+  const partnerOnline = !!partner;
+  const partnerUser = partner ? (partner.user_type as UserType) : null;
+
+  if (
+    currentPresenceState.partnerOnline !== partnerOnline ||
+    currentPresenceState.partnerUser !== partnerUser
+  ) {
+    currentPresenceState.partnerOnline = partnerOnline;
+    currentPresenceState.partnerUser = partnerUser;
+    notifySubscribers();
+  }
+};
+
+/**
+ * 发送 track 给 Supabase Presence
+ */
+const trackPresence = async (): Promise<void> => {
+  if (!channel || !currentPresenceState.myUser) return;
+  try {
+    await channel.track({
+      user_type: currentPresenceState.myUser,
+      online_at: new Date().toISOString(),
+      instance_id: getInstanceId()
+    });
+  } catch (e) {
+    console.warn('[Presence] track failed:', e);
+  }
+};
+
+const startHeartbeat = (): void => {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => trackPresence(), HEARTBEAT_INTERVAL);
+};
+
+const stopHeartbeat = (): void => {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+};
+
+const clearRetryTimer = (): void => {
+  if (retryTimer) {
+    clearTimeout(retryTimer);
+    retryTimer = null;
+  }
+};
+
+/**
+ * 重连逻辑：指数退避
+ */
+const scheduleRetry = (): void => {
+  const userType = currentPresenceState.myUser;
+  if (!userType || retryCount >= MAX_RETRIES) return;
+
+  retryCount++;
+  const delay = RETRY_DELAY_BASE * Math.pow(2, retryCount - 1);
+  console.warn(`[Presence] will retry in ${delay}ms (attempt ${retryCount}/${MAX_RETRIES})`);
+
+  clearRetryTimer();
+  retryTimer = setTimeout(() => {
+    if (currentPresenceState.myUser) {
+      initPresence(currentPresenceState.myUser).catch(() => {});
+    }
+  }, delay);
+};
+
+const handleBeforeUnload = (): void => {
+  try {
+    channel?.untrack();
+  } catch (_) { /* best-effort */ }
+};
+
+const handleVisibilityChange = (): void => {
+  if (document.visibilityState === 'visible' && channel && currentPresenceState.myUser) {
+    trackPresence();
+  }
+};
+
+const bindGlobalListeners = (): void => {
+  if (listenersBound) return;
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  listenersBound = true;
+};
+
+const unbindGlobalListeners = (): void => {
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  listenersBound = false;
+};
+
 /**
  * 初始化 Presence 频道
- * @param userType - 当前用户类型 (HER/HIM)
  */
 export const initPresence = async (userType: UserType): Promise<void> => {
   if (!supabase) {
-    console.warn('Supabase 未配置，无法使用在线状态功能');
+    console.warn('[Presence] Supabase 未配置，跳过在线状态');
     return;
   }
 
-  // 如果已有频道，先清理（但不等待，避免阻塞）
+  // 清理旧频道
   if (channel) {
     const oldChannel = channel;
     channel = null;
-    try {
-      await oldChannel.unsubscribe();
-    } catch (e) {
-      // 忽略清理错误
-    }
+    stopHeartbeat();
+    clearRetryTimer();
+    try { await oldChannel.unsubscribe(); } catch (_) {}
   }
 
   currentPresenceState.myUser = userType;
@@ -95,87 +200,43 @@ export const initPresence = async (userType: UserType): Promise<void> => {
     }
   });
 
-  // 监听 Presence 同步事件
   channel
     .on('presence', { event: 'sync' }, () => {
       if (!channel) return;
-      
-      const presenceState = channel.presenceState();
-      checkPartnerPresence(presenceState, myInstanceId);
+      checkPartnerPresence(channel.presenceState(), myInstanceId);
     })
-    .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+    .on('presence', { event: 'join' }, () => {
       if (!channel) return;
-      
-      const presenceState = channel.presenceState();
-      checkPartnerPresence(presenceState, myInstanceId);
+      checkPartnerPresence(channel.presenceState(), myInstanceId);
     })
-    .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+    .on('presence', { event: 'leave' }, () => {
       if (!channel) return;
-      
-      const presenceState = channel.presenceState();
-      checkPartnerPresence(presenceState, myInstanceId);
+      checkPartnerPresence(channel.presenceState(), myInstanceId);
     });
 
-  // 订阅频道并追踪 Presence
-  await channel.subscribe(async (status) => {
+  channel.subscribe((status: string, err?: Error) => {
     if (status === 'SUBSCRIBED') {
-      await channel?.track({
-        user_type: userType,
-        online_at: new Date().toISOString(),
-        instance_id: myInstanceId
-      });
+      retryCount = 0;
+      trackPresence();
+      startHeartbeat();
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.warn('[Presence] subscription error:', status, err?.message);
+      stopHeartbeat();
+      scheduleRetry();
+    } else if (status === 'CLOSED') {
+      stopHeartbeat();
     }
   });
-};
 
-/**
- * 检查伴侣是否在线
- */
-const checkPartnerPresence = (
-  presenceState: Record<string, any[]>,
-  myInstanceId: string
-): void => {
-  const myUser = currentPresenceState.myUser;
-  if (!myUser) return;
-
-  // 获取所有在线用户
-  const allPresences = Object.values(presenceState).flat();
-  
-  // 查找不同身份的用户（不是同一个实例，且是不同角色）
-  const partner = allPresences.find(p => {
-    const isNotMe = p.instance_id !== myInstanceId;
-    const isDifferentRole = p.user_type !== myUser;
-    return isNotMe && isDifferentRole;
-  });
-
-  const partnerOnline = !!partner;
-  const partnerUser = partner ? (partner.user_type as UserType) : null;
-
-  // 状态变化时通知订阅者
-  if (
-    currentPresenceState.partnerOnline !== partnerOnline ||
-    currentPresenceState.partnerUser !== partnerUser
-  ) {
-    currentPresenceState.partnerOnline = partnerOnline;
-    currentPresenceState.partnerUser = partnerUser;
-    
-    // 通知所有订阅者
-    subscribers.forEach(callback => callback(partnerOnline, partnerUser));
-  }
+  bindGlobalListeners();
 };
 
 /**
  * 订阅在线状态变化
- * @param callback - 回调函数
- * @returns 取消订阅函数
  */
 export const subscribeToPresence = (callback: PresenceCallback): (() => void) => {
   subscribers.push(callback);
-  
-  // 立即通知当前状态
   callback(currentPresenceState.partnerOnline, currentPresenceState.partnerUser);
-  
-  // 返回取消订阅函数
   return () => {
     subscribers = subscribers.filter(cb => cb !== callback);
   };
@@ -192,29 +253,22 @@ export const getPresenceState = () => ({
  * 清理 Presence 连接
  */
 export const cleanupPresence = async (): Promise<void> => {
+  stopHeartbeat();
+  clearRetryTimer();
+  unbindGlobalListeners();
+
   if (channel && supabase) {
-    try {
-      // 先取消追踪
-      await channel.untrack();
-    } catch (e) {
-      console.warn('Untrack failed:', e);
-    }
-    
-    try {
-      // 然后移除频道
-      await supabase.removeChannel(channel);
-    } catch (e) {
-      console.warn('Remove channel failed:', e);
-    }
-    
+    try { await channel.untrack(); } catch (_) {}
+    try { await supabase.removeChannel(channel); } catch (_) {}
     channel = null;
   }
-  
+
   currentPresenceState = {
     myUser: null,
     partnerOnline: false,
     partnerUser: null
   };
+  retryCount = 0;
 };
 
 /**
