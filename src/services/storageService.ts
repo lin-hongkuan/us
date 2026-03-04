@@ -196,6 +196,30 @@ const mapRowToMemory = (row: any): Memory => ({
 const STORAGE_BUCKET = 'memory-images';
 
 /**
+ * 从 Supabase Storage 公共 URL 中提取文件路径
+ * 支持带 query 参数的 render 链接和常规 object/public 链接
+ */
+export const extractStoragePathFromUrl = (imageUrl: string): string | null => {
+  if (!imageUrl || imageUrl.startsWith('data:')) return null;
+
+  try {
+    const url = new URL(imageUrl);
+    const marker = '/storage/v1/object/public/';
+    const idx = url.pathname.indexOf(marker);
+    if (idx === -1) return null;
+
+    const fullPath = decodeURIComponent(url.pathname.slice(idx + marker.length));
+    const [bucket, ...segments] = fullPath.split('/');
+    if (!bucket || bucket !== STORAGE_BUCKET || segments.length === 0) return null;
+
+    return segments.join('/');
+  } catch {
+    // 非法 URL 直接忽略
+    return null;
+  }
+};
+
+/**
  * 压缩并调整图片大小，返回Blob用于上传
  * 在保持质量的同时减小文件大小以适合网页显示
  *
@@ -371,17 +395,13 @@ export const uploadImage = async (file: File): Promise<string | null> => {
 export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   if (!supabase || !imageUrl) return true;
 
-  // Skip if it's a base64 image
-  if (imageUrl.startsWith('data:')) return true;
+  const filePath = extractStoragePathFromUrl(imageUrl);
+  if (!filePath) return true;
 
   try {
-    // Extract filename from URL
-    const urlParts = imageUrl.split('/');
-    const filename = urlParts[urlParts.length - 1];
-
     const { error } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .remove([filename]);
+      .remove([filePath]);
 
     if (error) {
       console.error('Failed to delete image:', error);
@@ -405,11 +425,11 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
  */
 export const getMemories = async (): Promise<Memory[]> => {
   // 1. 尝试从内存缓存获取（最快）
-  const memoryCached = getMemoryCache();
-  if (memoryCached && memoryCached.length > 0) {
+  const memoryFromCache = getMemoryCache();
+  if (memoryFromCache && memoryFromCache.length > 0) {
     // 后台静默同步云端数据
     syncFromCloudInBackground();
-    return memoryCached;
+    return memoryFromCache;
   }
 
   // 2. 尝试从 IndexedDB 获取（次快）
@@ -633,7 +653,7 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
  *
  * @param id - 要更新的记忆ID
  * @param content - 新内容
- * @param imageUrl - 新图片URL（可选，null表示删除图片）
+ * @param imageUrls - 新图片URL数组（可选，null表示删除图片）
  * @returns Promise解析为更新后的记忆或失败时为null
  */
 export const updateMemory = async (id: string, content: string, imageUrls?: string[] | null): Promise<Memory | null> => {
