@@ -124,7 +124,17 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   const shakeAnimationRef = useRef<number | null>(null);
 
   const scrollPositions = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
+  const latestScrollTop = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
   const scrollRafRef = useRef<number | null>(null);
+  const headerHiddenRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (scrollRafRef.current !== null) {
+        cancelAnimationFrame(scrollRafRef.current);
+      }
+    };
+  }, []);
 
   const handleDelete = useCallback(async (id: string) => {
     if (window.confirm('确定要删除这条记忆吗？')) {
@@ -188,20 +198,31 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>, type: UserType) => {
-    const scrollTop = e.currentTarget.scrollTop;
-    if (scrollRafRef.current !== null) return;
+    latestScrollTop.current[type] = e.currentTarget.scrollTop;
+    if (scrollRafRef.current !== null) {
+      return;
+    }
     
     scrollRafRef.current = requestAnimationFrame(() => {
       scrollRafRef.current = null;
+      const scrollTop = latestScrollTop.current[type];
       
       const last = scrollPositions.current[type];
       const diff = scrollTop - last;
 
       if (Math.abs(diff) < 10) return;
 
-      const hide = scrollTop > last && scrollTop > 60;
+      const shouldHide = diff > 0 && scrollTop > 80;
+      const shouldShow = diff < 0 || scrollTop < 20;
+
       if (headerRef.current) {
-        headerRef.current.classList.toggle('header-hidden', hide);
+        if (!headerHiddenRef.current && shouldHide) {
+          headerHiddenRef.current = true;
+          headerRef.current.classList.add('header-hidden');
+        } else if (headerHiddenRef.current && shouldShow) {
+          headerHiddenRef.current = false;
+          headerRef.current.classList.remove('header-hidden');
+        }
       }
       
       scrollPositions.current[type] = scrollTop;
@@ -346,12 +367,16 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
         onMouseLeave={() => setHoveredSide(null)}
         className={`
           flex-1 h-full overflow-y-auto overflow-x-visible no-scrollbar relative z-10
-          transform-gpu overscroll-contain
+          md:transform-gpu overscroll-contain
           transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
           bg-gradient-to-r from-rose-100/30 dark:from-rose-900/10 via-rose-50/10 dark:via-transparent to-transparent md:bg-none
           ${activeTab === UserType.HER ? 'translate-x-0 block' : '-translate-x-full hidden md:block'}
         `}
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden'
+        }}
       >
         <div className="h-48 md:h-32 w-full" />
         
@@ -417,12 +442,16 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
          onMouseLeave={() => setHoveredSide(null)}
          className={`
           flex-1 h-full overflow-y-auto overflow-x-visible no-scrollbar relative z-10
-          transform-gpu overscroll-contain
+          md:transform-gpu overscroll-contain
           transition-transform duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] md:translate-x-0
           bg-gradient-to-l from-sky-100/30 dark:from-sky-900/10 via-sky-50/10 dark:via-transparent to-transparent md:bg-none
           ${activeTab === UserType.HIM ? 'translate-x-0 block' : 'translate-x-full hidden md:block'}
         `}
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden'
+        }}
       >
          <div className="h-48 md:h-32 w-full" />
 
