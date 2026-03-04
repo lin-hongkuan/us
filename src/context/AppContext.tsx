@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { UserType } from '../types';
 
 interface AppContextType {
@@ -195,12 +195,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     oscillator.stop(now + 0.4);
   }, []);
 
+  const contextValue = useMemo(() => ({
+    currentUser,
+    setCurrentUser,
+    darkMode,
+    toggleDarkMode,
+    playClickSound,
+    playRefreshSound,
+    playLoadCompleteSound,
+    playSuccessSound
+  }), [
+    currentUser,
+    darkMode,
+    toggleDarkMode,
+    playClickSound,
+    playRefreshSound,
+    playLoadCompleteSound,
+    playSuccessSound
+  ]);
+
   return (
-    <AppContext.Provider value={{
-      currentUser, setCurrentUser,
-      darkMode, toggleDarkMode,
-      playClickSound, playRefreshSound, playLoadCompleteSound, playSuccessSound
-    }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );

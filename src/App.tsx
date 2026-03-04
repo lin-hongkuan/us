@@ -26,6 +26,8 @@ const LazyLoadingFallback = () => (
   </div>
 );
 
+const MemoizedLazyLoadingFallback = React.memo(LazyLoadingFallback);
+
 const NOISE_OVERLAY_STYLE: React.CSSProperties = {
   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
 };
@@ -67,6 +69,35 @@ function AppContent() {
     }
     return null;
   }, [daysTogether]);
+
+  const ambientStarElements = useMemo(() => ambientStars.map(star => (
+    <span
+      key={star.id}
+      className="absolute rounded-full bg-white/80 shadow-[0_0_18px_rgba(255,255,255,0.35)] twinkle-star"
+      style={{
+        top: star.top,
+        left: star.left,
+        right: star.right,
+        bottom: star.bottom,
+        width: `${star.size}px`,
+        height: `${star.size}px`,
+        opacity: star.opacity,
+        animationDelay: `${star.delay}s`,
+        animationDuration: `${star.duration}s`
+      }}
+    />
+  )), [ambientStars]);
+
+  const updateContentItems = useMemo(() => APP_UPDATE.content.map((line, i) => (
+    <div key={i} className="flex items-start gap-2">
+      <span className="text-xs font-semibold text-rose-400 mt-0.5 w-4 text-right tabular-nums">
+        {i + 1}
+      </span>
+      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+        {line}
+      </p>
+    </div>
+  )), []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -169,23 +200,7 @@ function AppContent() {
       ></div>
 
       <div className="corner-stars absolute inset-0 pointer-events-none z-10 mix-blend-screen">
-        {ambientStars.map(star => (
-          <span
-            key={star.id}
-            className="absolute rounded-full bg-white/80 shadow-[0_0_18px_rgba(255,255,255,0.35)] twinkle-star"
-            style={{
-              top: star.top,
-              left: star.left,
-              right: star.right,
-              bottom: star.bottom,
-              width: `${star.size}px`,
-              height: `${star.size}px`,
-              opacity: star.opacity,
-              animationDelay: `${star.delay}s`,
-              animationDuration: `${star.duration}s`
-            }}
-          />
-        ))}
+        {ambientStarElements}
       </div>
 
       <Header 
@@ -219,13 +234,13 @@ function AppContent() {
       )}
 
       {isGravityMode && (
-        <Suspense fallback={<LazyLoadingFallback />}>
+        <Suspense fallback={<MemoizedLazyLoadingFallback />}>
           <GravityMode memories={memories} onClose={() => setIsGravityMode(false)} />
         </Suspense>
       )}
 
       {isGame2048Open && (
-        <Suspense fallback={<LazyLoadingFallback />}>
+        <Suspense fallback={<MemoizedLazyLoadingFallback />}>
           <Game2048 onClose={() => setIsGame2048Open(false)} />
         </Suspense>
       )}
@@ -346,16 +361,7 @@ function AppContent() {
             </div>
             
             <div className="space-y-4 text-left">
-              {APP_UPDATE.content.map((line, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-xs font-semibold text-rose-400 mt-0.5 w-4 text-right tabular-nums">
-                    {i + 1}
-                  </span>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {line}
-                  </p>
-                </div>
-              ))}
+              {updateContentItems}
               <div className="text-xs text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase text-right">
                 {APP_UPDATE.date}
               </div>
@@ -365,7 +371,7 @@ function AppContent() {
       )}
 
       {isComposerOpen && (
-        <Suspense fallback={<LazyLoadingFallback />}>
+        <Suspense fallback={<MemoizedLazyLoadingFallback />}>
           <Composer 
             currentUser={currentUser!} 
             onSave={handleSave} 
