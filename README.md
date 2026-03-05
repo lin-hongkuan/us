@@ -288,44 +288,33 @@ VITE_SUPABASE_KEY=your-anon-key
 
 ```
 .
-├── src/
-│   ├── components/              # React 组件
-│   │   ├── LoginPhase.tsx       # 登录选人页
-│   │   ├── TransitionPhase.tsx  # 过渡加载动画
-│   │   ├── Header.tsx           # 顶栏（品牌/标签/按钮）
-│   │   ├── MainPhase.tsx        # 主内容双栏布局
-│   │   ├── MemoryCard.tsx       # 记忆卡片（多图/编辑/删除）
-│   │   ├── Composer.tsx         # 新建回忆编辑器（lazy）
-│   │   ├── LazyImage.tsx        # 图片懒加载（骨架屏/重试/fallback）
-│   │   ├── PresenceIndicator.tsx # 双人在线状态指示器
-│   │   ├── ClickStarOverlay.tsx # 全局点击星星特效
-│   │   ├── TypewriterText.tsx   # 打字机文字效果
-│   │   ├── PiggyBank.tsx        # 恋爱存钱罐（lazy）
-│   │   ├── GravityMode.tsx      # 物理重力模式（lazy）
-│   │   └── Game2048.tsx         # 2048 游戏（lazy）
-│   ├── context/
-│   │   └── AppContext.tsx        # 全局状态（用户/暗色/音效）
-│   ├── config/
-│   │   └── constants.ts         # 常量（情话/起始日期/星星配置）
-│   ├── services/
-│   │   ├── storageService.ts    # 存储服务（CRUD/图片/缓存/Realtime）
-│   │   ├── cacheService.ts      # 三层缓存（内存/IndexedDB/同步事件）
-│   │   └── presenceService.ts   # 在线状态服务（Supabase Presence）
-│   ├── App.tsx                  # 主应用（阶段路由/全局布局）
-│   ├── index.tsx                # 入口文件
-│   ├── index.css                # 全局样式/动画关键帧
-│   └── types.ts                 # 类型定义/头像配对/更新公告
+├── apps/
+│   ├── web/
+│   │   ├── src/
+│   │   │   ├── components/            # React 组件（登录/主页面/卡片/小游戏等）
+│   │   │   ├── context/               # 全局状态（用户/暗色/音效）
+│   │   │   ├── config/                # 常量配置
+│   │   │   ├── services/              # 存储/缓存/在线状态服务
+│   │   │   ├── App.tsx                # 主应用入口
+│   │   │   └── index.tsx              # Web 入口文件
+│   │   ├── public/                    # Web 静态资源
+│   │   ├── index.html                 # HTML 入口（骨架屏/暗色预加载）
+│   │   ├── vite.config.ts             # Vite + PWA + 分包配置
+│   │   ├── tailwind.config.js         # Tailwind CSS 配置
+│   │   ├── postcss.config.js          # PostCSS 配置
+│   │   └── tsconfig.json              # TypeScript 配置
+│   └── desktop/
+│       ├── src-tauri/                 # Tauri/Rust 桌面端工程
+│       ├── app-icon.png               # 桌面端图标源文件
+│       ├── scripts/                   # 桌面端辅助脚本
+│       └── TAURI_DEV_GUIDE.md         # 桌面端开发与打包文档
 ├── scripts/
 │   ├── export_memories.js       # 记忆导出脚本
 │   ├── build-android.ps1        # Android 构建脚本 (PowerShell)
 │   ├── build-android.bat        # Android 构建脚本 (CMD)
 │   └── generate-android-keystore.ps1  # 签名密钥生成
-├── index.html                   # HTML 入口（骨架屏/暗色预加载）
 ├── supabase_setup.sql           # 数据库初始化脚本
 ├── capacitor.config.ts          # Capacitor Android 配置
-├── tailwind.config.js           # Tailwind CSS 配置
-├── vite.config.ts               # Vite + PWA + 分包配置
-├── tsconfig.json                # TypeScript 配置
 └── package.json                 # 项目依赖
 ```
 
@@ -346,7 +335,7 @@ VITE_SUPABASE_KEY=your-anon-key
 项目已配置 `base: './'`，适合部署到 GitHub Pages。
 
 1. 构建项目：`npm run build`
-2. 将 `dist` 文件夹推送到 `gh-pages` 分支，或使用 GitHub Actions 自动部署。
+2. 将 `apps/web/dist` 文件夹推送到 `gh-pages` 分支，或使用 GitHub Actions 自动部署。
 
 ### Android
 通过 Capacitor 构建 Android APK：

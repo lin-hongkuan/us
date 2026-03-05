@@ -1,5 +1,0 @@
-# Copy to signing.properties and fill with your values (do NOT commit secrets)
-storeFile=android/keystore/us-release.keystore
-storePassword=CHANGEME
-keyAlias=usapp
-keyPassword=CHANGEME

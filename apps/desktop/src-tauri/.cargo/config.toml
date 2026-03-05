@@ -1,0 +1,5 @@
+[build]
+target-dir = "C:\\tauri-build-cache"
+
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-self-contained=yes"]

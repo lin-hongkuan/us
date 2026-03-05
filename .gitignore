@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+apps/web/dist
 dist-ssr
 *.local
 
@@ -45,4 +46,22 @@ android/local.properties
 *.aab
 *.apk
 *.apks
+
+# Desktop (Tauri/Rust) build artifacts and local SDK files
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/.tauri/
+apps/desktop/src-tauri/tauri-build/
+webview2-sdk/
+webview2.zip
+WebView2Loader.dll
+rustup-init.exe
+*.exe
+*.msi
+*.msix
+*.appinstaller
+local-artifacts/
+
+# Legacy / dev build outputs (not used by current monorepo)
+dev-dist/
+apps/web/dev-dist/
 
