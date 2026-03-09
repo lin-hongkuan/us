@@ -16,7 +16,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { UserType } from '../types';
-import { Send, X, ImagePlus } from 'lucide-react';
+import { Send, X, ImagePlus, Calendar } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
 
 /**
@@ -26,7 +26,7 @@ interface ComposerProps {
   /** 当前创建记忆的用户 */
   currentUser: UserType;
   /** 保存记忆时的回调函数 */
-  onSave: (content: string, imageUrls?: string[]) => Promise<void>;
+  onSave: (content: string, imageUrls?: string[], customDate?: number) => Promise<void>;
   /** 关闭撰写器时的回调函数 */
   onClose: () => void;
 }
@@ -49,6 +49,8 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   // 持有最新 preview URL 列表，供卸载时回收
   const previewUrlsRef = useRef<string[]>([]);
   previewUrlsRef.current = imagePreviews;
+  // 自定义日期状态（用于记录过去的事）
+  const [customDate, setCustomDate] = useState<string>('');
 
   // 组件卸载时回收所有 blob URL
   useEffect(() => {
@@ -79,7 +81,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
         if (url) uploadedUrls.push(url);
       }
 
-      await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined);
+      await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined, customDate ? new Date(customDate + 'T12:00:00').getTime() : undefined);
       // 回收 blob URL 后重置表单
       imagePreviews.forEach(url => {
         if (url.startsWith('blob:')) URL.revokeObjectURL(url);
@@ -87,6 +89,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
       setText('');
       setImagePreviews([]);
       setImageFiles([]);
+      setCustomDate('');
     } catch (error) {
       console.error('Failed to save:', error);
       alert('保存失败，请重试');
@@ -189,28 +192,48 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
 
             {/* Actions */}
             <div className="flex items-center justify-between pt-2 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-300 fill-mode-backwards">
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageSelect}
-                    className="hidden"
-                />
-                
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`group flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
-                        isHer 
-                        ? 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20' 
-                        : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20'
-                    }`}
-                >
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${isHer ? 'bg-rose-100 group-hover:bg-rose-200 dark:bg-rose-900/40' : 'bg-sky-100 group-hover:bg-sky-200 dark:bg-sky-900/40'}`}>
-                        <ImagePlus size={16} className="transition-transform duration-300 group-hover:rotate-12" />
-                    </div>
-                    <span>{imagePreviews.length > 0 ? '添加更多' : '添加照片'}</span>
-                </button>
+                <div className="flex items-center gap-1">
+                  <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageSelect}
+                      className="hidden"
+                  />
+                  
+                  <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`group flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                          isHer 
+                          ? 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20' 
+                          : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20'
+                      }`}
+                  >
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${isHer ? 'bg-rose-100 group-hover:bg-rose-200 dark:bg-rose-900/40' : 'bg-sky-100 group-hover:bg-sky-200 dark:bg-sky-900/40'}`}>
+                          <ImagePlus size={16} className="transition-transform duration-300 group-hover:rotate-12" />
+                      </div>
+                  </button>
+
+                  {/* 日期选择器 */}
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        const today = new Date();
+                        setCustomDate(prev => prev ? '' : `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`);
+                      }}
+                      className={`group flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                          customDate
+                          ? (isHer ? 'text-rose-600 bg-rose-50 dark:text-rose-400 dark:bg-rose-900/20' : 'text-sky-600 bg-sky-50 dark:text-sky-400 dark:bg-sky-900/20')
+                          : (isHer ? 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20' : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20')
+                      }`}
+                    >
+                      <div className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${isHer ? 'bg-rose-100 group-hover:bg-rose-200 dark:bg-rose-900/40' : 'bg-sky-100 group-hover:bg-sky-200 dark:bg-sky-900/40'}`}>
+                          <Calendar size={16} className="transition-transform duration-300" />
+                      </div>
+                    </button>
+                  </div>
+                </div>
 
                 <button
                     onClick={handleSubmit}
@@ -225,6 +248,24 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
                     {!isProcessing && <Send size={14} className="transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />}
                 </button>
             </div>
+
+            {/* 日期选择器展开 */}
+            {customDate && (
+              <div className="flex items-center gap-3 pt-3 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                <input
+                  type="date"
+                  value={customDate}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 transition-all ${
+                    isHer ? 'border-rose-200 dark:border-rose-800 focus:ring-rose-200 dark:focus:ring-rose-900/40' : 'border-sky-200 dark:border-sky-800 focus:ring-sky-200 dark:focus:ring-sky-900/40'
+                  }`}
+                />
+                <span className={`text-xs whitespace-nowrap ${isHer ? 'text-rose-400' : 'text-sky-400'}`}>
+                  记录这天的事
+                </span>
+              </div>
+            )}
         </div>
       </div>
     </div>

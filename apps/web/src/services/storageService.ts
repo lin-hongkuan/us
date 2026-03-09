@@ -591,13 +591,13 @@ const syncFromCloudInBackground = async (): Promise<void> => {
  * @returns Promise解析为创建的记忆或失败时为null
  */
 export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> => {
-  const newEntryBase = {
+  const effectiveTimestamp = dto.customDate || Date.now();
+  const newEntryBase: Record<string, unknown> = {
     content: dto.content,
     author: dto.author,
     image_url: dto.imageUrl || (dto.imageUrls?.[0] || null),
     image_urls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : null),
-    // created_at will be handled by default value in DB or we can send ISO string
-    // created_at: new Date().toISOString(), 
+    created_at: new Date(effectiveTimestamp).toISOString(),
   };
 
   // Fallback to Local Storage
@@ -605,7 +605,7 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
     const newMemory: Memory = {
       id: crypto.randomUUID(),
       content: dto.content,
-      createdAt: Date.now(),
+      createdAt: effectiveTimestamp,
       author: dto.author,
       imageUrl: dto.imageUrl || (dto.imageUrls?.[0]),
       imageUrls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : undefined)

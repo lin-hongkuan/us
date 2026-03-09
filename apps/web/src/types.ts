@@ -119,6 +119,7 @@ export interface CreateMemoryDTO {
   author: UserType;     // 作者身份
   imageUrl?: string;    // 可选的图片 (Deprecated)
   imageUrls?: string[]; // 可选的多张图片
+  customDate?: number;  // 可选的自定义时间戳（毫秒），用于记录过去的事
 }
 
 // 更新公告配置

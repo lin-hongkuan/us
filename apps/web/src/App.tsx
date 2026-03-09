@@ -153,7 +153,7 @@ function AppContent() {
     setPhase('transition');
   }, [setCurrentUser]);
 
-  const handleSave = useCallback(async (content: string, imageUrls?: string[]) => {
+  const handleSave = useCallback(async (content: string, imageUrls?: string[], customDate?: number) => {
     const trimmed = content.trim();
     if (trimmed === '1104') {
       setIsGravityMode(true);
@@ -167,9 +167,14 @@ function AppContent() {
     }
 
     if (!currentUser) return;
-    const newMem = await saveMemory({ content, author: currentUser, imageUrls });
+    const newMem = await saveMemory({ content, author: currentUser, imageUrls, customDate });
     if (newMem) {
-      setMemories((prev) => [newMem, ...prev]);
+      // 按时间降序插入到正确位置
+      setMemories((prev) => {
+        const merged = [newMem, ...prev];
+        merged.sort((a, b) => b.createdAt - a.createdAt);
+        return merged;
+      });
       setIsComposerOpen(false);
       
       setShowStamp(true);
