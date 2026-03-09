@@ -132,11 +132,11 @@
     contain: layout style;
   }
 
-  /* 记忆卡片列表项：视口外跳过 layout/paint；overflow:visible 保证顶部胶带不被裁掉 */
+  /* 记忆卡片列表项：overflow:visible 保证顶部胶带、两侧引号装饰不被裁掉 */
+  /* 注意：content-visibility:auto 在 Safari 有已知渲染 bug（卡片不出现），已移除 */
+  /* 注意：contain:paint 会隐式裁切溢出（等效于 overflow:clip），与 overflow:visible 冲突，已移除 */
   .memory-card-wrapper {
-    content-visibility: auto;
-    contain-intrinsic-size: 0 400px;
-    contain: layout style paint;
+    contain: layout style;
     overflow: visible;
   }
 

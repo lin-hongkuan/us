@@ -114,10 +114,15 @@ function AppContent() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      await seedDataIfEmpty();
-      const data = await getMemories();
-      setMemories(data);
-      setIsLoading(false);
+      try {
+        await seedDataIfEmpty();
+        const data = await getMemories();
+        setMemories(data);
+      } catch (e) {
+        console.error('Failed to load memories:', e);
+      } finally {
+        setIsLoading(false);
+      }
       subscribeToMemoryChanges();
     };
     fetchData();

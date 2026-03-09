@@ -83,8 +83,12 @@ const META_STORE = 'meta';
 let dbInstance: IDBDatabase | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
 
+// Safari 私密浏览等场景下 indexedDB.open() 可能永远不触发回调，需要超时保护
+const IDB_OPEN_TIMEOUT = 3000;
+
 /**
  * 打开/获取 IndexedDB 数据库实例
+ * Safari 兼容：检测 indexedDB 可用性 + 超时保护，防止 Promise 永远 pending
  */
 const openDB = (): Promise<IDBDatabase> => {
   if (dbInstance) {
@@ -94,17 +98,40 @@ const openDB = (): Promise<IDBDatabase> => {
   if (dbPromise) {
     return dbPromise;
   }
+
+  // Safari 私密浏览或低版本可能没有 indexedDB
+  if (typeof indexedDB === 'undefined') {
+    return Promise.reject(new Error('IndexedDB not available'));
+  }
   
   dbPromise = new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    // 超时保护：Safari 某些场景下 open() 回调永远不触发
+    const timeout = setTimeout(() => {
+      console.warn('IndexedDB open timed out (Safari compatibility)');
+      dbPromise = null;
+      reject(new Error('IndexedDB open timeout'));
+    }, IDB_OPEN_TIMEOUT);
+
+    let request: IDBOpenDBRequest;
+    try {
+      request = indexedDB.open(DB_NAME, DB_VERSION);
+    } catch (e) {
+      // Safari 私密浏览可能在 open() 时直接抛异常
+      clearTimeout(timeout);
+      dbPromise = null;
+      reject(e);
+      return;
+    }
     
     request.onerror = () => {
+      clearTimeout(timeout);
       console.error('IndexedDB open error:', request.error);
       dbPromise = null;
       reject(request.error);
     };
     
     request.onsuccess = () => {
+      clearTimeout(timeout);
       dbInstance = request.result;
       resolve(dbInstance);
     };
