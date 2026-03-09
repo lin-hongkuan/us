@@ -242,10 +242,14 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
         <button
           onClick={toggleDarkMode}
           data-sound="action"
-          className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+          className="group w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
           title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
         >
-          {darkMode ? <Sun size={12} className="md:w-[18px] md:h-[18px]" /> : <Moon size={12} className="md:w-[18px] md:h-[18px]" />}
+          {darkMode ? (
+            <Sun size={12} className="md:w-[18px] md:h-[18px] transition-transform duration-700 ease-out group-hover:rotate-[360deg]" />
+          ) : (
+            <Moon size={12} className="md:w-[18px] md:h-[18px] transition-transform duration-700 ease-out group-hover:rotate-[360deg]" />
+          )}
         </button>
         
         <button 

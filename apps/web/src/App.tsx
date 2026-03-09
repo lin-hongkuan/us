@@ -222,7 +222,7 @@ function AppContent() {
       )}
       <div className="absolute inset-0 opacity-[0.03] dark:opacity-0 pointer-events-none z-0" style={NOISE_OVERLAY_STYLE}></div>
 
-      <div className="absolute -inset-[100px] opacity-[0.08] pointer-events-none z-0 md:animate-moveBackground" 
+      <div className="absolute -inset-[260px] opacity-[0.08] pointer-events-none z-0 md:animate-moveBackground" 
            style={PAW_OVERLAY_STYLE}
       ></div>
 
