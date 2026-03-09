@@ -63,6 +63,13 @@ const getRealtimeBaseMemories = async (): Promise<Memory[]> => {
   return (await getIndexedDBMemories()) || [];
 };
 
+/** 将新记忆按 createdAt 降序插入到已排序列表中 */
+const insertMemorySorted = (list: Memory[], newMemory: Memory): Memory[] => {
+  const result = [...list, newMemory];
+  result.sort((a, b) => b.createdAt - a.createdAt);
+  return result;
+};
+
 /**
  * 订阅记忆表的实时变化
  * 当其他用户添加、修改、删除记忆时，自动同步到本地
@@ -98,7 +105,7 @@ export const subscribeToMemoryChanges = (): void => {
             // 检查是否已存在（可能是自己刚添加的）
             const exists = cachedMemories.some(m => m.id === newMemory.id);
             if (!exists) {
-              updatedMemories = [newMemory, ...cachedMemories];
+              updatedMemories = insertMemorySorted(cachedMemories, newMemory);
               setMemoryCache(updatedMemories);
               await addToIndexedDB(newMemory);
               notifyCacheUpdate(updatedMemories);
@@ -611,10 +618,8 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
       imageUrls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : undefined)
     };
     const current = getLocalMemories();
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([newMemory, ...current]));
-    
-    // 【优化】更新缓存
-    const updatedMemories = [newMemory, ...current];
+    const updatedMemories = insertMemorySorted(current, newMemory);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedMemories));
     setMemoryCache(updatedMemories);
     await addToIndexedDB(newMemory);
     
@@ -634,7 +639,7 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
     
     // 【优化】更新缓存
     const cachedMemories = getMemoryCache() || [];
-    const updatedMemories = [newMemory, ...cachedMemories];
+    const updatedMemories = insertMemorySorted(cachedMemories, newMemory);
     setMemoryCache(updatedMemories);
     await addToIndexedDB(newMemory);
     
