@@ -16,7 +16,6 @@ const Composer = lazy(() => import('./components/Composer').then(m => ({ default
 const PiggyBank = lazy(() => import('./components/PiggyBank').then(m => ({ default: m.PiggyBank })));
 const GravityMode = lazy(() => import('./components/GravityMode').then(m => ({ default: m.GravityMode })));
 const Game2048 = lazy(() => import('./components/Game2048').then(m => ({ default: m.Game2048 })));
-const MemoryHeatmap = lazy(() => import('./components/MemoryHeatmap').then(m => ({ default: m.MemoryHeatmap })));
 
 const LazyLoadingFallback = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -52,8 +51,6 @@ function AppContent() {
   const [isGravityMode, setIsGravityMode] = useState(false);
   const [isGame2048Open, setIsGame2048Open] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
-  const [showHeatmap, setShowHeatmap] = useState(false);
-  const [jumpToDateKey, setJumpToDateKey] = useState<string | null>(null);
 
   const [daysTogether] = useState(() => {
     const startDate = new Date(START_DATE_STR);
@@ -198,12 +195,6 @@ function AppContent() {
     });
   }, []);
   const handleToggleUpdate = useCallback(() => setShowUpdate(prev => !prev), []);
-  const handleToggleHeatmap = useCallback(() => setShowHeatmap(prev => !prev), []);
-  const handleSelectHeatmapDate = useCallback((dateKey: string) => {
-    setJumpToDateKey(dateKey);
-    setShowHeatmap(false);
-  }, []);
-  const handleJumpHandled = useCallback(() => setJumpToDateKey(null), []);
   const handleLogout = useCallback(() => {
     setCurrentUser(null);
     setPhase('login');
@@ -246,7 +237,6 @@ function AppContent() {
         onOpenComposer={handleOpenComposer}
         onOpenNotice={handleOpenNotice}
         onToggleUpdate={handleToggleUpdate}
-        onToggleHeatmap={handleToggleHeatmap}
         onLogout={handleLogout}
       />
 
@@ -259,8 +249,6 @@ function AppContent() {
           setActiveTab={setActiveTab}
           headerRef={headerRef}
           phase={phase}
-          jumpToDateKey={jumpToDateKey}
-          onJumpHandled={handleJumpHandled}
         />
       )}
 
@@ -420,17 +408,6 @@ function AppContent() {
       )}
 
       <ClickStarOverlay />
-
-      {showHeatmap && (
-        <Suspense fallback={<MemoizedLazyLoadingFallback />}>
-          <MemoryHeatmap
-            memories={memories}
-            open={showHeatmap}
-            onClose={() => setShowHeatmap(false)}
-            onSelectDate={handleSelectHeatmapDate}
-          />
-        </Suspense>
-      )}
 
       {showStamp && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center pointer-events-none">
