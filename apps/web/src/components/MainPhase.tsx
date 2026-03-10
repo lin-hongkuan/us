@@ -15,6 +15,8 @@ interface MainPhaseProps {
   setActiveTab: (tab: UserType) => void;
   headerRef: React.RefObject<HTMLElement | null>;
   phase: string;
+  jumpToDateKey: string | null;
+  onJumpHandled: () => void;
 }
 
 const HER_JOURNAL_TITLE_STYLE: React.CSSProperties = {
@@ -38,7 +40,9 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   activeTab,
   setActiveTab,
   headerRef,
-  phase
+  phase,
+  jumpToDateKey,
+  onJumpHandled
 }) => {
   const { currentUser, playClickSound, playRefreshSound, playSuccessSound } = useAppContext();
   
@@ -127,6 +131,9 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   const latestScrollTop = useRef({ [UserType.HER]: 0, [UserType.HIM]: 0 });
   const scrollRafRef = useRef<number | null>(null);
   const headerHiddenRef = useRef(false);
+  const herColumnRef = useRef<HTMLDivElement>(null);
+  const himColumnRef = useRef<HTMLDivElement>(null);
+  const memoryItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
     return () => {
@@ -298,9 +305,60 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   const herMemories = useMemo(() => memories.filter(m => m.author === UserType.HER), [memories]);
   const hisMemories = useMemo(() => memories.filter(m => m.author === UserType.HIM), [memories]);
 
+  useEffect(() => {
+    if (!jumpToDateKey) return;
+
+    const getDateKey = (ts: number) => {
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, '0')}-${`${d.getDate()}`.padStart(2, '0')}`;
+    };
+
+    const matchingMemories = memories.filter((m) => getDateKey(m.createdAt) === jumpToDateKey);
+
+    if (matchingMemories.length === 0) {
+      onJumpHandled();
+      return;
+    }
+
+    // Prefer staying on current tab if it has matches, otherwise switch
+    const hasCurrentTab = matchingMemories.some((m) => m.author === activeTab);
+    const targetTab = hasCurrentTab ? activeTab : matchingMemories[0].author;
+
+    if (targetTab !== activeTab) {
+      setActiveTab(targetTab);
+    }
+
+    const tabMemories = matchingMemories.filter((m) => m.author === targetTab);
+    const scrollContainer = targetTab === UserType.HER ? herColumnRef.current : himColumnRef.current;
+    const firstElement = memoryItemRefs.current[tabMemories[0].id];
+
+    if (!scrollContainer || !firstElement) {
+      window.setTimeout(() => onJumpHandled(), 220);
+      return;
+    }
+
+    // Scroll to the first matching memory
+    const top = Math.max(firstElement.offsetTop - 120, 0);
+    scrollContainer.scrollTo({ top, behavior: 'smooth' });
+
+    // Highlight ALL matching memories of this tab
+    tabMemories.forEach((m) => {
+      const el = memoryItemRefs.current[m.id];
+      if (el) {
+        el.classList.add('memory-jump-highlight');
+        window.setTimeout(() => el.classList.remove('memory-jump-highlight'), 2200);
+      }
+    });
+
+    onJumpHandled();
+  }, [jumpToDateKey, memories, activeTab, setActiveTab, onJumpHandled]);
+
   const herMemoryCards = useMemo(() => herMemories.map((m, i) => (
     <div
       key={m.id}
+      ref={(node) => {
+        memoryItemRefs.current[m.id] = node;
+      }}
       className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
       style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
     >
@@ -317,6 +375,9 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   const hisMemoryCards = useMemo(() => hisMemories.map((m, i) => (
     <div
       key={m.id}
+      ref={(node) => {
+        memoryItemRefs.current[m.id] = node;
+      }}
       className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
       style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
     >
@@ -362,6 +423,7 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
       </div>
 
       <div 
+        ref={herColumnRef}
         onScroll={(e) => handleScroll(e, UserType.HER)}
         onMouseEnter={() => setHoveredSide(UserType.HER)}
         onMouseLeave={() => setHoveredSide(null)}
@@ -437,6 +499,7 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
       </div>
 
       <div 
+         ref={himColumnRef}
          onScroll={(e) => handleScroll(e, UserType.HIM)}
          onMouseEnter={() => setHoveredSide(UserType.HIM)}
          onMouseLeave={() => setHoveredSide(null)}

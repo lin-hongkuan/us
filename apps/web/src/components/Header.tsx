@@ -1,7 +1,7 @@
 import React, { forwardRef, useState, useEffect, useCallback } from 'react';
 import { UserType } from '../types';
 import { useAppContext } from '../context/AppContext';
-import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy } from 'lucide-react';
+import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, CalendarDays } from 'lucide-react';
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
@@ -116,6 +116,7 @@ interface HeaderProps {
   onOpenComposer: () => void;
   onOpenNotice: () => void;
   onToggleUpdate: () => void;
+  onToggleHeatmap: () => void;
   onLogout: () => void;
 }
 
@@ -132,6 +133,7 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
   onOpenComposer,
   onOpenNotice,
   onToggleUpdate,
+  onToggleHeatmap,
   onLogout
 }, ref) => {
   const { darkMode, toggleDarkMode } = useAppContext();
@@ -208,6 +210,17 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
             title="更新公告"
           >
             <span className="text-xs md:text-lg">🔔</span>
+          </button>
+        </div>
+
+        <div className="relative">
+          <button
+            onClick={onToggleHeatmap}
+            data-sound="action"
+            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-violet-400 hover:text-violet-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+            title="记忆日历"
+          >
+            <CalendarDays size={12} className="md:w-[18px] md:h-[18px]" />
           </button>
         </div>
       </div>
