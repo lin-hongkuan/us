@@ -63,6 +63,13 @@ const notifySubscribers = (): void => {
   subscribers.forEach(cb => cb(currentPresenceState.partnerOnline, currentPresenceState.partnerUser));
 };
 
+const setPartnerOffline = (): void => {
+  if (!currentPresenceState.partnerOnline && currentPresenceState.partnerUser === null) return;
+  currentPresenceState.partnerOnline = false;
+  currentPresenceState.partnerUser = null;
+  notifySubscribers();
+};
+
 /**
  * 检查伴侣是否在线
  */
@@ -73,9 +80,14 @@ const checkPartnerPresence = (
   const myUser = currentPresenceState.myUser;
   if (!myUser) return;
 
-  const allPresences = Object.values(presenceState).flat();
+  const allPresences = Object.values(presenceState)
+    .flat()
+    .map((presence) => {
+      // 某些 Realtime 返回结构会把自定义字段包在 payload 中
+      return (presence?.payload ?? presence) as Record<string, unknown>;
+    });
 
-  const partner = allPresences.find(p => {
+  const partner = allPresences.find((p) => {
     return p.instance_id !== myInstanceId && p.user_type !== myUser;
   });
 
@@ -187,6 +199,7 @@ export const initPresence = async (userType: UserType): Promise<void> => {
     stopHeartbeat();
     clearRetryTimer();
     try { await oldChannel.unsubscribe(); } catch (_) {}
+    try { await supabase.removeChannel(oldChannel); } catch (_) {}
   }
 
   currentPresenceState.myUser = userType;
@@ -222,9 +235,12 @@ export const initPresence = async (userType: UserType): Promise<void> => {
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
       console.warn('[Presence] subscription error:', status, err?.message);
       stopHeartbeat();
+      setPartnerOffline();
       scheduleRetry();
     } else if (status === 'CLOSED') {
       stopHeartbeat();
+      setPartnerOffline();
+      scheduleRetry();
     }
   });
 
