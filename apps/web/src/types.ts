@@ -122,21 +122,7 @@ export interface CreateMemoryDTO {
   customDate?: number;  // 可选的自定义时间戳（毫秒），用于记录过去的事
 }
 
-// 更新公告配置
-export interface UpdateInfo {
-  version: string;
-  date: string;
-  content: string[];
-}
-
-export const APP_UPDATE: UpdateInfo = {
-  version: 'v5.3.0',
-  date: '2026-02-27',
-  content: [
-    '双人在线 Presence 重制：上线时会看到双头像、心形连线、渐变边框和一整圈小爱心粒子爆开，还会有轻轻的提示音；对方下线时也会用温柔的小句子跟你说再见 ✨',
-    '点击星星彩蛋独立成组件：页面任何地方点一下，星星都会在背景层绽放，不再挤占主界面渲染，让点击反馈更顺滑、代码也更干净 🌟',
-    '记忆卡片图片接入 LazyImage：主图、缩略图和全屏查看都改用统一的懒加载组件，支持骨架屏渐入和按需加载，长列表里刷图不会一卡一卡了 📷',
-    'LazyImage 本身更灵活：容器和图片样式分离（className / imgClassName）、宽高可按需传入，还能拿到点击事件，之后要做瀑布流或特殊排版会更好用 🌈',
-    'Supabase Realtime 订阅修复：现在会先清掉旧 channel、再用 IndexedDB 里的最新缓存来合并变更，断线重连或多 tab 打开时也能更稳定地同步你们的回忆 ☁️'
-  ]
-};
+// APP_UPDATE 已迁移到 apps/web/src/config/updateInfo.ts
+// 为向后兼容保留此重导出，新代码请直接从 config/updateInfo 引入
+export type { UpdateInfo } from './config/updateInfo';
+export { APP_UPDATE } from './config/updateInfo';

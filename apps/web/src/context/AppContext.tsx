@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { UserType } from '../types';
+import { Toast, ToastType } from '../components/ToastHost';
 
 interface AppContextType {
   currentUser: UserType | null;
@@ -10,6 +11,10 @@ interface AppContextType {
   playRefreshSound: (progress: number) => void;
   playLoadCompleteSound: () => void;
   playSuccessSound: () => void;
+  // Toast 系统
+  toasts: Toast[];
+  showToast: (message: string, type?: ToastType, duration?: number) => void;
+  removeToast: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -35,6 +40,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleDarkMode = useCallback(() => setDarkMode(prev => !prev), []);
 
+  // ── Toast 系统 ──────────────────────────────────────────────────
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const removeToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+    const timer = toastTimersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      toastTimersRef.current.delete(id);
+    }
+  }, []);
+
+  const showToast = useCallback((message: string, type: ToastType = 'info', duration: number = 3000) => {
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setToasts(prev => [...prev, { id, message, type }]);
+    const timer = setTimeout(() => {
+      removeToast(id);
+    }, duration);
+    toastTimersRef.current.set(id, timer);
+  }, [removeToast]);
+
+  // 组件卸载时清理所有定时器
+  useEffect(() => {
+    const timers = toastTimersRef.current;
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
+
+  // ── 音效 ─────────────────────────────────────────────────────────
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   const playClickSound = useCallback((type: 'default' | 'her' | 'him' | 'action' | 'stamp' = 'default') => {
@@ -203,7 +240,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     playClickSound,
     playRefreshSound,
     playLoadCompleteSound,
-    playSuccessSound
+    playSuccessSound,
+    toasts,
+    showToast,
+    removeToast,
   }), [
     currentUser,
     darkMode,
@@ -211,7 +251,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     playClickSound,
     playRefreshSound,
     playLoadCompleteSound,
-    playSuccessSound
+    playSuccessSound,
+    toasts,
+    showToast,
+    removeToast,
   ]);
 
   return (

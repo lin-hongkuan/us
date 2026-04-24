@@ -646,7 +646,10 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
     return newMemory;
   } catch (e: any) {
     console.error("Failed to save memory to cloud", e);
-    alert(`保存失败: ${e.message || "请检查网络"}`);
+    // 通过全局错误事件通知上层，避免在服务层直接 alert
+    window.dispatchEvent(new CustomEvent('us:save-error', {
+      detail: { message: e.message || '请检查网络' }
+    }));
     return null;
   }
 };
@@ -705,7 +708,9 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
     
     if (!data || data.length === 0) {
       console.warn("Update returned 0 rows. Possible RLS issue.");
-      alert("更新失败：无法修改云端数据。可能是因为数据库未开启 UPDATE 权限 (RLS Policy)。请在 Supabase SQL Editor 中运行允许 UPDATE 的策略。");
+      window.dispatchEvent(new CustomEvent('us:update-error', {
+        detail: { message: '更新失败：无法修改云端数据，可能需要检查数据库权限配置' }
+      }));
       return null;
     }
 

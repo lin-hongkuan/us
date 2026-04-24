@@ -1,7 +1,7 @@
 import React, { forwardRef, useState, useEffect, useCallback } from 'react';
 import { UserType } from '../types';
 import { useAppContext } from '../context/AppContext';
-import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy } from 'lucide-react';
+import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
@@ -137,11 +137,69 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
   const { darkMode, toggleDarkMode } = useAppContext();
   const [isLateNight, setIsLateNight] = useState(false);
   const [showSleepMessage, setShowSleepMessage] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [isSyncSettling, setIsSyncSettling] = useState(false);
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 1 && hour < 6) setIsLateNight(true);
   }, []);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setIsSyncSettling(true);
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      setIsSyncSettling(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isOnline || !isSyncSettling) return;
+
+    const timer = window.setTimeout(() => {
+      setIsSyncSettling(false);
+    }, 2200);
+
+    return () => window.clearTimeout(timer);
+  }, [isOnline, isSyncSettling]);
+
+  const syncStatus = !isOnline
+    ? {
+        label: '离线模式',
+        description: '当前网络已断开，回忆会优先保存在本地',
+        icon: WifiOff,
+        dotClassName: 'bg-amber-400 shadow-[0_0_0_6px_rgba(251,191,36,0.16)]',
+        textClassName: 'text-amber-500 dark:text-amber-300',
+      }
+    : isSyncSettling
+      ? {
+          label: '同步中',
+          description: '网络刚恢复，正在悄悄和云端对齐最新回忆',
+          icon: RefreshCw,
+          dotClassName: 'bg-sky-400 shadow-[0_0_0_6px_rgba(56,189,248,0.16)]',
+          textClassName: 'text-sky-500 dark:text-sky-300',
+        }
+      : {
+          label: '已同步',
+          description: '当前连接稳定，新的回忆会及时同步到云端',
+          icon: Wifi,
+          dotClassName: 'bg-emerald-400 shadow-[0_0_0_6px_rgba(52,211,153,0.16)]',
+          textClassName: 'text-emerald-500 dark:text-emerald-300',
+        };
+
+  const SyncStatusIcon = syncStatus.icon;
 
   return (
     <header 
@@ -230,6 +288,33 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
       </div>
 
       <div className="pointer-events-auto flex items-center gap-1 md:gap-4">
+        <div className="hidden md:flex items-center gap-3 px-3 py-2 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+          <span className={`relative flex h-2.5 w-2.5 rounded-full ${syncStatus.dotClassName}`}>
+            {isOnline && (
+              <span className={`absolute inset-0 rounded-full ${isSyncSettling ? 'animate-ping' : ''} bg-current opacity-40`}></span>
+            )}
+          </span>
+          <div className="flex flex-col leading-none">
+            <span className={`text-[11px] font-semibold tracking-[0.18em] uppercase ${syncStatus.textClassName}`}>
+              {syncStatus.label}
+            </span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+              {syncStatus.description}
+            </span>
+          </div>
+          <SyncStatusIcon size={14} className={`${syncStatus.textClassName} ${isSyncSettling ? 'animate-spin' : ''}`} />
+        </div>
+
+        <div className="md:hidden relative">
+          <button
+            className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-800/95 border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center transition-colors duration-200"
+            title={`${syncStatus.label}：${syncStatus.description}`}
+            type="button"
+          >
+            <span className={`absolute top-1.5 right-1.5 h-2 w-2 rounded-full ${syncStatus.dotClassName}`}></span>
+            <SyncStatusIcon size={14} className={`${syncStatus.textClassName} ${isSyncSettling ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
         <button 
           onClick={onOpenComposer}
           data-sound="action"

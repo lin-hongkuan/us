@@ -14,10 +14,11 @@
  * - 响应式设计和背景模糊
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { UserType } from '../types';
-import { Send, X, ImagePlus, Calendar } from 'lucide-react';
+import { Send, X, ImagePlus, Calendar, Loader2 } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
+import { useAppContext } from '../context/AppContext';
 
 /**
  * 撰写器组件的属性接口
@@ -35,7 +36,10 @@ interface ComposerProps {
  * 记忆创建模态框组件
  * 支持文本和图片输入，并提供用户特定的样式
  */
+const MAX_IMAGES = 9;
+
 export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose }) => {
+  const { showToast } = useAppContext();
   // 文本内容状态
   const [text, setText] = useState('');
   // 图片预览URL状态
@@ -44,6 +48,8 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   // 保存操作期间的加载状态
   const [isProcessing, setIsProcessing] = useState(false);
+  // 上传阶段提示
+  const [uploadStage, setUploadStage] = useState<string>('');
   // 隐藏文件输入的引用
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 持有最新 preview URL 列表，供卸载时回收
@@ -75,10 +81,19 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
     try {
       const uploadedUrls: string[] = [];
 
-      // Upload all images
-      for (const file of imageFiles) {
-        const url = await uploadImage(file);
+      // 分阶段显示上传进度
+      if (imageFiles.length > 0) {
+        setUploadStage('准备照片中...');
+      }
+
+      for (let i = 0; i < imageFiles.length; i++) {
+        setUploadStage(`上传第 ${i + 1} / ${imageFiles.length} 张照片`);
+        const url = await uploadImage(imageFiles[i]);
         if (url) uploadedUrls.push(url);
+      }
+
+      if (imageFiles.length > 0) {
+        setUploadStage('正在保存回忆...');
       }
 
       await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined, customDate ? new Date(customDate + 'T12:00:00').getTime() : undefined);
@@ -90,30 +105,47 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
       setImagePreviews([]);
       setImageFiles([]);
       setCustomDate('');
+      setUploadStage('');
     } catch (error) {
       console.error('Failed to save:', error);
-      alert('保存失败，请重试');
+      showToast('保存失败，请稍后重试', 'error');
+      setUploadStage('');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const newFiles: File[] = [];
     const newPreviews: string[] = [];
 
+    // 计算加上新选图片后的总数
+    const currentCount = imageFiles.length;
+    const remaining = MAX_IMAGES - currentCount;
+    if (remaining <= 0) {
+      showToast(`最多只能添加 ${MAX_IMAGES} 张图片`, 'warning');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    let skipped = 0;
     for (let i = 0; i < files.length; i++) {
+      if (newFiles.length >= remaining) { skipped++; continue; }
       const file = files[i];
       if (!file.type.startsWith('image/')) continue;
       if (file.size > 50 * 1024 * 1024) {
-        alert(`图片 ${file.name} 大小超过50MB`);
+        showToast(`图片 ${file.name} 大小超过 50MB，已跳过`, 'warning', 4000);
         continue;
       }
       newFiles.push(file);
       newPreviews.push(URL.createObjectURL(file));
+    }
+
+    if (skipped > 0) {
+      showToast(`已达到 ${MAX_IMAGES} 张上限，${skipped} 张未添加`, 'warning', 4000);
     }
 
     if (newFiles.length > 0) {
@@ -123,7 +155,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, [imageFiles.length, showToast]);
 
   const handleRemoveImage = (index: number) => {
     const url = imagePreviews[index];
@@ -193,17 +225,23 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
             {/* Actions */}
             <div className="flex items-center justify-between pt-2 animate-in slide-in-from-bottom-2 fade-in duration-500 delay-300 fill-mode-backwards">
                 <div className="flex items-center gap-1">
-                  <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageSelect}
-                      className="hidden"
-                  />
-                  
-                  <button
-                      onClick={() => fileInputRef.current?.click()}
+                      <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleImageSelect}
+                          className="hidden"
+                      />
+                      
+                      <button
+                          onClick={() => {
+                            if (imageFiles.length >= MAX_IMAGES) {
+                              showToast(`最多只能添加 ${MAX_IMAGES} 张图片`, 'warning');
+                              return;
+                            }
+                            fileInputRef.current?.click();
+                          }}
                       className={`group flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
                           isHer 
                           ? 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20' 
@@ -235,6 +273,17 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
                   </div>
                 </div>
 
+                {/* 图片计数 */}
+                {imageFiles.length > 0 && (
+                  <span className={`text-xs font-medium tabular-nums mr-1 ${
+                    imageFiles.length >= MAX_IMAGES
+                      ? (isHer ? 'text-rose-500 dark:text-rose-400' : 'text-sky-500 dark:text-sky-400')
+                      : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    {imageFiles.length} / {MAX_IMAGES}
+                  </span>
+                )}
+
                 <button
                     onClick={handleSubmit}
                     disabled={isProcessing || (!text.trim() && imageFiles.length === 0)}
@@ -244,8 +293,17 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
                         : 'bg-gradient-to-r from-sky-400 to-sky-600 hover:from-sky-500 hover:to-sky-700 shadow-sky-200 dark:shadow-none'
                     }`}
                 >
-                    <span>{isProcessing ? '记录中...' : '记录美好'}</span>
-                    {!isProcessing && <Send size={14} className="transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />}
+                    {isProcessing ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        <span className="max-w-[140px] truncate">{uploadStage || '记录中...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>记录美好</span>
+                        <Send size={14} className="transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
+                      </>
+                    )}
                 </button>
             </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense, useRef, useCallback, useMemo } from 'react';
-import { UserType, Memory, APP_UPDATE } from './types';
+import { UserType, Memory } from './types';
 import { getMemories, saveMemory, seedDataIfEmpty, subscribeToMemoryChanges, unsubscribeFromMemoryChanges } from './services/storageService';
 import { subscribeToCacheUpdates } from './services/cacheService';
 import { AppProvider, useAppContext } from './context/AppContext';
@@ -9,8 +9,10 @@ import { MainPhase } from './components/MainPhase';
 import { Header } from './components/Header';
 import { ClickStarOverlay, dispatchStarPop } from './components/ClickStarOverlay';
 import { PresenceIndicator } from './components/PresenceIndicator';
+import { ToastHost } from './components/ToastHost';
 import { Heart, X, Loader2 } from 'lucide-react';
 import { START_DATE_STR, INITIAL_AMBIENT_STARS } from './config/constants';
+import { APP_UPDATE } from './config/updateInfo';
 
 const Composer = lazy(() => import('./components/Composer').then(m => ({ default: m.Composer })));
 const PiggyBank = lazy(() => import('./components/PiggyBank').then(m => ({ default: m.PiggyBank })));
@@ -37,7 +39,7 @@ const PAW_OVERLAY_STYLE: React.CSSProperties = {
 };
 
 function AppContent() {
-  const { currentUser, setCurrentUser, darkMode, playClickSound } = useAppContext();
+  const { currentUser, setCurrentUser, darkMode, playClickSound, toasts, showToast, removeToast } = useAppContext();
   
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,6 +122,7 @@ function AppContent() {
         setMemories(data);
       } catch (e) {
         console.error('Failed to load memories:', e);
+        showToast('加载回忆失败，请稍后重试', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -130,12 +133,27 @@ function AppContent() {
     const unsubscribe = subscribeToCacheUpdates((updatedMemories) => {
       setMemories(updatedMemories);
     });
+
+    const handleSaveError = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message?: string }>;
+      showToast(`保存失败：${customEvent.detail?.message || '请检查网络'}`, 'error', 4200);
+    };
+
+    const handleUpdateError = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message?: string }>;
+      showToast(customEvent.detail?.message || '更新失败，请稍后重试', 'error', 4200);
+    };
+
+    window.addEventListener('us:save-error', handleSaveError);
+    window.addEventListener('us:update-error', handleUpdateError);
     
     return () => {
       unsubscribe();
       unsubscribeFromMemoryChanges();
+      window.removeEventListener('us:save-error', handleSaveError);
+      window.removeEventListener('us:update-error', handleUpdateError);
     };
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     if (!currentUser && phase !== 'login') {
@@ -179,6 +197,7 @@ function AppContent() {
       
       setShowStamp(true);
       playClickSound('stamp');
+      showToast('这份小美好已经认真收好啦', 'success');
       if (navigator.vibrate) navigator.vibrate(50);
       window.setTimeout(() => setShowStamp(false), 1500);
     }
@@ -241,14 +260,15 @@ function AppContent() {
       />
 
       {phase !== 'login' && (
-        <MainPhase 
-          memories={memories} 
-          setMemories={setMemories} 
-          isLoading={isLoading} 
-          activeTab={activeTab} 
+        <MainPhase
+          memories={memories}
+          setMemories={setMemories}
+          isLoading={isLoading}
+          activeTab={activeTab}
           setActiveTab={setActiveTab}
           headerRef={headerRef}
           phase={phase}
+          onOpenComposer={handleOpenComposer}
         />
       )}
 
@@ -406,6 +426,8 @@ function AppContent() {
           />
         </Suspense>
       )}
+
+      <ToastHost toasts={toasts} onRemove={removeToast} />
 
       <ClickStarOverlay />
 

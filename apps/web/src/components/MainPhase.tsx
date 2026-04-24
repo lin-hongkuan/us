@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { UserType, Memory, getAvatar } from '../types';
 import { MemoryCard } from './MemoryCard';
 import { TypewriterText } from './TypewriterText';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PenLine } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { clearMemoryCache, clearIndexedDBCache } from '../services/cacheService';
 import { deleteMemory, updateMemory } from '../services/storageService';
@@ -15,6 +15,7 @@ interface MainPhaseProps {
   setActiveTab: (tab: UserType) => void;
   headerRef: React.RefObject<HTMLElement | null>;
   phase: string;
+  onOpenComposer?: () => void;
 }
 
 const HER_JOURNAL_TITLE_STYLE: React.CSSProperties = {
@@ -38,9 +39,10 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   activeTab,
   setActiveTab,
   headerRef,
-  phase
+  phase,
+  onOpenComposer
 }) => {
-  const { currentUser, playClickSound, playRefreshSound, playSuccessSound } = useAppContext();
+  const { currentUser, playClickSound, playRefreshSound, playSuccessSound, showToast } = useAppContext();
   
   const mainBackgroundRef = useRef<HTMLDivElement>(null);
   const mousePos = useRef({ x: 0, y: 0 });
@@ -137,15 +139,16 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   }, []);
 
   const handleDelete = useCallback(async (id: string) => {
-    if (window.confirm('确定要删除这条记忆吗？')) {
+    if (window.confirm('确定要删除这条回忆吗？删除后无法恢复。')) {
       const success = await deleteMemory(id);
       if (success) {
         setMemories((prev) => prev.filter(m => m.id !== id));
+        showToast('这条回忆已悄悄离开了', 'info');
       } else {
-        alert("删除失败");
+        showToast('删除失败，请稍后再试', 'error');
       }
     }
-  }, [setMemories]);
+  }, [setMemories, showToast]);
 
   const handleUpdateMemory = useCallback(async (id: string, content: string, imageUrls?: string[] | null) => {
     const updated = await updateMemory(id, content, imageUrls);
@@ -426,8 +429,21 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
             <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-rose-200/50 dark:from-rose-500/30 via-rose-200/30 dark:via-rose-500/15 to-transparent hidden md:block"></div>
 
             {!isLoading && herMemories.length === 0 ? (
-              <div className="text-center text-slate-300 dark:text-slate-600 py-20 italic font-serif text-xl animate-fadeInUp">
-                 Waiting for her story...
+              <div className="text-center py-20 animate-fadeInUp flex flex-col items-center gap-4">
+                <p className="text-slate-300 dark:text-slate-600 italic font-serif text-xl leading-relaxed">
+                  {currentUser === UserType.HER
+                    ? '还没有属于你的故事\n第一个记录一下吧'
+                    : '等她写下新的小片段 🌸'}
+                </p>
+                {currentUser === UserType.HER && onOpenComposer && (
+                  <button
+                    onClick={onOpenComposer}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-rose-50 dark:bg-rose-900/30 text-rose-500 dark:text-rose-300 text-sm font-medium hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors"
+                  >
+                    <PenLine size={14} />
+                    写下第一条回忆
+                  </button>
+                )}
               </div>
             ) : (
               herMemoryCards
@@ -501,8 +517,21 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
             <div className="absolute left-8 top-4 bottom-0 w-px bg-gradient-to-b from-sky-200/50 dark:from-sky-500/30 via-sky-200/30 dark:via-sky-500/15 to-transparent hidden md:block"></div>
 
             {!isLoading && hisMemories.length === 0 ? (
-              <div className="text-center text-slate-300 dark:text-slate-600 py-20 italic font-serif text-xl animate-fadeInUp">
-                 Waiting for his story...
+              <div className="text-center py-20 animate-fadeInUp flex flex-col items-center gap-4">
+                <p className="text-slate-300 dark:text-slate-600 italic font-serif text-xl leading-relaxed">
+                  {currentUser === UserType.HIM
+                    ? '还没有属于你的故事\n第一个记录一下吧'
+                    : '等他写下新的小片段 🌊'}
+                </p>
+                {currentUser === UserType.HIM && onOpenComposer && (
+                  <button
+                    onClick={onOpenComposer}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-sky-50 dark:bg-sky-900/30 text-sky-500 dark:text-sky-300 text-sm font-medium hover:bg-sky-100 dark:hover:bg-sky-900/50 transition-colors"
+                  >
+                    <PenLine size={14} />
+                    写下第一条回忆
+                  </button>
+                )}
               </div>
             ) : (
               hisMemoryCards

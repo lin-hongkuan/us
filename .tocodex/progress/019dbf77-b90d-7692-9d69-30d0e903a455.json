@@ -1,0 +1,77 @@
+{
+  "taskId": "019dbf77-b90d-7692-9d69-30d0e903a455",
+  "todos": [
+    {
+      "id": "6562a5d2724b422d9ac90b99d7af0330",
+      "content": "阅读项目说明、协作规范和主要入口，确认项目定位与技术栈",
+      "status": "completed"
+    },
+    {
+      "id": "0040fee07013a9b6eb75cd03e7ee89ae",
+      "content": "检查 Web 入口、上下文、核心组件与服务层，梳理当前实现状态",
+      "status": "completed"
+    },
+    {
+      "id": "83a20603ff7f1bcb06e14cce76ee85fa",
+      "content": "检查构建、部署、环境变量、文档与自动化配置，识别工程化缺口",
+      "status": "completed"
+    },
+    {
+      "id": "b48dcfc94b0f8ac3f3754dd1cb70f904",
+      "content": "整理项目待完善项，按优先级形成改进路线",
+      "status": "completed"
+    },
+    {
+      "id": "ead836d04d8fc48defb237f4c4006182",
+      "content": "将分析结论保存到 `.tocodex/plans/` 目录，便于后续延续上下文",
+      "status": "completed"
+    },
+    {
+      "id": "a0017ef2e7b586b2905a7f7a19f056f9",
+      "content": "与用户确认优先方向，并切换到合适模式执行具体改进",
+      "status": "completed"
+    },
+    {
+      "id": "ef3f7e8eed0adf7151bc1a204aab20f2",
+      "content": "实现全局 Toast 系统，替换所有 alert()",
+      "status": "completed"
+    },
+    {
+      "id": "aacdcc87158cb5b7530138c5ca07da4c",
+      "content": "Composer 发布体验完善（图片计数 N/9、上传阶段进度）",
+      "status": "completed"
+    },
+    {
+      "id": "528b171825899d122c01333a84c8ed29",
+      "content": "Header 同步/离线状态小状态点",
+      "status": "completed"
+    },
+    {
+      "id": "0a65209ef01423adce7f1d37f392fef6",
+      "content": "空状态中文化 + CTA 按钮",
+      "status": "completed"
+    },
+    {
+      "id": "a9a85e2fb58f0fb997156eb335c83948",
+      "content": "全屏看图移动端 swipe 手势",
+      "status": "completed"
+    },
+    {
+      "id": "ea39364c3604d6ca3ac38d58a65c77b3",
+      "content": "APP_UPDATE 迁移到 config/updateInfo.ts",
+      "status": "completed"
+    },
+    {
+      "id": "75ce0caddcafda35d0d571e521c6c1e3",
+      "content": "修复 PresenceIndicator 下线告别显示错误 + 更新公告",
+      "status": "completed"
+    },
+    {
+      "id": "13cfb3a8cac114dee74d226c20c4aa18",
+      "content": "设计搜索与月份定位方案并拆解执行步骤",
+      "status": "in_progress"
+    }
+  ],
+  "lastUpdated": 1777049471526,
+  "status": "active"
+}

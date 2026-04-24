@@ -5,12 +5,13 @@
  * 仅作者可编辑/删除；图片用 LazyImage 懒加载；React.memo 按 id/content/images 比较防重渲染。
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Memory, UserType, getAvatar } from '../types';
 import { Quote, Trash2, Edit2, Check, X, Loader2, ImagePlus, Trash, Download, Maximize2 } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
 import { LazyImage, getResizedUrl } from './LazyImage';
+import { useAppContext } from '../context/AppContext';
 
 interface MemoryCardProps {
   memory: Memory;
@@ -47,6 +48,8 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
   const [fullscreenLoaded, setFullscreenLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const previewUrlsRef = useRef<string[]>([]);
+  const fullscreenTouchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const fullscreenTouchEndRef = useRef<{ x: number; y: number } | null>(null);
   previewUrlsRef.current = newImagePreviews;
 
   // 全屏查看时锁定背景滚动，并支持 ESC 关闭
@@ -71,6 +74,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     };
   }, [expandedImageIndex]);
 
+  const { showToast } = useAppContext();
   const isHer = memory.author === UserType.HER;
 
   /** 外部 memory 变更时同步到本地编辑态 */
@@ -104,7 +108,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
 
     const totalImages = editImageUrls.length + editImageFiles.length + files.length;
     if (totalImages > 9) {
-      alert('最多只能上传 9 张图片');
+      showToast('最多只能上传 9 张图片', 'warning');
       return;
     }
 
@@ -113,7 +117,7 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
 
     files.forEach(file => {
       if (file.size > 50 * 1024 * 1024) {
-        alert(`图片 ${file.name} 大小不能超过 50MB`);
+        showToast(`图片 ${file.name} 大小不能超过 50MB`, 'warning', 4200);
         return;
       }
       validFiles.push(file);
@@ -193,6 +197,58 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
     : (memory.imageUrls || (memory.imageUrl ? [memory.imageUrl] : [])).map(url => ({ url, isNew: false }));
   const mainPreviewIndex =
     previewImageIndex !== null && previewImageIndex < displayImages.length ? previewImageIndex : 0;
+
+  const goToPrevFullscreenImage = useCallback(() => {
+    setExpandedImageIndex((prev) =>
+      prev !== null ? (prev - 1 + displayImages.length) % displayImages.length : 0
+    );
+  }, [displayImages.length]);
+
+  const goToNextFullscreenImage = useCallback(() => {
+    setExpandedImageIndex((prev) =>
+      prev !== null ? (prev + 1) % displayImages.length : 0
+    );
+  }, [displayImages.length]);
+
+  const handleFullscreenTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    fullscreenTouchEndRef.current = null;
+    fullscreenTouchStartRef.current = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    };
+  }, []);
+
+  const handleFullscreenTouchMove = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    fullscreenTouchEndRef.current = {
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY,
+    };
+  }, []);
+
+  const handleFullscreenTouchEnd = useCallback(() => {
+    const touchStart = fullscreenTouchStartRef.current;
+    const touchEnd = fullscreenTouchEndRef.current;
+    if (!touchStart || !touchEnd || displayImages.length <= 1) return;
+
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isMainlyHorizontal = Math.abs(distanceX) > Math.abs(distanceY);
+
+    if (!isMainlyHorizontal || Math.abs(distanceX) < 50) {
+      fullscreenTouchStartRef.current = null;
+      fullscreenTouchEndRef.current = null;
+      return;
+    }
+
+    if (distanceX > 0) {
+      goToNextFullscreenImage();
+    } else {
+      goToPrevFullscreenImage();
+    }
+
+    fullscreenTouchStartRef.current = null;
+    fullscreenTouchEndRef.current = null;
+  }, [displayImages.length, goToNextFullscreenImage, goToPrevFullscreenImage]);
 
   return (
     <div 
@@ -331,15 +387,18 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
 
             {/* Expanded Image Portal */}
             {expandedImageIndex !== null && createPortal(
-              <div 
+              <div
                 className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm animate-in fade-in duration-300"
                 onClick={(e) => {
                   e.stopPropagation();
                   setExpandedImageIndex(null);
                 }}
+                onTouchStart={handleFullscreenTouchStart}
+                onTouchMove={handleFullscreenTouchMove}
+                onTouchEnd={handleFullscreenTouchEnd}
               >
                 <button
-                  className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-[110]"
+                  className="absolute top-6 right-6 p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors z-[110]"
                   onClick={(e) => {
                     e.stopPropagation();
                     setExpandedImageIndex(null);
@@ -352,23 +411,19 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                 {displayImages.length > 1 && (
                   <>
                     <button
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-[110]"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors z-[110]"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setExpandedImageIndex((prev) => 
-                          prev !== null ? (prev - 1 + displayImages.length) % displayImages.length : 0
-                        );
+                        goToPrevFullscreenImage();
                       }}
                     >
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
                     <button
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors z-[110]"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors z-[110]"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setExpandedImageIndex((prev) => 
-                          prev !== null ? (prev + 1) % displayImages.length : 0
-                        );
+                        goToNextFullscreenImage();
                       }}
                     >
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
@@ -395,6 +450,16 @@ export const MemoryCard: React.FC<MemoryCardProps> = React.memo(({ memory, onDel
                     {expandedImageIndex + 1} / {displayImages.length}
                   </div>
                 )}
+
+                <a
+                  href={displayImages[expandedImageIndex].url}
+                  download={`memory-${memory.id}-${expandedImageIndex}.jpg`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-6 left-6 p-3 bg-white/20 hover:bg-white/30 rounded-full text-white transition-colors z-[110]"
+                  title="下载图片"
+                >
+                  <Download size={20} />
+                </a>
               </div>,
               document.body
             )}

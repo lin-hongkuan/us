@@ -203,6 +203,7 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = React.memo(({
 }) => {
   const [partnerOnline, setPartnerOnline] = useState(false);
   const [partnerUser, setPartnerUser] = useState<UserType | null>(null);
+  const [lastPartnerUser, setLastPartnerUser] = useState<UserType | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const [message, setMessage] = useState(SWEET_MESSAGES[0]);
@@ -259,6 +260,10 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = React.memo(({
     const unsubscribe = subscribeToPresence((online, user) => {
       setPartnerOnline(online);
       setPartnerUser(user);
+
+      if (online && user) {
+        setLastPartnerUser(user);
+      }
 
       if (online && !hasPlayedSound.current) {
         setMessage(SWEET_MESSAGES[Math.floor(Math.random() * SWEET_MESSAGES.length)]);
@@ -319,7 +324,8 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = React.memo(({
   if (!isPresenceAvailable() || !currentUser) return null;
 
   const myAvatar = getAvatar(currentUser);
-  const partnerAvatar = partnerUser ? getAvatar(partnerUser) : '💕';
+  const effectivePartnerUser = partnerUser ?? lastPartnerUser;
+  const partnerAvatar = effectivePartnerUser ? getAvatar(effectivePartnerUser) : '💕';
   const dm = darkMode;
 
   const burstItems = useMemo(() => (showBurst ? createBurstItems() : []), [showBurst]);
@@ -505,8 +511,8 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = React.memo(({
               </div>
               <p className={`text-[10px] mt-1 font-medium ${dm ? 'text-slate-500' : 'text-slate-400'}`}>
                 {isGoodbye
-                  ? `${partnerUser === UserType.HER ? '她' : '他'}刚刚离开 👋`
-                  : `${partnerUser === UserType.HER ? '她' : '他'}正在浏览 💫`}
+                  ? `${effectivePartnerUser === UserType.HER ? '她' : '他'}刚刚离开 👋`
+                  : `${effectivePartnerUser === UserType.HER ? '她' : '他'}正在浏览 💫`}
               </p>
             </div>
 
