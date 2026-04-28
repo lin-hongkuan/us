@@ -18,6 +18,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UserType } from '../types';
 import { Send, X, ImagePlus, Calendar } from 'lucide-react';
 import { uploadImage } from '../services/storageService';
+import { useAppContext } from '../context/AppContext';
+import { MAX_MEMORY_IMAGES } from '../config/constants';
+import { formatImageValidationIssues, validateImageFiles } from '../services/imageValidation';
 
 /**
  * 撰写器组件的属性接口
@@ -36,6 +39,7 @@ interface ComposerProps {
  * 支持文本和图片输入，并提供用户特定的样式
  */
 export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose }) => {
+  const { showToast } = useAppContext();
   // 文本内容状态
   const [text, setText] = useState('');
   // 图片预览URL状态
@@ -78,7 +82,10 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
       // Upload all images
       for (const file of imageFiles) {
         const url = await uploadImage(file);
-        if (url) uploadedUrls.push(url);
+        if (!url) {
+          throw new Error(`图片 ${file.name} 上传失败`);
+        }
+        uploadedUrls.push(url);
       }
 
       await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined, customDate ? new Date(customDate + 'T12:00:00').getTime() : undefined);
@@ -92,7 +99,11 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
       setCustomDate('');
     } catch (error) {
       console.error('Failed to save:', error);
-      alert('保存失败，请重试');
+      showToast({
+        tone: 'error',
+        title: '保存失败了',
+        description: error instanceof Error ? error.message : '请检查网络后再试一次',
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -102,22 +113,19 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newFiles: File[] = [];
-    const newPreviews: string[] = [];
+    const { acceptedFiles, issues } = validateImageFiles(Array.from(files), imageFiles.length);
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (!file.type.startsWith('image/')) continue;
-      if (file.size > 50 * 1024 * 1024) {
-        alert(`图片 ${file.name} 大小超过50MB`);
-        continue;
-      }
-      newFiles.push(file);
-      newPreviews.push(URL.createObjectURL(file));
+    if (issues.length > 0) {
+      showToast({
+        tone: 'warning',
+        title: '有些照片没有添加',
+        description: formatImageValidationIssues(issues),
+      });
     }
 
-    if (newFiles.length > 0) {
-      setImageFiles(prev => [...prev, ...newFiles]);
+    if (acceptedFiles.length > 0) {
+      const newPreviews = acceptedFiles.map(file => URL.createObjectURL(file));
+      setImageFiles(prev => [...prev, ...acceptedFiles]);
       setImagePreviews(prev => [...prev, ...newPreviews]);
     }
     if (fileInputRef.current) {
@@ -204,7 +212,9 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
                   
                   <button
                       onClick={() => fileInputRef.current?.click()}
-                      className={`group flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                      disabled={imageFiles.length >= MAX_MEMORY_IMAGES}
+                      title={imageFiles.length >= MAX_MEMORY_IMAGES ? `最多添加 ${MAX_MEMORY_IMAGES} 张照片` : '添加照片'}
+                      className={`group flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100 ${
                           isHer 
                           ? 'text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-900/20' 
                           : 'text-sky-600 hover:bg-sky-50 dark:text-sky-400 dark:hover:bg-sky-900/20'

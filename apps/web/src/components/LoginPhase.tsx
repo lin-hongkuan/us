@@ -66,7 +66,9 @@ export const LoginPhase: React.FC<LoginPhaseProps> = ({ onChooseUser }) => {
       const next = (prev + 1) % QUOTES.length;
       try {
         window.localStorage.setItem('login_quote_index', String(next));
-      } catch {}
+      } catch {
+        return prev;
+      }
       return next;
     });
   };

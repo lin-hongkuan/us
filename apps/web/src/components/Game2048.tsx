@@ -65,30 +65,11 @@ export const Game2048: React.FC<Game2048Props> = ({ onClose }) => {
   const [won, setWon] = useState(false);
 
   /**
-   * Initialize a new 4x4 game board
-   * Creates empty board and adds two random tiles
-   */
-  const initBoard = () => {
-    const newBoard = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
-    addRandomTile(newBoard);
-    addRandomTile(newBoard);
-    setBoard(newBoard);
-    setScore(0);
-    setGameOver(false);
-    setWon(false);
-  };
-
-  // Initialize board on component mount
-  useEffect(() => {
-    initBoard();
-  }, []);
-
-  /**
    * Add a random tile (2 or 4) to an empty cell on the board
    * 90% chance for 2, 10% chance for 4
    * @param currentBoard - The board to modify
    */
-  const addRandomTile = (currentBoard: number[][]) => {
+  const addRandomTile = useCallback((currentBoard: number[][]) => {
     const emptyTiles = [];
     // Find all empty cells
     for (let r = 0; r < GRID_SIZE; r++) {
@@ -104,7 +85,26 @@ export const Game2048: React.FC<Game2048Props> = ({ onClose }) => {
       const { r, c } = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
       currentBoard[r][c] = Math.random() < 0.9 ? 2 : 4;
     }
-  };
+  }, []);
+
+  /**
+   * Initialize a new 4x4 game board
+   * Creates empty board and adds two random tiles
+   */
+  const initBoard = useCallback(() => {
+    const newBoard = Array(GRID_SIZE).fill(0).map(() => Array(GRID_SIZE).fill(0));
+    addRandomTile(newBoard);
+    addRandomTile(newBoard);
+    setBoard(newBoard);
+    setScore(0);
+    setGameOver(false);
+    setWon(false);
+  }, [addRandomTile]);
+
+  // Initialize board on component mount
+  useEffect(() => {
+    initBoard();
+  }, [initBoard]);
 
   /**
    * Move tiles in the specified direction
@@ -190,7 +190,7 @@ export const Game2048: React.FC<Game2048Props> = ({ onClose }) => {
       setScore(newScore);
       checkGameOver(rotatedBoard);
     }
-  }, [board, gameOver, score, won]);
+  }, [addRandomTile, board, gameOver, score, won]);
 
   /**
    * Check if the game is over (no empty cells and no possible merges)

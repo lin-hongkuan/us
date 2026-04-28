@@ -36,11 +36,10 @@ interface GravityModeProps {
  * 重力模式组件 - 基于物理的记忆查看器
  * 使用Matter.js创建真实的坠落卡片行为
  */
-export const GravityMode: React.FC<GravityModeProps> = ({ memories, onClose }) => {
+export const GravityMode: React.FC<GravityModeProps> = ({ memories, onClose: _onClose }) => {
   // Matter.js引用：引擎、渲染器和运行器
   const sceneRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<Matter.Engine | null>(null);
-  const renderRef = useRef<Matter.Render | null>(null);
   const runnerRef = useRef<Matter.Runner | null>(null);
 
   // 存储每个记忆卡片的物理物体的映射
@@ -80,13 +79,11 @@ export const GravityMode: React.FC<GravityModeProps> = ({ memories, onClose }) =
 
     // Import Matter.js modules
     const Engine = Matter.Engine,
-          Render = Matter.Render,
           Runner = Matter.Runner,
           Bodies = Matter.Bodies,
           Composite = Matter.Composite,
           Mouse = Matter.Mouse,
-          MouseConstraint = Matter.MouseConstraint,
-          Events = Matter.Events;
+          MouseConstraint = Matter.MouseConstraint;
 
     // Create physics engine
     const engine = Engine.create();
@@ -105,7 +102,7 @@ export const GravityMode: React.FC<GravityModeProps> = ({ memories, onClose }) =
     Composite.add(engine.world, [ground, leftWall, rightWall]);
 
     // Create physics bodies for each memory card
-    memories.forEach((memory, index) => {
+    memories.forEach((memory) => {
       const dim = cardDimensions.get(memory.id) || { width: 300, height: 200 };
       // Random starting positions above the screen
       const x = Math.random() * (width - 100) + 50;

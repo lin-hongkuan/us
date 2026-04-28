@@ -25,6 +25,8 @@
       ]
     },
     "allowImportingTsExtensions": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
     "noEmit": true
   }
 }

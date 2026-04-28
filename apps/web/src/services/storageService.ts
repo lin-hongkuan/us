@@ -18,37 +18,24 @@
  * - 【优化】Supabase Realtime 实时订阅，自动同步数据变化
  */
 
-import { createClient, RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { Memory, UserType, CreateMemoryDTO } from '../types';
+import { supabase } from './supabaseClient';
+import { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage } from './imageStorageService';
+import { scheduleImagePreload } from './imagePreloadService';
+import { areMemoriesEqual, createMemoryInsertPayload, createMemoryUpdatePayload, getMemoriesImageUrls, getMemoryImageUrls, insertMemorySorted, mapRowToMemory, type MemoryRow } from './memoryMapper';
 import {
   getMemoryCache,
   setMemoryCache,
-  clearMemoryCache,
   getIndexedDBMemories,
   setIndexedDBMemories,
   addToIndexedDB,
   removeFromIndexedDB,
   updateInIndexedDB,
   notifyCacheUpdate,
-  preloadImages,
 } from './cacheService';
 
-// ==========================================
-// SUPABASE配置（从环境变量读取，见 .env.example）
-// ==========================================
-
-const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? '';
-const SUPABASE_KEY: string = import.meta.env.VITE_SUPABASE_KEY ?? '';
-
-const isConfigured = !!SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_URL' && SUPABASE_URL.startsWith('http');
-
-const supabase = isConfigured ? createClient(SUPABASE_URL, SUPABASE_KEY, {
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  }
-}) : null;
+export { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage };
 
 // ==========================================
 // Realtime 实时订阅
@@ -64,12 +51,6 @@ const getRealtimeBaseMemories = async (): Promise<Memory[]> => {
 };
 
 /** 将新记忆按 createdAt 降序插入到已排序列表中 */
-const insertMemorySorted = (list: Memory[], newMemory: Memory): Memory[] => {
-  const result = [...list, newMemory];
-  result.sort((a, b) => b.createdAt - a.createdAt);
-  return result;
-};
-
 /**
  * 订阅记忆表的实时变化
  * 当其他用户添加、修改、删除记忆时，自动同步到本地
@@ -101,7 +82,7 @@ export const subscribeToMemoryChanges = (): void => {
         
         switch (payload.eventType) {
           case 'INSERT': {
-            const newMemory = mapRowToMemory(payload.new);
+            const newMemory = mapRowToMemory(payload.new as MemoryRow);
             // 检查是否已存在（可能是自己刚添加的）
             const exists = cachedMemories.some(m => m.id === newMemory.id);
             if (!exists) {
@@ -111,14 +92,14 @@ export const subscribeToMemoryChanges = (): void => {
               notifyCacheUpdate(updatedMemories);
               // 预加载新图片
               if (newMemory.imageUrls?.length || newMemory.imageUrl) {
-                preloadImages(newMemory.imageUrls || [newMemory.imageUrl!]);
+                scheduleImagePreload(getMemoryImageUrls(newMemory));
               }
             }
             break;
           }
           
           case 'UPDATE': {
-            const updatedMemory = mapRowToMemory(payload.new);
+            const updatedMemory = mapRowToMemory(payload.new as MemoryRow);
             updatedMemories = cachedMemories.map(m => 
               m.id === updatedMemory.id ? updatedMemory : m
             );
@@ -176,248 +157,8 @@ const getLocalMemories = (): Memory[] => {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     return data ? JSON.parse(data) : [];
-  } catch (e) {
-    return [];
-  }
-};
-
-/**
- * 将数据库行映射到Memory类型
- * 将Supabase数据库格式转换为应用的Memory接口
- */
-const mapRowToMemory = (row: any): Memory => ({
-  id: row.id,
-  content: row.content,
-  author: row.author as UserType,
-  createdAt: new Date(row.created_at).getTime(), // 将ISO字符串转换为时间戳
-  tags: row.tags,
-  imageUrl: row.image_url,
-  imageUrls: row.image_urls || (row.image_url ? [row.image_url] : [])
-});
-
-// ==========================================
-// 图片处理工具
-// ==========================================
-
-/** Supabase存储桶名称，用于记忆图片 */
-const STORAGE_BUCKET = 'memory-images';
-
-/**
- * 从 Supabase Storage 公共 URL 中提取文件路径
- * 支持带 query 参数的 render 链接和常规 object/public 链接
- */
-export const extractStoragePathFromUrl = (imageUrl: string): string | null => {
-  if (!imageUrl || imageUrl.startsWith('data:')) return null;
-
-  try {
-    const url = new URL(imageUrl);
-    const marker = '/storage/v1/object/public/';
-    const idx = url.pathname.indexOf(marker);
-    if (idx === -1) return null;
-
-    const fullPath = decodeURIComponent(url.pathname.slice(idx + marker.length));
-    const [bucket, ...segments] = fullPath.split('/');
-    if (!bucket || bucket !== STORAGE_BUCKET || segments.length === 0) return null;
-
-    return segments.join('/');
   } catch {
-    // 非法 URL 直接忽略
-    return null;
-  }
-};
-
-/**
- * 压缩并调整图片大小，返回Blob用于上传
- * 在保持质量的同时减小文件大小以适合网页显示
- *
- * @param file - 要压缩的图片文件
- * @param maxWidth - 最大宽度像素（默认：1200）
- * @param quality - JPEG质量（0-1，默认：0.8）
- * @returns Promise解析为压缩后的Blob
- */
-export const compressImageToBlob = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-
-        // Calculate new dimensions while maintaining aspect ratio
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Cannot get canvas context'));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to Blob
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to create blob'));
-            }
-          },
-          'image/jpeg',
-          quality
-        );
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-};
-
-/**
- * 旧版函数，用于本地存储回退（返回base64）
- * 压缩图片并返回base64字符串用于localStorage
- *
- * @param file - 要压缩的图片文件
- * @param maxWidth - 最大宽度像素（默认：1200）
- * @param quality - JPEG质量（0-1，默认：0.8）
- * @returns Promise解析为base64字符串
- */
-export const compressImage = (file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let { width, height } = img;
-
-        // Calculate new dimensions while maintaining aspect ratio
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Cannot get canvas context'));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Convert to base64 with compression
-        const base64 = canvas.toDataURL('image/jpeg', quality);
-        resolve(base64);
-      };
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-};
-
-/**
- * 将文件转换为base64字符串，无压缩
- * 当不需要压缩时用于localStorage回退
- *
- * @param file - 要转换的文件
- * @returns Promise解析为base64字符串
- */
-export const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-};
-
-/**
- * 上传图片到存储（Supabase或localStorage回退）
- * 自动处理云上传和本地回退
- *
- * @param file - 要上传的图片文件
- * @returns Promise解析为图片URL或失败时为null
- */
-export const uploadImage = async (file: File): Promise<string | null> => {
-  // Fallback to base64 for local storage
-  if (!supabase) {
-    return fileToBase64(file);
-  }
-
-  try {
-    // Get file extension
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-
-    // Generate unique filename with original extension
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
-
-    // Upload original file to Supabase Storage (no compression)
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(filename, file, {
-        contentType: file.type,
-        cacheControl: '31536000', // Cache for 1 year
-      });
-
-    if (error) {
-      console.error('Failed to upload image:', error);
-      throw error;
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(data.path);
-
-    return urlData.publicUrl;
-  } catch (e) {
-    console.error('Image upload failed:', e);
-    // Fallback to base64 if storage upload fails
-    console.warn('Falling back to base64 storage');
-    return fileToBase64(file);
-  }
-};
-
-/**
- * 从Supabase存储删除图片
- * 仅在使用Supabase时尝试删除（不是base64图片）
- *
- * @param imageUrl - 要删除的图片URL
- * @returns Promise解析为成功布尔值
- */
-export const deleteImage = async (imageUrl: string): Promise<boolean> => {
-  if (!supabase || !imageUrl) return true;
-
-  const filePath = extractStoragePathFromUrl(imageUrl);
-  if (!filePath) return true;
-
-  try {
-    const { error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .remove([filePath]);
-
-    if (error) {
-      console.error('Failed to delete image:', error);
-      return false;
-    }
-    return true;
-  } catch (e) {
-    console.error('Image deletion failed:', e);
-    return false;
+    return [];
   }
 };
 
@@ -445,8 +186,7 @@ export const getMemories = async (): Promise<Memory[]> => {
     // 更新内存缓存
     setMemoryCache(indexedDBCached);
     // 预加载图片
-    const imageUrls = indexedDBCached.flatMap(m => m.imageUrls || (m.imageUrl ? [m.imageUrl] : []));
-    preloadImages(imageUrls);
+    scheduleImagePreload(getMemoriesImageUrls(indexedDBCached));
     // 后台静默同步云端数据
     syncFromCloudInBackground();
     return indexedDBCached;
@@ -479,8 +219,7 @@ export const getMemories = async (): Promise<Memory[]> => {
     await setIndexedDBMemories(memories);
     
     // 预加载图片
-    const imageUrls = memories.flatMap(m => m.imageUrls || (m.imageUrl ? [m.imageUrl] : []));
-    preloadImages(imageUrls);
+    scheduleImagePreload(getMemoriesImageUrls(memories));
     
     return memories;
   } catch (e) {
@@ -497,42 +236,6 @@ let isSyncing = false;
 const SYNC_TIMEOUT = 3000; // 3秒超时
 const MIN_SYNC_INTERVAL = 12_000;
 let lastSyncStartAt = 0;
-
-/**
- * 深度比较两个记忆数组是否相同
- */
-const areStringArraysEqual = (a?: string[], b?: string[]): boolean => {
-  if (a === b) return true;
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i += 1) {
-    if (a[i] !== b[i]) return false;
-  }
-  return true;
-};
-
-const areMemoriesEqual = (a: Memory[] | null, b: Memory[]): boolean => {
-  if (!a) return false;
-  if (a.length !== b.length) return false;
-
-  for (let i = 0; i < b.length; i += 1) {
-    const left = a[i];
-    const right = b[i];
-    if (
-      left.id !== right.id ||
-      left.content !== right.content ||
-      left.author !== right.author ||
-      left.createdAt !== right.createdAt ||
-      left.imageUrl !== right.imageUrl ||
-      !areStringArraysEqual(left.imageUrls, right.imageUrls)
-    ) {
-      return false;
-    }
-  }
-
-  return true;
-};
 
 const syncFromCloudInBackground = async (): Promise<void> => {
   if (!supabase || isSyncing) return;
@@ -578,8 +281,7 @@ const syncFromCloudInBackground = async (): Promise<void> => {
       notifyCacheUpdate(cloudMemories);
       
       // 预加载新图片
-      const imageUrls = cloudMemories.flatMap(m => m.imageUrls || (m.imageUrl ? [m.imageUrl] : []));
-      preloadImages(imageUrls);
+      scheduleImagePreload(getMemoriesImageUrls(cloudMemories));
     }
   } catch (e) {
     // 静默失败，不影响用户体验
@@ -599,13 +301,7 @@ const syncFromCloudInBackground = async (): Promise<void> => {
  */
 export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> => {
   const effectiveTimestamp = dto.customDate || Date.now();
-  const newEntryBase: Record<string, unknown> = {
-    content: dto.content,
-    author: dto.author,
-    image_url: dto.imageUrl || (dto.imageUrls?.[0] || null),
-    image_urls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : null),
-    created_at: new Date(effectiveTimestamp).toISOString(),
-  };
+  const newEntryBase = createMemoryInsertPayload(dto, effectiveTimestamp);
 
   // Fallback to Local Storage
   if (!supabase) {
@@ -644,9 +340,8 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
     await addToIndexedDB(newMemory);
     
     return newMemory;
-  } catch (e: any) {
+  } catch (e) {
     console.error("Failed to save memory to cloud", e);
-    alert(`保存失败: ${e.message || "请检查网络"}`);
     return null;
   }
 };
@@ -688,13 +383,8 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
   }
 
   try {
-    const updateData: any = { content };
-    // Only update image_url if explicitly provided (including null for deletion)
-    if (imageUrls !== undefined) {
-      updateData.image_urls = imageUrls;
-      updateData.image_url = imageUrls && imageUrls.length > 0 ? imageUrls[0] : null;
-    }
-    
+    const updateData = createMemoryUpdatePayload(content, imageUrls);
+
     const { data, error } = await supabase
       .from('memories')
       .update(updateData)
@@ -705,7 +395,6 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
     
     if (!data || data.length === 0) {
       console.warn("Update returned 0 rows. Possible RLS issue.");
-      alert("更新失败：无法修改云端数据。可能是因为数据库未开启 UPDATE 权限 (RLS Policy)。请在 Supabase SQL Editor 中运行允许 UPDATE 的策略。");
       return null;
     }
 

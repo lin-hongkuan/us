@@ -71,7 +71,7 @@ export const LazyImage: React.FC<LazyImageProps> = ({
   const [useFallback, setUseFallback] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const MAX_RETRIES = 2;
 

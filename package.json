@@ -3,9 +3,19 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@10.17.1",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite --config apps/web/vite.config.ts",
     "build": "vite build --config apps/web/vite.config.ts",
+    "typecheck": "tsc -p apps/web/tsconfig.json --noEmit",
+    "lint": "eslint apps/web/src apps/web/vite.config.ts vitest.config.ts playwright.config.ts --max-warnings=0",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "preview": "vite preview --config apps/web/vite.config.ts",
     "tauri": "tauri",
     "tauri:dev": "cross-env PATH=\"%USERPROFILE%\\.cargo\\bin;$PATH\" tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
@@ -28,15 +38,26 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
     "@tauri-apps/cli": "^2.10.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.22",
     "cross-env": "^10.1.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "jsdom": "^29.1.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.8.2",
+    "typescript-eslint": "^8.59.1",
     "vite": "^6.2.0",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.5"
   }
 }

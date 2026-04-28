@@ -53,6 +53,10 @@ export const QUOTES: string[] = [
 
 export const START_DATE_STR = '2024-08-20';
 
+export const MAX_MEMORY_IMAGES = 9;
+export const MAX_IMAGE_SIZE_MB = 50;
+export const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
+
 export const INITIAL_AMBIENT_STARS = (): AmbientStar[] => {
   const spots = [
     { top: '4%', left: '6%' },
