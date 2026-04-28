@@ -81,6 +81,9 @@ importers:
       cross-env:
         specifier: ^10.1.0
         version: 10.1.0
+      eslint:
+        specifier: ^10.2.1
+        version: 10.2.1(jiti@1.21.7)
       eslint-plugin-react-hooks:
         specifier: ^7.1.1
         version: 7.1.1(eslint@10.2.1(jiti@1.21.7))
