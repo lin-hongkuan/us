@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { UserType, Memory } from '../types';
 import { useAppContext } from '../context/AppContext';
@@ -18,6 +18,8 @@ interface MainPhaseProps {
   headerRef: React.RefObject<HTMLElement | null>;
   phase: string;
   onOpenComposer: () => void;
+  jumpToDateKey: string | null;
+  onJumpHandled: () => void;
 }
 
 const HER_JOURNAL_TITLE_STYLE: React.CSSProperties = {
@@ -43,9 +45,14 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   headerRef,
   phase,
   onOpenComposer,
+  jumpToDateKey,
+  onJumpHandled,
 }) => {
   const { currentUser, playClickSound, playRefreshSound, playSuccessSound, requestConfirm, showToast } = useAppContext();
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
+  const herColumnRef = useRef<HTMLDivElement>(null);
+  const himColumnRef = useRef<HTMLDivElement>(null);
+  const memoryItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const mainBackgroundRef = useParallaxBackground();
   const handleScroll = useHideHeaderOnScroll(headerRef);
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeTabs({
@@ -94,6 +101,60 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
 
   const herMemories = useMemo(() => memories.filter(m => m.author === UserType.HER), [memories]);
   const hisMemories = useMemo(() => memories.filter(m => m.author === UserType.HIM), [memories]);
+
+  useEffect(() => {
+    if (!jumpToDateKey) return;
+
+    const toLocalDateKey = (timestamp: number) => {
+      const date = new Date(timestamp);
+      return [
+        date.getFullYear(),
+        `${date.getMonth() + 1}`.padStart(2, '0'),
+        `${date.getDate()}`.padStart(2, '0'),
+      ].join('-');
+    };
+
+    const matchingMemories = memories.filter((memory) => toLocalDateKey(memory.createdAt) === jumpToDateKey);
+    if (matchingMemories.length === 0) {
+      onJumpHandled();
+      return;
+    }
+
+    const hasActiveTabMatch = matchingMemories.some((memory) => memory.author === activeTab);
+    const targetTab = hasActiveTabMatch ? activeTab : matchingMemories[0].author;
+
+    if (targetTab !== activeTab) {
+      setActiveTab(targetTab);
+      return;
+    }
+
+    const tabMemories = matchingMemories.filter((memory) => memory.author === targetTab);
+    const scrollContainer = targetTab === UserType.HER ? herColumnRef.current : himColumnRef.current;
+
+    window.requestAnimationFrame(() => {
+      const firstElement = memoryItemRefs.current[tabMemories[0]?.id];
+      if (!scrollContainer || !firstElement) {
+        onJumpHandled();
+        return;
+      }
+
+      scrollContainer.scrollTo({
+        top: Math.max(firstElement.offsetTop - 120, 0),
+        behavior: 'smooth',
+      });
+
+      tabMemories.forEach((memory) => {
+        const element = memoryItemRefs.current[memory.id];
+        if (!element) return;
+        element.classList.remove('memory-jump-highlight');
+        void element.offsetWidth;
+        element.classList.add('memory-jump-highlight');
+        window.setTimeout(() => element.classList.remove('memory-jump-highlight'), 2200);
+      });
+
+      onJumpHandled();
+    });
+  }, [activeTab, jumpToDateKey, memories, onJumpHandled, setActiveTab]);
 
   if (!currentUser) return null;
 
@@ -147,6 +208,8 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
         onDelete={handleDelete}
         onUpdate={handleUpdateMemory}
         onOpenComposer={onOpenComposer}
+        scrollContainerRef={herColumnRef}
+        memoryItemRefs={memoryItemRefs}
       />
 
       <JournalColumn
@@ -168,6 +231,8 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
         onDelete={handleDelete}
         onUpdate={handleUpdateMemory}
         onOpenComposer={onOpenComposer}
+        scrollContainerRef={himColumnRef}
+        memoryItemRefs={memoryItemRefs}
       />
     </main>
   );

@@ -23,6 +23,8 @@ interface JournalColumnProps {
   onDelete: (id: string) => void;
   onUpdate: (id: string, content: string, imageUrls?: string[] | null) => Promise<boolean>;
   onOpenComposer: () => void;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
+  memoryItemRefs?: React.RefObject<Record<string, HTMLDivElement | null>>;
 }
 
 const styles = {
@@ -124,6 +126,8 @@ export const JournalColumn: React.FC<JournalColumnProps> = React.memo(({
   onDelete,
   onUpdate,
   onOpenComposer,
+  scrollContainerRef,
+  memoryItemRefs,
 }) => {
   const palette = styles[accent];
   const isHer = type === UserType.HER;
@@ -133,6 +137,7 @@ export const JournalColumn: React.FC<JournalColumnProps> = React.memo(({
 
   return (
     <div
+      ref={scrollContainerRef}
       onScroll={(e) => onScroll(e, type)}
       onMouseEnter={() => onHover(type)}
       onMouseLeave={() => onHover(null)}
@@ -196,7 +201,16 @@ export const JournalColumn: React.FC<JournalColumnProps> = React.memo(({
             />
           ) : (
             memories.map((memory, i) => (
-              <div key={memory.id} className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible" style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}>
+              <div
+                key={memory.id}
+                ref={(node) => {
+                  if (memoryItemRefs?.current) {
+                    memoryItemRefs.current[memory.id] = node;
+                  }
+                }}
+                className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
+                style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
+              >
                 <div className={`absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full ${palette.dot} border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500`} />
                 <MemoryCard memory={memory} onDelete={onDelete} onUpdate={onUpdate} currentUser={currentUser} />
               </div>

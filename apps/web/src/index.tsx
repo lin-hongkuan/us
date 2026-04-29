@@ -3,6 +3,20 @@ import ReactDOM from 'react-dom/client';
 import './index.css';  // 导入全局样式文件
 import App from './App';  // 导入主应用组件
 
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.getRegistrations()
+      .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+      .catch(() => undefined);
+
+    if ('caches' in window) {
+      caches.keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .catch(() => undefined);
+    }
+  });
+}
+
 // 获取根DOM元素，用于挂载React应用
 const rootElement = document.getElementById('root');
 if (!rootElement) {
