@@ -1,7 +1,7 @@
-import React, { forwardRef, useState, useEffect, useCallback } from 'react';
+import React, { forwardRef, useState, useEffect, useCallback, useRef } from 'react';
 import { UserType } from '../types';
 import { useAppContext } from '../context/AppContext';
-import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, CalendarDays } from 'lucide-react';
+import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, CalendarDays, MoreHorizontal } from 'lucide-react';
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
@@ -139,10 +139,39 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
   const { darkMode, toggleDarkMode } = useAppContext();
   const [isLateNight, setIsLateNight] = useState(false);
   const [showSleepMessage, setShowSleepMessage] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 1 && hour < 6) setIsLateNight(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMoreMenuOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsMoreMenuOpen(false);
+    };
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      if (!moreMenuRef.current) return;
+      const target = event.target as Node | null;
+      if (target && !moreMenuRef.current.contains(target)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [isMoreMenuOpen]);
+
+  const handleMoreItem = useCallback((handler: () => void) => {
+    setIsMoreMenuOpen(false);
+    handler();
   }, []);
 
   return (
@@ -189,40 +218,103 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
           </div>
         )}
 
-        <div className="relative">
-          <button
-            onClick={onOpenNotice}
-            data-sound="action"
-            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-yellow-400 hover:text-yellow-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
-            title="公告"
-          >
-            <StarIcon size={12} className="md:w-[18px] md:h-[18px] fill-current" />
-          </button>
+        <div className="hidden md:flex items-center gap-2 md:gap-4">
+          <div className="relative">
+            <button
+              onClick={onOpenNotice}
+              data-sound="action"
+              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-yellow-400 hover:text-yellow-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+              title="公告"
+            >
+              <StarIcon size={12} className="md:w-[18px] md:h-[18px] fill-current" />
+            </button>
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleUpdate();
+              }}
+              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-indigo-400 hover:text-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+              title="更新公告"
+            >
+              <span className="text-xs md:text-lg">🔔</span>
+            </button>
+          </div>
+
+          <div className="relative">
+            <button
+              onClick={onToggleHeatmap}
+              data-sound="action"
+              aria-label="打开记忆日历"
+              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-violet-400 hover:text-violet-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+              title="记忆日历"
+            >
+              <CalendarDays size={12} className="md:w-[18px] md:h-[18px]" />
+            </button>
+          </div>
         </div>
 
-        <div className="relative">
+        <div ref={moreMenuRef} className="relative md:hidden">
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onToggleUpdate();
+              setIsMoreMenuOpen((prev) => !prev);
             }}
-            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-indigo-400 hover:text-indigo-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
-            title="更新公告"
-          >
-            <span className="text-xs md:text-lg">🔔</span>
-          </button>
-        </div>
-
-        <div className="relative">
-          <button
-            onClick={onToggleHeatmap}
             data-sound="action"
-            aria-label="打开记忆日历"
-            className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-violet-400 hover:text-violet-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
-            title="记忆日历"
+            aria-label="更多"
+            aria-haspopup="menu"
+            aria-expanded={isMoreMenuOpen}
+            className="w-9 h-9 rounded-full bg-white/95 dark:bg-slate-800/95 border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+            title="更多"
           >
-            <CalendarDays size={12} className="md:w-[18px] md:h-[18px]" />
+            <MoreHorizontal size={14} />
           </button>
+          {isMoreMenuOpen && (
+            <div
+              role="menu"
+              className="absolute top-full left-0 mt-3 w-44 p-1.5 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 z-50 animate-fadeInUp"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => handleMoreItem(onOpenNotice)}
+                data-sound="action"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 hover:text-yellow-500 transition-colors duration-150"
+              >
+                <span className="w-7 h-7 rounded-full bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center text-yellow-400">
+                  <StarIcon size={14} className="fill-current" />
+                </span>
+                公告
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => handleMoreItem(onToggleUpdate)}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-500 transition-colors duration-150"
+              >
+                <span className="w-7 h-7 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-base">
+                  🔔
+                </span>
+                更新公告
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => handleMoreItem(onToggleHeatmap)}
+                data-sound="action"
+                aria-label="打开记忆日历"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-500 transition-colors duration-150"
+              >
+                <span className="w-7 h-7 rounded-full bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center text-violet-400">
+                  <CalendarDays size={14} />
+                </span>
+                记忆日历
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
