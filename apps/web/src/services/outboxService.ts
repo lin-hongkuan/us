@@ -1,48 +1,64 @@
-import { CreateMemoryDTO, Memory, UserType } from '../types';
+import { CreateMemoryDTO, Memory, OutboxEntry, UserType } from '../types';
+import {
+  clearOutboxStore,
+  deleteOutboxEntry,
+  getOutboxEntries,
+  putOutboxEntry,
+} from './cacheService';
 
 /**
  * 离线写入的本地排队 outbox。
- * - 当网络不可用 / 云端写失败时，把待提交的 DTO 序列化到 localStorage
- * - 提供创建乐观 Memory（用于立即上屏）+ 重连后批量重放的能力
+ * - 当网络不可用 / 云端写失败时，把待提交的 DTO 持久化到 IndexedDB（store: outbox）
+ * - 内存里维护一份 cache 镜像，让 enqueueWrite/getOutboxCount 等 API 保持同步语义
+ * - 持久化为 fire-and-forget：UI 即时上屏不被 IDB 写入阻塞
  *
  * 设计：每个条目有一个本地 localId（同时也作为乐观 Memory.id），
  * 重放成功后用云端返回的 Memory 替换掉这条，匹配键就是 localId。
  */
 
-const OUTBOX_KEY = 'us_outbox_v1';
+// ==========================================
+// 内存镜像 + hydration
+// ==========================================
 
-export interface OutboxEntry {
-  localId: string;
-  enqueuedAt: number;
-  dto: CreateMemoryDTO;
-}
+let cache: OutboxEntry[] = [];
+let hydrated = false;
+let hydrationPromise: Promise<void> | null = null;
 
-const safeRead = (): OutboxEntry[] => {
-  try {
-    const raw = window.localStorage.getItem(OUTBOX_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
+/**
+ * 启动时一次性把 IDB 里的 outbox 灌入内存 cache。
+ * 重复调用复用同一个 promise，幂等。
+ */
+export const whenOutboxReady = (): Promise<void> => {
+  if (hydrated) return Promise.resolve();
+  if (hydrationPromise) return hydrationPromise;
 
-const safeWrite = (entries: OutboxEntry[]) => {
-  try {
-    if (entries.length === 0) {
-      window.localStorage.removeItem(OUTBOX_KEY);
-    } else {
-      window.localStorage.setItem(OUTBOX_KEY, JSON.stringify(entries));
+  hydrationPromise = (async () => {
+    try {
+      const entries = await getOutboxEntries();
+      cache = entries;
+    } catch (e) {
+      // IDB 不可用时按空队列处理
+      console.warn('Outbox hydration failed; treating as empty queue:', e);
+      cache = [];
+    } finally {
+      hydrated = true;
     }
-  } catch {
-    /* ignore quota / private mode */
-  }
+  })();
+
+  return hydrationPromise;
 };
 
-export const getOutbox = (): OutboxEntry[] => safeRead();
+// ==========================================
+// 同步读 API（依赖内存 cache）
+// ==========================================
 
-export const getOutboxCount = (): number => safeRead().length;
+export const getOutbox = (): OutboxEntry[] => cache.slice();
+
+export const getOutboxCount = (): number => cache.length;
+
+// ==========================================
+// 写 API：同步更新 cache + fire-and-forget 持久化
+// ==========================================
 
 const generateId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -65,8 +81,13 @@ export const enqueueWrite = (dto: CreateMemoryDTO): OptimisticEnqueueResult => {
   const enqueuedAt = Date.now();
   const entry: OutboxEntry = { localId, enqueuedAt, dto };
 
-  const next = [...safeRead(), entry];
-  safeWrite(next);
+  // 同步更新内存镜像，保证后续 getOutboxCount 立刻能读到
+  cache = [...cache, entry];
+
+  // 异步持久化（失败不影响乐观上屏）
+  void putOutboxEntry(entry).catch((e) => {
+    console.error('Failed to persist outbox entry:', e);
+  });
 
   const effectiveTimestamp = dto.customDate ?? enqueuedAt;
   const optimisticMemory: Memory = {
@@ -85,8 +106,10 @@ export const enqueueWrite = (dto: CreateMemoryDTO): OptimisticEnqueueResult => {
  * 通过 localId 移除 outbox 条目（重放成功时调用）。
  */
 export const removeFromOutbox = (localId: string): void => {
-  const next = safeRead().filter((entry) => entry.localId !== localId);
-  safeWrite(next);
+  cache = cache.filter((entry) => entry.localId !== localId);
+  void deleteOutboxEntry(localId).catch((e) => {
+    console.error('Failed to delete outbox entry from IDB:', e);
+  });
 };
 
 export interface DrainResult {
@@ -103,7 +126,10 @@ export interface DrainResult {
 export const drainOutbox = async (
   saver: (dto: CreateMemoryDTO) => Promise<Memory | null>,
 ): Promise<DrainResult> => {
-  const entries = safeRead();
+  // 启动时第一次调用，cache 还可能没从 IDB 灌好，等一下
+  await whenOutboxReady();
+
+  const entries = cache.slice();
   if (entries.length === 0) {
     return { flushed: [], failed: [] };
   }
@@ -125,10 +151,31 @@ export const drainOutbox = async (
     }
   }
 
-  // 重新计算 outbox：保留所有失败的条目，按原顺序
+  // 同步移除成功的条目；IDB 删除 fire-and-forget
   const flushedSet = new Set(flushed.map((f) => f.localId));
-  const remaining = entries.filter((entry) => !flushedSet.has(entry.localId));
-  safeWrite(remaining);
+  if (flushedSet.size > 0) {
+    cache = cache.filter((entry) => !flushedSet.has(entry.localId));
+    for (const { localId } of flushed) {
+      void deleteOutboxEntry(localId).catch((e) => {
+        console.error('Failed to delete flushed outbox entry from IDB:', e);
+      });
+    }
+  }
 
   return { flushed, failed };
+};
+
+/**
+ * 清空 outbox（内存 + IDB），avatar 长按手势用。
+ */
+export const clearOutbox = async (): Promise<void> => {
+  cache = [];
+  await clearOutboxStore();
+};
+
+// 仅供测试用：重置模块级状态。生产代码不要调用。
+export const __resetOutboxForTests = (): void => {
+  cache = [];
+  hydrated = false;
+  hydrationPromise = null;
 };

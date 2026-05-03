@@ -5,10 +5,10 @@
  *
  * 此服务处理共享记忆日记的所有数据持久化。
  * 它提供统一的接口来存储和检索记忆，
- * 自动从Supabase（云端）回退到localStorage（本地）。
+ * 自动从Supabase（云端）回退到本地 IndexedDB。
  *
  * 功能特性：
- * - 通过Supabase进行云存储，并以localStorage作为本地回退
+ * - 通过Supabase进行云存储，未配置时回退到 IndexedDB（cacheService 提供）
  * - 图片上传和压缩工具
  * - 记忆CRUD操作（创建、读取、更新、删除）
  * - 演示用途的自动数据种子填充
@@ -145,21 +145,13 @@ export const unsubscribeFromMemoryChanges = (): void => {
 // ==========================================
 // 本地存储回退
 // ==========================================
+//
+// 未配置 Supabase 时（开发/演示模式），完全走 IndexedDB（cacheService 提供原语），
+// 不再使用 localStorage 作为镜像，避免 ~5MB 配额限制。
 
-/** 当Supabase不可用时，用于存储记忆的本地存储键 */
-const LOCAL_STORAGE_KEY = 'us_app_memories';
-
-/**
- * 从localStorage检索记忆
- * 当Supabase未配置或不可用时用作回退
- */
-const getLocalMemories = (): Memory[] => {
-  try {
-    const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
+/** 取当前内存/IndexedDB 中的记忆列表，全部 fallback 路径共用 */
+const getLocalMemoriesAsync = async (): Promise<Memory[]> => {
+  return getMemoryCache() ?? (await getIndexedDBMemories()) ?? [];
 };
 
 /**
@@ -192,15 +184,11 @@ export const getMemories = async (): Promise<Memory[]> => {
     return indexedDBCached;
   }
 
-  // 3. Fallback to Local Storage if Supabase is not configured
+  // 3. 未配置 Supabase 时直接返回空数组（IndexedDB 是 source of truth，
+  //    上一层已经查过；空就是空，不再有 localStorage 镜像可读）
   if (!supabase) {
-    console.warn("Supabase not configured. Using Local Storage.");
-    const localMemories = getLocalMemories();
-    if (localMemories.length > 0) {
-      setMemoryCache(localMemories);
-      await setIndexedDBMemories(localMemories);
-    }
-    return localMemories;
+    console.warn("Supabase not configured. Using IndexedDB only.");
+    return [];
   }
 
   // 4. 从云端获取（首次加载或缓存为空）
@@ -293,7 +281,7 @@ const syncFromCloudInBackground = async (): Promise<void> => {
 
 /**
  * 保存新记忆
- * 创建新的记忆条目并保存到Supabase或localStorage
+ * 创建新的记忆条目并保存到 Supabase 或 IndexedDB
  * 【优化】同时更新所有缓存层
  *
  * @param dto - 创建记忆的数据传输对象
@@ -303,7 +291,7 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
   const effectiveTimestamp = dto.customDate || Date.now();
   const newEntryBase = createMemoryInsertPayload(dto, effectiveTimestamp);
 
-  // Fallback to Local Storage
+  // Fallback：未配置 Supabase 时，仅写 IndexedDB（不再写 localStorage）
   if (!supabase) {
     const newMemory: Memory = {
       id: crypto.randomUUID(),
@@ -313,12 +301,11 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
       imageUrl: dto.imageUrl || (dto.imageUrls?.[0]),
       imageUrls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : undefined)
     };
-    const current = getLocalMemories();
+    const current = await getLocalMemoriesAsync();
     const updatedMemories = insertMemorySorted(current, newMemory);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedMemories));
     setMemoryCache(updatedMemories);
     await addToIndexedDB(newMemory);
-    
+
     return newMemory;
   }
 
@@ -357,27 +344,27 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
  * @returns Promise解析为更新后的记忆或失败时为null
  */
 export const updateMemory = async (id: string, content: string, imageUrls?: string[] | null): Promise<Memory | null> => {
-  // Fallback to Local Storage
+  // Fallback：未配置 Supabase 时，仅改 IndexedDB（不再写 localStorage）
   if (!supabase) {
-    const current = getLocalMemories();
+    const current = await getLocalMemoriesAsync();
     const index = current.findIndex(m => m.id === id);
     if (index !== -1) {
-      current[index].content = content;
+      const next = current.slice();
+      next[index] = { ...next[index], content };
       // Update imageUrls - if null, remove it; if undefined, keep existing
       if (imageUrls === null) {
-        delete current[index].imageUrl;
-        delete current[index].imageUrls;
+        delete next[index].imageUrl;
+        delete next[index].imageUrls;
       } else if (imageUrls !== undefined) {
-        current[index].imageUrls = imageUrls;
-        current[index].imageUrl = imageUrls[0];
+        next[index].imageUrls = imageUrls;
+        next[index].imageUrl = imageUrls[0];
       }
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(current));
-      
-      // 【优化】更新缓存
-      setMemoryCache(current);
-      await updateInIndexedDB(current[index]);
-      
-      return current[index];
+
+      // 更新缓存（内存 + IndexedDB）
+      setMemoryCache(next);
+      await updateInIndexedDB(next[index]);
+
+      return next[index];
     }
     return null;
   }
@@ -415,23 +402,22 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
 
 /**
  * 删除记忆
- * 从Supabase或localStorage中删除指定的记忆
+ * 从 Supabase 或 IndexedDB 中删除指定的记忆
  * 【优化】同时更新所有缓存层
  *
  * @param id - 要删除的记忆ID
  * @returns Promise解析为成功布尔值
  */
 export const deleteMemory = async (id: string): Promise<boolean> => {
-  // Fallback to Local Storage
+  // Fallback：未配置 Supabase 时，仅改 IndexedDB（不再写 localStorage）
   if (!supabase) {
-    const current = getLocalMemories();
+    const current = await getLocalMemoriesAsync();
     const updated = current.filter(m => m.id !== id);
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updated));
-    
-    // 【优化】更新缓存
+
+    // 更新缓存（内存 + IndexedDB）
     setMemoryCache(updated);
     await removeFromIndexedDB(id);
-    
+
     return true;
   }
 
@@ -462,17 +448,20 @@ export const deleteMemory = async (id: string): Promise<boolean> => {
  */
 export const seedDataIfEmpty = async () => {
   if (!supabase) {
-     if (!localStorage.getItem(LOCAL_STORAGE_KEY)) {
-        const initialData: Memory[] = [
-          {
-            id: '1',
-            content: "Welcome to Us. This is a local demo memory because Supabase keys are not configured yet.",
-            createdAt: Date.now(),
-            author: UserType.HER
-          }
-        ];
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialData));
-     }
+    // IndexedDB 为空时种入演示数据（不再写 localStorage）
+    const existing = await getIndexedDBMemories();
+    if (!existing || existing.length === 0) {
+      const initialData: Memory[] = [
+        {
+          id: '1',
+          content: "Welcome to Us. This is a local demo memory because Supabase keys are not configured yet.",
+          createdAt: Date.now(),
+          author: UserType.HER
+        }
+      ];
+      await setIndexedDBMemories(initialData);
+      setMemoryCache(initialData);
+    }
   } else {
     try {
       const { count, error } = await supabase.from('memories').select('*', { count: 'exact', head: true });

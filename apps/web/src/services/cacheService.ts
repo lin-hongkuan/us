@@ -11,7 +11,7 @@
  * 效果：首次访问后，再次打开网站瞬间加载（从本地缓存），无需等待网络。
  */
 
-import { Memory } from '../types';
+import { Memory, OutboxEntry } from '../types';
 
 // ==========================================
 // 内存缓存层
@@ -76,9 +76,10 @@ export const getCacheVersion = (): number => {
 // ==========================================
 
 const DB_NAME = 'us_app_cache';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = 'memories';
 const META_STORE = 'meta';
+const OUTBOX_STORE = 'outbox';
 
 let dbInstance: IDBDatabase | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
@@ -138,17 +139,23 @@ const openDB = (): Promise<IDBDatabase> => {
     
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      
+
       // 创建记忆存储
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
         store.createIndex('createdAt', 'createdAt', { unique: false });
         store.createIndex('author', 'author', { unique: false });
       }
-      
+
       // 创建元数据存储
       if (!db.objectStoreNames.contains(META_STORE)) {
         db.createObjectStore(META_STORE, { keyPath: 'key' });
+      }
+
+      // v2: 创建离线写入队列存储（旧版本用户升级时也会进入这里）
+      if (!db.objectStoreNames.contains(OUTBOX_STORE)) {
+        const outboxStore = db.createObjectStore(OUTBOX_STORE, { keyPath: 'localId' });
+        outboxStore.createIndex('enqueuedAt', 'enqueuedAt', { unique: false });
       }
     };
   });
@@ -318,18 +325,117 @@ export const getLastSyncTime = async (): Promise<number | null> => {
 export const clearIndexedDBCache = async (): Promise<void> => {
   try {
     const db = await openDB();
-    
+
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_NAME, META_STORE], 'readwrite');
-      
+      const transaction = db.transaction([STORE_NAME, META_STORE, OUTBOX_STORE], 'readwrite');
+
       transaction.objectStore(STORE_NAME).clear();
       transaction.objectStore(META_STORE).clear();
-      
+      transaction.objectStore(OUTBOX_STORE).clear();
+
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });
   } catch (e) {
     console.error('Failed to clear IndexedDB cache:', e);
+  }
+};
+
+// ==========================================
+// 离线写入队列（outbox）IndexedDB 操作
+// ==========================================
+// 设计：outboxService 在内存维护 cache 数组保证同步语义；
+// 这里只提供持久化原语，由 outboxService 在写入/启动 hydration 时调用。
+
+/**
+ * 读取所有 outbox 条目（启动 hydration 用）
+ * IndexedDB 不可用时返回空数组（不抛错），调用方按"队列为空"处理
+ */
+export const getOutboxEntries = async (): Promise<OutboxEntry[]> => {
+  try {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OUTBOX_STORE, 'readonly');
+      const store = transaction.objectStore(OUTBOX_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const entries = request.result as OutboxEntry[];
+        // 按入队时间升序，保证 drain 顺序与原入队顺序一致
+        entries.sort((a, b) => a.enqueuedAt - b.enqueuedAt);
+        resolve(entries);
+      };
+
+      request.onerror = () => {
+        console.error('IndexedDB outbox getAll error:', request.error);
+        reject(request.error);
+      };
+    });
+  } catch (e) {
+    console.error('Failed to get outbox entries from IndexedDB:', e);
+    return [];
+  }
+};
+
+/**
+ * 写入单条 outbox 条目（同 localId 会覆盖）
+ */
+export const putOutboxEntry = async (entry: OutboxEntry): Promise<void> => {
+  try {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OUTBOX_STORE, 'readwrite');
+      const store = transaction.objectStore(OUTBOX_STORE);
+
+      store.put(entry);
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch (e) {
+    console.error('Failed to put outbox entry to IndexedDB:', e);
+  }
+};
+
+/**
+ * 按 localId 删除 outbox 条目
+ */
+export const deleteOutboxEntry = async (localId: string): Promise<void> => {
+  try {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OUTBOX_STORE, 'readwrite');
+      const store = transaction.objectStore(OUTBOX_STORE);
+
+      store.delete(localId);
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch (e) {
+    console.error('Failed to delete outbox entry from IndexedDB:', e);
+  }
+};
+
+/**
+ * 清空 outbox store（avatar 长按手势用）
+ */
+export const clearOutboxStore = async (): Promise<void> => {
+  try {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(OUTBOX_STORE, 'readwrite');
+      transaction.objectStore(OUTBOX_STORE).clear();
+
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+    });
+  } catch (e) {
+    console.error('Failed to clear outbox store:', e);
   }
 };
 

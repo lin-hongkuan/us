@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { UserType } from '../types';
 import { clearIndexedDBCache, clearMemoryCache } from '../services/cacheService';
+import { clearOutbox } from '../services/outboxService';
 
 interface UseAvatarRefreshGestureOptions {
   playRefreshSound: (progress: number) => void;
@@ -36,6 +37,8 @@ export const useAvatarRefreshGesture = ({ playRefreshSound, playSuccessSound }: 
         setTimeout(async () => {
           clearMemoryCache();
           await clearIndexedDBCache();
+          await clearOutbox();
+          // 顺手清掉老用户残留的 localStorage（迁移到 IndexedDB 后已不再写入此 key）
           localStorage.removeItem('us_app_memories');
           sessionStorage.clear();
           window.location.reload();

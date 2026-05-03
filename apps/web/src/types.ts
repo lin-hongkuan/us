@@ -122,6 +122,13 @@ export interface CreateMemoryDTO {
   customDate?: number;  // 可选的自定义时间戳（毫秒），用于记录过去的事
 }
 
+// 离线写入排队条目：从 outboxService 提取出来供 cacheService 共享，避免循环依赖
+export interface OutboxEntry {
+  localId: string;
+  enqueuedAt: number;
+  dto: CreateMemoryDTO;
+}
+
 // 更新公告配置
 export interface UpdateInfo {
   version: string;

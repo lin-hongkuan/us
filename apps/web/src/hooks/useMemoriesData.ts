@@ -3,7 +3,7 @@ import { Memory, CreateMemoryDTO } from '../types';
 import { getMemories, saveMemory, seedDataIfEmpty, subscribeToMemoryChanges, unsubscribeFromMemoryChanges } from '../services/storageService';
 import { subscribeToCacheUpdates } from '../services/cacheService';
 import { insertMemorySorted } from '../services/memoryMapper';
-import { drainOutbox, enqueueWrite, getOutboxCount } from '../services/outboxService';
+import { drainOutbox, enqueueWrite, getOutboxCount, whenOutboxReady } from '../services/outboxService';
 
 const isOnlineNow = (): boolean => {
   if (typeof navigator === 'undefined') return true;
@@ -13,7 +13,9 @@ const isOnlineNow = (): boolean => {
 export const useMemoriesData = () => {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [pendingOutboxCount, setPendingOutboxCount] = useState<number>(() => getOutboxCount());
+  // outbox 持久化在 IndexedDB 里，初次挂载时还没 hydration 完成，所以从 0 起步，
+  // useEffect 里 await whenOutboxReady() 后再刷一次真实计数
+  const [pendingOutboxCount, setPendingOutboxCount] = useState<number>(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,6 +40,13 @@ export const useMemoriesData = () => {
 
     fetchData();
 
+    // outbox hydration 完成后同步一次未发送计数（首次启动恢复用）
+    void whenOutboxReady().then(() => {
+      if (!cancelled) {
+        setPendingOutboxCount(getOutboxCount());
+      }
+    });
+
     const unsubscribe = subscribeToCacheUpdates((updatedMemories) => {
       setMemories(updatedMemories);
     });
@@ -51,6 +60,8 @@ export const useMemoriesData = () => {
 
   // 重连时把 outbox 里的暂存写入挨个重放
   const flushOutbox = useCallback(async () => {
+    // 等 hydration 完成，否则 cache 还可能为空导致漏放
+    await whenOutboxReady();
     if (getOutboxCount() === 0) return;
     const result = await drainOutbox(saveMemory);
     if (result.flushed.length === 0 && result.failed.length === 0) return;
