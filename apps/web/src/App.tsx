@@ -21,6 +21,7 @@ const PiggyBank = lazy(() => import('./components/PiggyBank').then(m => ({ defau
 const GravityMode = lazy(() => import('./components/GravityMode').then(m => ({ default: m.GravityMode })));
 const Game2048 = lazy(() => import('./components/Game2048').then(m => ({ default: m.Game2048 })));
 const MemoryHeatmap = lazy(() => import('./components/MemoryHeatmap').then(m => ({ default: m.MemoryHeatmap })));
+const OnThisDayCard = lazy(() => import('./components/OnThisDayCard').then(m => ({ default: m.OnThisDayCard })));
 
 const LazyLoadingFallback = () => (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -203,6 +204,12 @@ function AppContent() {
 
       {phase === 'main' && (
         <PresenceIndicator currentUser={currentUser} darkMode={darkMode} />
+      )}
+
+      {phase === 'main' && memories.length > 0 && (
+        <Suspense fallback={null}>
+          <OnThisDayCard memories={memories} onSelectDate={handleSelectHeatmapDate} />
+        </Suspense>
       )}
 
       <NoticeModal
