@@ -15,6 +15,7 @@ import { Loader2 } from 'lucide-react';
 import { START_DATE_STR } from './config/constants';
 import { useMemoriesData } from './hooks/useMemoriesData';
 import { isTauriRuntime, useTauriComposerShortcut } from './hooks/useTauriComposerShortcut';
+import { useEasterEggs } from './hooks/useEasterEggs';
 import { exportMemoriesAsJson } from './services/exportService';
 import { APP_UPDATE } from './types';
 
@@ -48,12 +49,11 @@ function AppContent() {
   const [isNoticeOpen, setIsNoticeOpen] = useState(false);
   const [noticeStep, setNoticeStep] = useState<NoticeStep>('question');
   const [showStamp, setShowStamp] = useState(false);
-  const [isGravityMode, setIsGravityMode] = useState(false);
-  const [isGame2048Open, setIsGame2048Open] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [jumpToDateKey, setJumpToDateKey] = useState<string | null>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const easterEggs = useEasterEggs();
 
   const [daysTogether] = useState(() => {
     const startDate = new Date(START_DATE_STR);
@@ -85,14 +85,7 @@ function AppContent() {
   }, [setCurrentUser]);
 
   const handleSave = useCallback(async (content: string, imageUrls?: string[], customDate?: number) => {
-    const trimmed = content.trim();
-    if (trimmed === '1104') {
-      setIsGravityMode(true);
-      setIsComposerOpen(false);
-      return;
-    }
-    if (trimmed === '2005') {
-      setIsGame2048Open(true);
+    if (easterEggs.tryConsumeAsEasterEgg(content)) {
       setIsComposerOpen(false);
       return;
     }
@@ -110,7 +103,7 @@ function AppContent() {
     }
 
     showToast({ tone: 'error', title: '保存失败了', description: '请检查网络或云端写入权限后再试。' });
-  }, [addMemory, currentUser, playClickSound, showToast]);
+  }, [addMemory, currentUser, easterEggs, playClickSound, showToast]);
 
   const handleOpenNotice = useCallback(() => {
     setIsNoticeOpen(prev => {
@@ -200,15 +193,15 @@ function AppContent() {
         />
       )}
 
-      {isGravityMode && (
+      {easterEggs.isGravityMode && (
         <Suspense fallback={<MemoizedLazyLoadingFallback />}>
-          <GravityMode memories={memories} onClose={() => setIsGravityMode(false)} />
+          <GravityMode memories={memories} onClose={easterEggs.closeGravity} />
         </Suspense>
       )}
 
-      {isGame2048Open && (
+      {easterEggs.isGame2048Open && (
         <Suspense fallback={<MemoizedLazyLoadingFallback />}>
-          <Game2048 onClose={() => setIsGame2048Open(false)} />
+          <Game2048 onClose={easterEggs.closeGame2048} />
         </Suspense>
       )}
 
