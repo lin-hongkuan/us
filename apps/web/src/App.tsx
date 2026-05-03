@@ -15,6 +15,8 @@ import { Loader2 } from 'lucide-react';
 import { START_DATE_STR } from './config/constants';
 import { useMemoriesData } from './hooks/useMemoriesData';
 import { isTauriRuntime, useTauriComposerShortcut } from './hooks/useTauriComposerShortcut';
+import { exportMemoriesAsJson } from './services/exportService';
+import { APP_UPDATE } from './types';
 
 const Composer = lazy(() => import('./components/Composer').then(m => ({ default: m.Composer })));
 const PiggyBank = lazy(() => import('./components/PiggyBank').then(m => ({ default: m.PiggyBank })));
@@ -120,6 +122,19 @@ function AppContent() {
 
   const handleToggleUpdate = useCallback(() => setShowUpdate(prev => !prev), []);
   const handleToggleHeatmap = useCallback(() => setShowHeatmap(prev => !prev), []);
+  const handleExportJson = useCallback(() => {
+    if (memories.length === 0) {
+      showToast({ tone: 'info', title: '暂时还没有可导出的回忆', description: '先写下第一条吧。' });
+      return;
+    }
+    try {
+      exportMemoriesAsJson(memories, APP_UPDATE.version);
+      showToast({ tone: 'success', title: '已导出 JSON 备份', description: `共 ${memories.length} 条回忆，请妥善保存。` });
+    } catch (error) {
+      console.error('Export failed:', error);
+      showToast({ tone: 'error', title: '导出失败', description: '浏览器可能拦截了下载，请重试。' });
+    }
+  }, [memories, showToast]);
   const handleSelectHeatmapDate = useCallback((dateKey: string) => {
     setJumpToDateKey(dateKey);
     setShowHeatmap(false);
@@ -160,6 +175,7 @@ function AppContent() {
         onOpenNotice={handleOpenNotice}
         onToggleUpdate={handleToggleUpdate}
         onToggleHeatmap={handleToggleHeatmap}
+        onExportJson={handleExportJson}
         onLogout={handleLogout}
       />
 

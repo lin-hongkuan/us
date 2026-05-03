@@ -1,7 +1,7 @@
 import React, { forwardRef, useState, useEffect, useCallback, useRef } from 'react';
 import { UserType } from '../types';
 import { useAppContext } from '../context/AppContext';
-import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, CalendarDays, MoreHorizontal } from 'lucide-react';
+import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, CalendarDays, MoreHorizontal, Download } from 'lucide-react';
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
@@ -117,6 +117,7 @@ interface HeaderProps {
   onOpenNotice: () => void;
   onToggleUpdate: () => void;
   onToggleHeatmap: () => void;
+  onExportJson: () => void;
   onLogout: () => void;
 }
 
@@ -134,6 +135,7 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
   onOpenNotice,
   onToggleUpdate,
   onToggleHeatmap,
+  onExportJson,
   onLogout
 }, ref) => {
   const { darkMode, toggleDarkMode } = useAppContext();
@@ -258,6 +260,18 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
               <CalendarDays size={12} className="md:w-[18px] md:h-[18px]" />
             </button>
           </div>
+
+          <div className="relative">
+            <button
+              onClick={onExportJson}
+              data-sound="action"
+              aria-label="导出回忆备份"
+              className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-emerald-400 hover:text-emerald-500 hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200"
+              title="导出回忆备份（JSON）"
+            >
+              <Download size={12} className="md:w-[18px] md:h-[18px]" />
+            </button>
+          </div>
         </div>
 
         <div ref={moreMenuRef} className="relative md:hidden">
@@ -316,6 +330,19 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
                   <CalendarDays size={14} />
                 </span>
                 记忆日历
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => handleMoreItem(onExportJson)}
+                data-sound="action"
+                aria-label="导出回忆备份"
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-500 transition-colors duration-150"
+              >
+                <span className="w-7 h-7 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-400">
+                  <Download size={14} />
+                </span>
+                导出 JSON
               </button>
             </div>
           )}
