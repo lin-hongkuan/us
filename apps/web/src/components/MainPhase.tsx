@@ -210,6 +210,7 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
         onOpenComposer={onOpenComposer}
         scrollContainerRef={herColumnRef}
         memoryItemRefs={memoryItemRefs}
+        jumpToDateKey={jumpToDateKey}
       />
 
       <JournalColumn
@@ -233,6 +234,7 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
         onOpenComposer={onOpenComposer}
         scrollContainerRef={himColumnRef}
         memoryItemRefs={memoryItemRefs}
+        jumpToDateKey={jumpToDateKey}
       />
     </main>
   );

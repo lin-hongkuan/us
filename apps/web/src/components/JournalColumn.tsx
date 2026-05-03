@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, PenLine, Sparkles } from 'lucide-react';
 import { Memory, UserType, getAvatar } from '../types';
 import { MemoryCard } from './MemoryCard';
@@ -25,7 +25,22 @@ interface JournalColumnProps {
   onOpenComposer: () => void;
   scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   memoryItemRefs?: React.RefObject<Record<string, HTMLDivElement | null>>;
+  jumpToDateKey?: string | null;
 }
+
+const INITIAL_BATCH_SIZE = 60;
+const NEXT_BATCH_SIZE = 60;
+const JUMP_BUFFER = 20;
+const MAX_ENTRY_ANIM_INDEX = 12;
+
+const toLocalDateKey = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return [
+    date.getFullYear(),
+    `${date.getMonth() + 1}`.padStart(2, '0'),
+    `${date.getDate()}`.padStart(2, '0'),
+  ].join('-');
+};
 
 const styles = {
   rose: {
@@ -128,12 +143,64 @@ export const JournalColumn: React.FC<JournalColumnProps> = React.memo(({
   onOpenComposer,
   scrollContainerRef,
   memoryItemRefs,
+  jumpToDateKey,
 }) => {
   const palette = styles[accent];
   const isHer = type === UserType.HER;
   const mobilePosition = activeTab === type
     ? 'translate-x-0 block'
     : isHer ? '-translate-x-full hidden md:block' : 'translate-x-full hidden md:block';
+
+  // 渐进式渲染：默认只渲染最近的 INITIAL_BATCH_SIZE 条，
+  // 滚到底部附近自动加载下一批；jumpToDateKey 命中较深位置时主动扩展窗口。
+  const [loadedCount, setLoadedCount] = useState(INITIAL_BATCH_SIZE);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // memories 切换时（如切换用户、删除）按当前长度收敛，避免无意义保留过大窗口。
+  useEffect(() => {
+    setLoadedCount((prev) => Math.min(prev, Math.max(memories.length, INITIAL_BATCH_SIZE)));
+  }, [memories.length]);
+
+  // jumpToDateKey 命中需要扩展时，本轮渲染同步纳入目标条目，下一帧 MainPhase 的 RAF 立刻能拿到 ref
+  const jumpExpansion = useMemo(() => {
+    if (!jumpToDateKey || memories.length === 0) return 0;
+    const targetIndex = memories.findIndex((memory) => toLocalDateKey(memory.createdAt) === jumpToDateKey);
+    return targetIndex < 0 ? 0 : targetIndex + 1 + JUMP_BUFFER;
+  }, [jumpToDateKey, memories]);
+
+  const effectiveLoadedCount = Math.min(Math.max(loadedCount, jumpExpansion), memories.length);
+
+  // 把同步扩展锁进 state，避免后续 jumpToDateKey 清空时 visibleMemories 缩回去
+  useEffect(() => {
+    if (effectiveLoadedCount > loadedCount) {
+      setLoadedCount(effectiveLoadedCount);
+    }
+  }, [effectiveLoadedCount, loadedCount]);
+
+  // 滚到底部哨兵时加载下一批
+  useEffect(() => {
+    const root = scrollContainerRef?.current ?? null;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    if (effectiveLoadedCount >= memories.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setLoadedCount((prev) => Math.min(prev + NEXT_BATCH_SIZE, memories.length));
+        }
+      },
+      { root, rootMargin: '600px 0px 600px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [effectiveLoadedCount, memories.length, scrollContainerRef]);
+
+  const visibleMemories = useMemo(
+    () => memories.slice(0, effectiveLoadedCount),
+    [memories, effectiveLoadedCount],
+  );
+  const remaining = Math.max(memories.length - effectiveLoadedCount, 0);
 
   return (
     <div
@@ -200,21 +267,31 @@ export const JournalColumn: React.FC<JournalColumnProps> = React.memo(({
               onOpenComposer={onOpenComposer}
             />
           ) : (
-            memories.map((memory, i) => (
-              <div
-                key={memory.id}
-                ref={(node) => {
-                  if (memoryItemRefs?.current) {
-                    memoryItemRefs.current[memory.id] = node;
-                  }
-                }}
-                className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
-                style={{ animationDelay: `${i * 150}ms`, animationFillMode: 'both' }}
-              >
-                <div className={`absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full ${palette.dot} border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500`} />
-                <MemoryCard memory={memory} onDelete={onDelete} onUpdate={onUpdate} currentUser={currentUser} />
-              </div>
-            ))
+            <>
+              {visibleMemories.map((memory, i) => (
+                <div
+                  key={memory.id}
+                  ref={(node) => {
+                    if (memoryItemRefs?.current) {
+                      memoryItemRefs.current[memory.id] = node;
+                    }
+                  }}
+                  className="memory-card-wrapper md:pl-20 relative group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
+                  style={{ animationDelay: `${Math.min(i, MAX_ENTRY_ANIM_INDEX) * 150}ms`, animationFillMode: 'both' }}
+                >
+                  <div className={`absolute left-8 -translate-x-[3.5px] top-8 w-2 h-2 rounded-full ${palette.dot} border-4 border-[#f8f8f8] dark:border-slate-800 hidden md:block group-hover:scale-150 transition-transform duration-500`} />
+                  <MemoryCard memory={memory} onDelete={onDelete} onUpdate={onUpdate} currentUser={currentUser} />
+                </div>
+              ))}
+              {remaining > 0 && (
+                <div ref={sentinelRef} className="pt-2 pb-6 text-center text-xs text-slate-400 dark:text-slate-500 select-none">
+                  <span className="inline-flex items-center gap-1.5 opacity-70">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    还有 {remaining} 条更早的回忆，正在轻轻加载…
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
