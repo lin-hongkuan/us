@@ -12,6 +12,7 @@ import { NoticeModal } from './components/NoticeModal';
 import { UpdateModal } from './components/UpdateModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OfflineBanner } from './components/OfflineBanner';
+import { ExportFooterButton } from './components/ExportFooterButton';
 import { Loader2 } from 'lucide-react';
 import { START_DATE_STR } from './config/constants';
 import { useMemoriesData } from './hooks/useMemoriesData';
@@ -172,7 +173,6 @@ function AppContent() {
         onOpenNotice={handleOpenNotice}
         onToggleUpdate={handleToggleUpdate}
         onToggleHeatmap={handleToggleHeatmap}
-        onExportJson={handleExportJson}
         onLogout={handleLogout}
       />
 
@@ -225,6 +225,10 @@ function AppContent() {
         <Suspense fallback={null}>
           <OnThisDayCard memories={memories} onSelectDate={handleSelectHeatmapDate} />
         </Suspense>
+      )}
+
+      {phase === 'main' && (
+        <ExportFooterButton onExport={handleExportJson} count={memories.length} />
       )}
 
       <NoticeModal
