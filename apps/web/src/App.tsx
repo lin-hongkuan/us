@@ -10,6 +10,7 @@ import { PresenceIndicator } from './components/PresenceIndicator';
 import { AppBackground } from './components/AppBackground';
 import { NoticeModal } from './components/NoticeModal';
 import { UpdateModal } from './components/UpdateModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Loader2 } from 'lucide-react';
 import { START_DATE_STR } from './config/constants';
 import { useMemoriesData } from './hooks/useMemoriesData';
@@ -252,8 +253,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

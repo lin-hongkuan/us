@@ -235,7 +235,7 @@ export const MemoryHeatmap: React.FC<MemoryHeatmapProps> = ({ memories, open, on
             <h3 id="memory-heatmap-title" className="mt-2 text-2xl font-semibold tracking-tight text-slate-800 dark:text-slate-100 sm:mt-3 md:text-3xl">记忆日历热力图</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400 sm:mt-2 md:text-base">最近一年里，哪一天写得最多，一眼就能看见。</p>
           </div>
-          <button type="button" onClick={onClose} data-sound="action" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-white/90 text-slate-400 transition-colors hover:text-slate-700 dark:border-slate-700/80 dark:bg-slate-800/90 dark:hover:text-slate-100 sm:h-11 sm:w-11" title="关闭">
+          <button type="button" onClick={onClose} data-sound="action" aria-label="关闭" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200/80 bg-white/90 text-slate-400 transition-colors hover:text-slate-700 dark:border-slate-700/80 dark:bg-slate-800/90 dark:hover:text-slate-100 sm:h-11 sm:w-11" title="关闭">
             <X size={18} />
           </button>
         </div>

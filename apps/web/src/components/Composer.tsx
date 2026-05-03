@@ -22,6 +22,31 @@ import { useAppContext } from '../context/AppContext';
 import { MAX_MEMORY_IMAGES } from '../config/constants';
 import { formatImageValidationIssues, validateImageFiles } from '../services/imageValidation';
 
+const DRAFT_STORAGE_PREFIX = 'composer_draft_';
+const draftKey = (user: UserType) => `${DRAFT_STORAGE_PREFIX}${user}`;
+const readDraft = (user: UserType): string => {
+  try {
+    return window.localStorage.getItem(draftKey(user)) ?? '';
+  } catch {
+    return '';
+  }
+};
+const writeDraft = (user: UserType, value: string) => {
+  try {
+    if (value) window.localStorage.setItem(draftKey(user), value);
+    else window.localStorage.removeItem(draftKey(user));
+  } catch {
+    /* localStorage 不可用时静默忽略 */
+  }
+};
+const clearDraft = (user: UserType) => {
+  try {
+    window.localStorage.removeItem(draftKey(user));
+  } catch {
+    /* ignore */
+  }
+};
+
 /**
  * 撰写器组件的属性接口
  */
@@ -40,8 +65,8 @@ interface ComposerProps {
  */
 export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose }) => {
   const { showToast } = useAppContext();
-  // 文本内容状态
-  const [text, setText] = useState('');
+  // 文本内容状态（首次挂载时尝试读取草稿）
+  const [text, setText] = useState<string>(() => readDraft(currentUser));
   // 图片预览URL状态
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   // 选中的图片文件状态
@@ -55,6 +80,16 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
   previewUrlsRef.current = imagePreviews;
   // 自定义日期状态（用于记录过去的事）
   const [customDate, setCustomDate] = useState<string>('');
+
+  // 切换用户时重新读取对方的草稿
+  useEffect(() => {
+    setText(readDraft(currentUser));
+  }, [currentUser]);
+
+  // 文本变化时同步到 localStorage（debounce 不必要，写入很轻）
+  useEffect(() => {
+    writeDraft(currentUser, text);
+  }, [currentUser, text]);
 
   // 组件卸载时回收所有 blob URL
   useEffect(() => {
@@ -89,6 +124,8 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
       }
 
       await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined, customDate ? new Date(customDate + 'T12:00:00').getTime() : undefined);
+      // 保存成功 → 清掉对应用户的草稿
+      clearDraft(currentUser);
       // 回收 blob URL 后重置表单
       imagePreviews.forEach(url => {
         if (url.startsWith('blob:')) URL.revokeObjectURL(url);
