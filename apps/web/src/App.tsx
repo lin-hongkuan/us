@@ -11,11 +11,13 @@ import { AppBackground } from './components/AppBackground';
 import { NoticeModal } from './components/NoticeModal';
 import { UpdateModal } from './components/UpdateModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OfflineBanner } from './components/OfflineBanner';
 import { Loader2 } from 'lucide-react';
 import { START_DATE_STR } from './config/constants';
 import { useMemoriesData } from './hooks/useMemoriesData';
 import { isTauriRuntime, useTauriComposerShortcut } from './hooks/useTauriComposerShortcut';
 import { useEasterEggs } from './hooks/useEasterEggs';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { exportMemoriesAsJson } from './services/exportService';
 import { APP_UPDATE } from './types';
 
@@ -42,7 +44,8 @@ type NoticeStep = 'question' | 'yes' | 'no';
 
 function AppContent() {
   const { currentUser, setCurrentUser, darkMode, playClickSound, showToast } = useAppContext();
-  const { memories, setMemories, isLoading, addMemory } = useMemoriesData();
+  const { memories, setMemories, isLoading, addMemory, pendingOutboxCount } = useMemoriesData();
+  const isOnline = useOnlineStatus();
   const [phase, setPhase] = useState<Phase>('login');
   const [activeTab, setActiveTab] = useState<UserType>(UserType.HER);
   const [isComposerOpen, setIsComposerOpen] = useState(false);
@@ -96,14 +99,15 @@ function AppContent() {
       setIsComposerOpen(false);
       setShowStamp(true);
       playClickSound('stamp');
-      showToast({ tone: 'success', title: '记录好啦', description: '这份美好已经被收藏起来了。' });
+      const offlineNote = !isOnline ? '离线状态下已暂存，回到网络会自动同步。' : '这份美好已经被收藏起来了。';
+      showToast({ tone: 'success', title: '记录好啦', description: offlineNote });
       if (navigator.vibrate) navigator.vibrate(50);
       window.setTimeout(() => setShowStamp(false), 1500);
       return;
     }
 
     showToast({ tone: 'error', title: '保存失败了', description: '请检查网络或云端写入权限后再试。' });
-  }, [addMemory, currentUser, easterEggs, playClickSound, showToast]);
+  }, [addMemory, currentUser, easterEggs, isOnline, playClickSound, showToast]);
 
   const handleOpenNotice = useCallback(() => {
     setIsNoticeOpen(prev => {
@@ -171,6 +175,8 @@ function AppContent() {
         onExportJson={handleExportJson}
         onLogout={handleLogout}
       />
+
+      <OfflineBanner isOnline={isOnline} pendingCount={pendingOutboxCount} />
 
       <MainPhase
         memories={memories}
