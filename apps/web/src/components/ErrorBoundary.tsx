@@ -25,7 +25,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     // 控制台保留原始信息，方便排查
-    // eslint-disable-next-line no-console
     console.error('[ErrorBoundary] caught:', error, info);
   }
 
