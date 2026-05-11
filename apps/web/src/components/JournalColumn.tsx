@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Loader2, PenLine, Sparkles } from 'lucide-react';
 import { Memory, UserType, getAvatar } from '../types';
 import { MemoryCard } from './MemoryCard';
 import { TypewriterText } from './TypewriterText';
+import { getMemoryImageUrls } from '../services/memoryMapper';
+import { schedulePriorityPreload, isImageCached } from '../services/imagePreloadService';
 
 interface JournalColumnProps {
   type: UserType;
@@ -201,6 +203,93 @@ export const JournalColumn: React.FC<JournalColumnProps> = React.memo(({
     [memories, effectiveLoadedCount],
   );
   const remaining = Math.max(memories.length - effectiveLoadedCount, 0);
+
+  // 基于滚动位置的优先级预加载
+  const preloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const preloadVisibleImages = useCallback(() => {
+    if (!scrollContainerRef?.current || visibleMemories.length === 0) return;
+
+    const container = scrollContainerRef.current;
+    const containerRect = container.getBoundingClientRect();
+    const containerHeight = containerRect.height;
+    const scrollTop = container.scrollTop;
+
+    // 计算当前可见区域（视口上下各扩展 500px）
+    const visibleStart = scrollTop - 500;
+    const visibleEnd = scrollTop + containerHeight + 500;
+
+    // 收集可见区域内的图片 URL
+    const visibleImageUrls: string[] = [];
+    const nearbyImageUrls: string[] = [];
+
+    visibleMemories.forEach((memory) => {
+      const memoryElement = memoryItemRefs?.current?.[memory.id];
+      if (!memoryElement) return;
+
+      const memoryTop = memoryElement.offsetTop;
+      const memoryBottom = memoryTop + memoryElement.offsetHeight;
+
+      // 检查记忆是否在可见区域内
+      const isVisible = memoryBottom >= visibleStart && memoryTop <= visibleEnd;
+
+      if (isVisible) {
+        const imageUrls = getMemoryImageUrls(memory);
+        visibleImageUrls.push(...imageUrls);
+      } else {
+        // 收集视口外但较近的图片（用于低优先级预加载）
+        const distance = memoryTop < visibleStart
+          ? visibleStart - memoryBottom
+          : memoryTop - visibleEnd;
+
+        if (distance < 1000) { // 距离视口 1000px 以内
+          const imageUrls = getMemoryImageUrls(memory);
+          nearbyImageUrls.push(...imageUrls);
+        }
+      }
+    });
+
+    // 过滤已缓存的图片
+    const uncachedVisible = visibleImageUrls.filter(url => !isImageCached(url));
+    const uncachedNearby = nearbyImageUrls.filter(url => !isImageCached(url));
+
+    // 高优先级预加载可见区域图片
+    if (uncachedVisible.length > 0) {
+      schedulePriorityPreload(uncachedVisible, 'high');
+    }
+
+    // 低优先级预加载附近图片
+    if (uncachedNearby.length > 0) {
+      schedulePriorityPreload(uncachedNearby, 'low');
+    }
+  }, [visibleMemories, scrollContainerRef, memoryItemRefs]);
+
+  // 监听滚动事件，防抖触发预加载
+  useEffect(() => {
+    const container = scrollContainerRef?.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (preloadTimeoutRef.current) {
+        clearTimeout(preloadTimeoutRef.current);
+      }
+      preloadTimeoutRef.current = setTimeout(() => {
+        preloadVisibleImages();
+      }, 150); // 150ms 防抖
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    // 初始加载时也触发一次预加载
+    preloadVisibleImages();
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (preloadTimeoutRef.current) {
+        clearTimeout(preloadTimeoutRef.current);
+      }
+    };
+  }, [scrollContainerRef, preloadVisibleImages]);
 
   return (
     <div

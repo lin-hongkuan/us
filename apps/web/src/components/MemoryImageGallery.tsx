@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Download, Loader2, Maximize2, Trash, X } from 'lucide-react';
 import { LazyImage, getResizedUrl } from './LazyImage';
 import { type DisplayImage } from '../hooks/useMemoryCardEditor';
+import { preloadImageHighPriority, isImageCached } from '../services/imagePreloadService';
 
 interface MemoryImageGalleryProps {
   images: DisplayImage[];
@@ -96,6 +97,45 @@ export const MemoryImageGallery: React.FC<MemoryImageGalleryProps> = React.memo(
       setPreviewImageIndex(images.length - 1);
     }
   }, [expandedImageIndex, images.length, closeFullscreen]);
+
+  // 预加载相邻图片（全屏模式下）
+  useEffect(() => {
+    if (expandedImageIndex === null || images.length <= 1) return;
+
+    const preloadAdjacentImages = async () => {
+      const indicesToPreload: number[] = [];
+
+      // 预加载前一张
+      if (expandedImageIndex > 0) {
+        indicesToPreload.push(expandedImageIndex - 1);
+      }
+      // 预加载后一张
+      if (expandedImageIndex < images.length - 1) {
+        indicesToPreload.push(expandedImageIndex + 1);
+      }
+
+      // 预加载当前图片的前后各一张（循环）
+      if (images.length > 2) {
+        const prevIndex = (expandedImageIndex - 1 + images.length) % images.length;
+        const nextIndex = (expandedImageIndex + 1) % images.length;
+        if (!indicesToPreload.includes(prevIndex)) indicesToPreload.push(prevIndex);
+        if (!indicesToPreload.includes(nextIndex)) indicesToPreload.push(nextIndex);
+      }
+
+      // 预加载未缓存的图片
+      const preloadPromises = indicesToPreload
+        .filter(index => index >= 0 && index < images.length)
+        .map(index => images[index]?.url)
+        .filter(url => url && !isImageCached(url))
+        .map(url => preloadImageHighPriority(url));
+
+      if (preloadPromises.length > 0) {
+        await Promise.allSettled(preloadPromises);
+      }
+    };
+
+    preloadAdjacentImages();
+  }, [expandedImageIndex, images]);
 
   if (images.length === 0) return null;
 

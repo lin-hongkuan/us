@@ -22,7 +22,7 @@ import { RealtimeChannel } from '@supabase/supabase-js';
 import { Memory, UserType, CreateMemoryDTO } from '../types';
 import { supabase } from './supabaseClient';
 import { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage } from './imageStorageService';
-import { scheduleImagePreload } from './imagePreloadService';
+import { scheduleImagePreload, schedulePriorityPreload } from './imagePreloadService';
 import { areMemoriesEqual, createMemoryInsertPayload, createMemoryUpdatePayload, getMemoriesImageUrls, getMemoryImageUrls, insertMemorySorted, mapRowToMemory, type MemoryRow } from './memoryMapper';
 import {
   getMemoryCache,
@@ -57,14 +57,14 @@ const getRealtimeBaseMemories = async (): Promise<Memory[]> => {
  */
 export const subscribeToMemoryChanges = (): void => {
   if (!supabase || isRealtimeSubscribed) return;
-  
+
   isRealtimeSubscribed = true;
-  
+
   // 如果已存在channel先清理，防范并发调用遗留
   if (realtimeChannel) {
     supabase.removeChannel(realtimeChannel);
   }
-  
+
   realtimeChannel = supabase
     .channel('memories-changes')
     .on(
@@ -79,7 +79,7 @@ export const subscribeToMemoryChanges = (): void => {
 
         const cachedMemories = await getRealtimeBaseMemories();
         let updatedMemories: Memory[];
-        
+
         switch (payload.eventType) {
           case 'INSERT': {
             const newMemory = mapRowToMemory(payload.new as MemoryRow);
@@ -97,18 +97,29 @@ export const subscribeToMemoryChanges = (): void => {
             }
             break;
           }
-          
+
           case 'UPDATE': {
             const updatedMemory = mapRowToMemory(payload.new as MemoryRow);
-            updatedMemories = cachedMemories.map(m => 
+            const oldMemory = cachedMemories.find(m => m.id === updatedMemory.id);
+
+            updatedMemories = cachedMemories.map(m =>
               m.id === updatedMemory.id ? updatedMemory : m
             );
             setMemoryCache(updatedMemories);
             await updateInIndexedDB(updatedMemory);
             notifyCacheUpdate(updatedMemories);
+
+            // 检测图片变化，如果有新图片则预加载
+            if (oldMemory && updatedMemory.imageUrls) {
+              const oldUrls = new Set(getMemoryImageUrls(oldMemory));
+              const newUrls = getMemoryImageUrls(updatedMemory).filter(url => !oldUrls.has(url));
+              if (newUrls.length > 0) {
+                schedulePriorityPreload(newUrls, 'high');
+              }
+            }
             break;
           }
-          
+
           case 'DELETE': {
             const deletedId = payload.old?.id;
             if (deletedId) {
@@ -199,16 +210,16 @@ export const getMemories = async (): Promise<Memory[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
+
     const memories = (data || []).map(mapRowToMemory);
-    
+
     // 更新所有缓存层
     setMemoryCache(memories);
     await setIndexedDBMemories(memories);
-    
+
     // 预加载图片
     scheduleImagePreload(getMemoriesImageUrls(memories));
-    
+
     return memories;
   } catch (e) {
     console.error("Failed to load memories from cloud", e);
@@ -232,20 +243,20 @@ const syncFromCloudInBackground = async (): Promise<void> => {
 
   lastSyncStartAt = now;
   isSyncing = true;
-  
+
   try {
     // 使用 AbortController 实现超时
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SYNC_TIMEOUT);
-    
+
     const { data, error } = await supabase
       .from('memories')
       .select('*')
       .order('created_at', { ascending: false })
       .abortSignal(controller.signal);
-    
+
     clearTimeout(timeoutId);
-    
+
     if (error) {
       // 检查是否是超时取消的请求
       if ((error as any).name !== 'AbortError' && error.message !== 'AbortError') {
@@ -253,21 +264,21 @@ const syncFromCloudInBackground = async (): Promise<void> => {
       }
       return;
     }
-    
+
     const cloudMemories = (data || []).map(mapRowToMemory);
     const cachedMemories = getMemoryCache();
-    
+
     // 【改进】使用深度比较检测数据变化
     const hasChanges = !areMemoriesEqual(cachedMemories, cloudMemories);
-    
+
     if (hasChanges) {
       // 更新缓存
       setMemoryCache(cloudMemories);
       await setIndexedDBMemories(cloudMemories);
-      
+
       // 触发 UI 更新事件
       notifyCacheUpdate(cloudMemories);
-      
+
       // 预加载新图片
       scheduleImagePreload(getMemoriesImageUrls(cloudMemories));
     }
@@ -317,15 +328,15 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
       .single();
 
     if (error) throw error;
-    
+
     const newMemory = mapRowToMemory(data);
-    
+
     // 【优化】更新缓存
     const cachedMemories = getMemoryCache() || [];
     const updatedMemories = insertMemorySorted(cachedMemories, newMemory);
     setMemoryCache(updatedMemories);
     await addToIndexedDB(newMemory);
-    
+
     return newMemory;
   } catch (e) {
     console.error("Failed to save memory to cloud", e);
@@ -379,20 +390,20 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
       .select();
 
     if (error) throw error;
-    
+
     if (!data || data.length === 0) {
       console.warn("Update returned 0 rows. Possible RLS issue.");
       return null;
     }
 
     const updatedMemory = mapRowToMemory(data[0]);
-    
+
     // 【优化】更新缓存
     const cachedMemories = getMemoryCache() || [];
     const updatedMemories = cachedMemories.map(m => m.id === id ? updatedMemory : m);
     setMemoryCache(updatedMemories);
     await updateInIndexedDB(updatedMemory);
-    
+
     return updatedMemory;
   } catch (e) {
     console.error("Failed to update memory", e);
@@ -428,13 +439,13 @@ export const deleteMemory = async (id: string): Promise<boolean> => {
       .eq('id', id);
 
     if (error) throw error;
-    
+
     // 【优化】更新缓存
     const cachedMemories = getMemoryCache() || [];
     const updatedMemories = cachedMemories.filter(m => m.id !== id);
     setMemoryCache(updatedMemories);
     await removeFromIndexedDB(id);
-    
+
     return true;
   } catch (e) {
     console.error("Failed to delete memory", e);
@@ -465,7 +476,7 @@ export const seedDataIfEmpty = async () => {
   } else {
     try {
       const { count, error } = await supabase.from('memories').select('*', { count: 'exact', head: true });
-      
+
       if (!error && count === 0) {
         const sampleData = [
           {
