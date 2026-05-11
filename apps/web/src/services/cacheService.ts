@@ -173,17 +173,23 @@ export const getIndexedDBMemories = async (): Promise<Memory[] | null> => {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(STORE_NAME, 'readonly');
       const store = transaction.objectStore(STORE_NAME);
-      const request = store.getAll();
-      
+      const memories: Memory[] = [];
+      const source = store.indexNames.contains('createdAt') ? store.index('createdAt') : store;
+      const request = source.openCursor(null, 'prev');
+
       request.onsuccess = () => {
-        const memories = request.result as Memory[];
-        // 按创建时间降序排列
-        memories.sort((a, b) => b.createdAt - a.createdAt);
-        resolve(memories.length > 0 ? memories : null);
+        const cursor = request.result;
+        if (!cursor) {
+          resolve(memories.length > 0 ? memories : null);
+          return;
+        }
+
+        memories.push(cursor.value as Memory);
+        cursor.continue();
       };
-      
+
       request.onerror = () => {
-        console.error('IndexedDB getAll error:', request.error);
+        console.error('IndexedDB cursor error:', request.error);
         reject(request.error);
       };
     });

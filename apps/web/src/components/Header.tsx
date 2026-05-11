@@ -1,7 +1,8 @@
 import React, { forwardRef, useState, useEffect, useCallback, useRef } from 'react';
 import { UserType } from '../types';
-import { useAppContext } from '../context/AppContext';
-import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, CalendarDays, MoreHorizontal } from 'lucide-react';
+import { useThemeContext } from '../context/themeContext';
+import { Sun, Moon, Star as StarIcon, PenTool, User, Minus, Square, X, Copy, CalendarDays, MoreHorizontal, Settings as SettingsIcon } from 'lucide-react';
+import { useSettingsLongPress } from '../hooks/useSettingsLongPress';
 
 const isTauri = !!(window as any).__TAURI_INTERNALS__;
 
@@ -117,6 +118,7 @@ interface HeaderProps {
   onOpenNotice: () => void;
   onToggleUpdate: () => void;
   onToggleHeatmap: () => void;
+  onOpenSettings: () => void;
   onLogout: () => void;
 }
 
@@ -134,13 +136,24 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
   onOpenNotice,
   onToggleUpdate,
   onToggleHeatmap,
+  onOpenSettings,
   onLogout
 }, ref) => {
-  const { darkMode, toggleDarkMode } = useAppContext();
+  const { darkMode, toggleDarkMode } = useThemeContext();
   const [isLateNight, setIsLateNight] = useState(false);
   const [showSleepMessage, setShowSleepMessage] = useState(false);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+
+  const {
+    progress: settingsPressProgress,
+    isPressing: isSettingsPressing,
+    completionTick: settingsCompletionTick,
+    bindings: settingsPressBindings,
+    consumeLongPressClick: consumeSettingsLongPressClick,
+  } = useSettingsLongPress({
+    onTrigger: onOpenSettings,
+  });
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -173,6 +186,22 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
     setIsMoreMenuOpen(false);
     handler();
   }, []);
+
+  const handleUserButtonClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    if (consumeSettingsLongPressClick()) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+    onLogout();
+  }, [consumeSettingsLongPressClick, onLogout]);
+
+  const handleUserButtonKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if ((event.key === 'Enter' || event.key === ' ') && event.shiftKey) {
+      event.preventDefault();
+      onOpenSettings();
+    }
+  }, [onOpenSettings]);
 
   return (
     <header 
@@ -374,15 +403,90 @@ export const Header = React.memo(forwardRef<HTMLElement, HeaderProps>(({
           )}
         </button>
         
-        <button
-          onClick={onLogout}
-           data-sound="action"
-           aria-label="切换用户"
-           className="w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200 md:hover:rotate-180 md:transition-all md:duration-500"
-           title="切换用户"
-        >
-          <User size={12} className="md:w-[18px] md:h-[18px]" />
-        </button>
+        <div className="relative shrink-0 w-9 h-9 md:w-12 md:h-12">
+          {/* Pressed halo glow — grows and saturates with progress */}
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-br from-rose-400 via-purple-400 to-sky-400"
+            style={{
+              opacity: isSettingsPressing ? 0.15 + settingsPressProgress * 0.4 : 0,
+              transform: `scale(${1 + settingsPressProgress * 0.35})`,
+              filter: `blur(${6 + settingsPressProgress * 10}px)`,
+              transition: isSettingsPressing ? undefined : 'opacity 200ms ease-out',
+              willChange: isSettingsPressing ? 'opacity, transform, filter' : undefined,
+            }}
+          />
+
+          {/* Progress ring (just outside the button edge) */}
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute -inset-1 -rotate-90"
+            viewBox="0 0 50 50"
+            style={{
+              opacity: isSettingsPressing ? 1 : 0,
+              transition: isSettingsPressing ? undefined : 'opacity 200ms ease-out',
+            }}
+          >
+            <defs>
+              <linearGradient id="settings-press-ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#fb7185" />
+                <stop offset="50%" stopColor="#a855f7" />
+                <stop offset="100%" stopColor="#38bdf8" />
+              </linearGradient>
+            </defs>
+            <circle
+              cx="25"
+              cy="25"
+              r="23"
+              fill="none"
+              stroke="url(#settings-press-ring-grad)"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              pathLength={100}
+              strokeDasharray={`${settingsPressProgress * 100} 100`}
+            />
+          </svg>
+
+          {/* Completion burst — re-mounts per successful long-press to replay the animation */}
+          {settingsCompletionTick > 0 && (
+            <span
+              key={`settings-press-burst-${settingsCompletionTick}`}
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 rounded-full border-2 border-rose-300 dark:border-rose-400 animate-settings-press-burst"
+            />
+          )}
+
+          <button
+            onPointerDown={settingsPressBindings.onPointerDown}
+            onPointerUp={settingsPressBindings.onPointerUp}
+            onPointerCancel={settingsPressBindings.onPointerCancel}
+            onPointerLeave={settingsPressBindings.onPointerLeave}
+            onKeyDown={handleUserButtonKeyDown}
+            onClick={handleUserButtonClick}
+            onContextMenu={(event) => event.preventDefault()}
+            data-sound="action"
+            aria-label="切换用户，长按打开设置"
+            title="点击切换用户，长按打开设置"
+            style={isSettingsPressing ? { transform: `scale(${1 - settingsPressProgress * 0.05})` } : undefined}
+            className={[
+              'relative w-9 h-9 md:w-12 md:h-12 rounded-full bg-white/95 md:bg-white/80 dark:bg-slate-800/95 md:dark:bg-slate-800/80 md:backdrop-blur-md border border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-400 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-slate-700 transition-colors duration-200',
+              isSettingsPressing ? '' : 'md:hover:rotate-180 md:transition-all md:duration-500',
+            ].join(' ')}
+          >
+            <span className="relative inline-flex h-3 w-3 md:h-[18px] md:w-[18px]">
+              <User
+                size={12}
+                className="absolute inset-0 md:w-[18px] md:h-[18px] transition-opacity duration-200"
+                style={{ opacity: 1 - Math.min(1, Math.max(0, (settingsPressProgress - 0.35) / 0.5)) }}
+              />
+              <SettingsIcon
+                size={12}
+                className="absolute inset-0 md:w-[18px] md:h-[18px] transition-opacity duration-200"
+                style={{ opacity: Math.min(1, Math.max(0, (settingsPressProgress - 0.35) / 0.5)) }}
+              />
+            </span>
+          </button>
+        </div>
         <WindowControls />
       </div>
     </header>

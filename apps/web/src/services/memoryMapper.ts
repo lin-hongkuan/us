@@ -60,8 +60,20 @@ export const createMemoryUpdatePayload = (content: string, imageUrls?: string[] 
 };
 
 export const insertMemorySorted = (list: Memory[], newMemory: Memory): Memory[] => {
-  const result = [...list, newMemory];
-  result.sort((a, b) => b.createdAt - a.createdAt);
+  const result = list.slice();
+  let low = 0;
+  let high = result.length;
+
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (result[mid].createdAt < newMemory.createdAt) {
+      high = mid;
+    } else {
+      low = mid + 1;
+    }
+  }
+
+  result.splice(low, 0, newMemory);
   return result;
 };
 

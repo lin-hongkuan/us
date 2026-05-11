@@ -33,10 +33,12 @@
 
 - `apps/web/src/App.tsx`
 - `apps/web/src/context/AppContext.tsx`
+- `apps/web/src/context/preferencesContext.tsx`
 - `apps/web/src/components/MainPhase.tsx`
 - `apps/web/src/components/Composer.tsx`
 - `apps/web/src/components/MemoryCard.tsx`
 - `apps/web/src/components/Header.tsx`
+- `apps/web/src/components/SettingsPanel.tsx`
 
 ### 服务层重点
 
@@ -104,6 +106,7 @@ Agent 完成改动后，默认应尽量做到：
 - 兼顾桌面端体验与移动端性能，不只优化桌面端。
 - 懒加载、缓存、骨架屏、过渡动画等现有体验，除非有明确理由，不要随意删改。
 - 涉及交互彩蛋、音效、氛围动画时，要注意不要破坏主流程可用性。
+- 全局偏好（声音、星光、在线陪伴、减少动效等）优先通过 `preferencesContext.tsx` 持久化，并从 `SettingsPanel.tsx` 统一暴露给用户。
 
 ## 7. 数据、缓存与同步规则
 

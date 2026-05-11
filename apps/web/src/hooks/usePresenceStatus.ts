@@ -31,7 +31,7 @@ interface AudioWindow extends Window {
 
 const randomItem = (items: string[]): string => items[Math.floor(Math.random() * items.length)];
 
-export const usePresenceStatus = (currentUser: UserType | null) => {
+export const usePresenceStatus = (currentUser: UserType | null, soundEnabled = true) => {
   const [partnerOnline, setPartnerOnline] = useState(false);
   const [partnerUser, setPartnerUser] = useState<UserType | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -49,6 +49,7 @@ export const usePresenceStatus = (currentUser: UserType | null) => {
   const available = useMemo(() => isPresenceAvailable(), []);
 
   const playHeartSound = useCallback(() => {
+    if (!soundEnabled) return;
     const AudioContextClass = window.AudioContext || (window as AudioWindow).webkitAudioContext;
     if (!AudioContextClass) return;
 
@@ -84,7 +85,7 @@ export const usePresenceStatus = (currentUser: UserType | null) => {
     } catch {
       return;
     }
-  }, []);
+  }, [soundEnabled]);
 
   useEffect(() => {
     if (!currentUser || !available) return;

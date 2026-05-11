@@ -1,13 +1,16 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { UserType, Memory } from '../types';
-import { useAppContext } from '../context/AppContext';
+import { useSessionContext } from '../context/sessionContext';
+import { useSoundContext } from '../context/audioContext';
+import { useFeedbackContext } from '../context/feedbackContext';
 import { deleteMemory, updateMemory } from '../services/storageService';
 import { JournalColumn } from './JournalColumn';
 import { useAvatarRefreshGesture } from '../hooks/useAvatarRefreshGesture';
 import { useHideHeaderOnScroll } from '../hooks/useHideHeaderOnScroll';
 import { useParallaxBackground } from '../hooks/useParallaxBackground';
 import { useSwipeTabs } from '../hooks/useSwipeTabs';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 
 interface MainPhaseProps {
   memories: Memory[];
@@ -48,11 +51,18 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
   jumpToDateKey,
   onJumpHandled,
 }) => {
-  const { currentUser, playClickSound, playRefreshSound, playSuccessSound, requestConfirm, showToast } = useAppContext();
+  const { currentUser } = useSessionContext();
+  const { playClickSound, playRefreshSound, playSuccessSound } = useSoundContext();
+  const { requestConfirm, showToast } = useFeedbackContext();
   const [hoveredSide, setHoveredSide] = useState<UserType | null>(null);
   const herColumnRef = useRef<HTMLDivElement>(null);
   const himColumnRef = useRef<HTMLDivElement>(null);
+  const columnScrollTopRef = useRef<Record<UserType, number>>({
+    [UserType.HER]: 0,
+    [UserType.HIM]: 0,
+  });
   const memoryItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const isDesktopLayout = useMediaQuery('(min-width: 768px)', true);
   const mainBackgroundRef = useParallaxBackground();
   const handleScroll = useHideHeaderOnScroll(headerRef);
   const { handleTouchStart, handleTouchMove, handleTouchEnd } = useSwipeTabs({
@@ -101,6 +111,13 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
 
   const herMemories = useMemo(() => memories.filter(m => m.author === UserType.HER), [memories]);
   const hisMemories = useMemo(() => memories.filter(m => m.author === UserType.HIM), [memories]);
+  const renderHerColumn = isDesktopLayout || activeTab === UserType.HER;
+  const renderHimColumn = isDesktopLayout || activeTab === UserType.HIM;
+
+  const handleColumnScroll = useCallback((e: React.UIEvent<HTMLDivElement>, type: UserType) => {
+    columnScrollTopRef.current[type] = e.currentTarget.scrollTop;
+    handleScroll(e, type);
+  }, [handleScroll]);
 
   useEffect(() => {
     if (!jumpToDateKey) return;
@@ -128,32 +145,7 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
       return;
     }
 
-    const tabMemories = matchingMemories.filter((memory) => memory.author === targetTab);
-    const scrollContainer = targetTab === UserType.HER ? herColumnRef.current : himColumnRef.current;
-
-    window.requestAnimationFrame(() => {
-      const firstElement = memoryItemRefs.current[tabMemories[0]?.id];
-      if (!scrollContainer || !firstElement) {
-        onJumpHandled();
-        return;
-      }
-
-      scrollContainer.scrollTo({
-        top: Math.max(firstElement.offsetTop - 120, 0),
-        behavior: 'smooth',
-      });
-
-      tabMemories.forEach((memory) => {
-        const element = memoryItemRefs.current[memory.id];
-        if (!element) return;
-        element.classList.remove('memory-jump-highlight');
-        void element.offsetWidth;
-        element.classList.add('memory-jump-highlight');
-        window.setTimeout(() => element.classList.remove('memory-jump-highlight'), 2200);
-      });
-
-      onJumpHandled();
-    });
+    // The active JournalColumn owns virtual-list scrolling and highlight timing.
   }, [activeTab, jumpToDateKey, memories, onJumpHandled, setActiveTab]);
 
   if (!currentUser) return null;
@@ -189,53 +181,61 @@ export const MainPhase: React.FC<MainPhaseProps> = React.memo(({
         </div>
       </div>
 
-      <JournalColumn
-        type={UserType.HER}
-        activeTab={activeTab}
-        memories={herMemories}
-        isLoading={isLoading}
-        currentUser={currentUser}
-        title="Ting's Journal"
-        subtitle="&quot;正在同步... 婷婷的心情坐标&quot;"
-        titleStyle={HER_JOURNAL_TITLE_STYLE}
-        accent="rose"
-        isAvatarShaking={isAvatarShaking === UserType.HER}
-        avatarShakeIntensity={avatarShakeIntensity}
-        onScroll={handleScroll}
-        onHover={setHoveredSide}
-        onAvatarPressStart={handleAvatarPressStart}
-        onAvatarPressEnd={handleAvatarPressEnd}
-        onDelete={handleDelete}
-        onUpdate={handleUpdateMemory}
-        onOpenComposer={onOpenComposer}
-        scrollContainerRef={herColumnRef}
-        memoryItemRefs={memoryItemRefs}
-        jumpToDateKey={jumpToDateKey}
-      />
+      {renderHerColumn && (
+        <JournalColumn
+          type={UserType.HER}
+          activeTab={activeTab}
+          memories={herMemories}
+          isLoading={isLoading}
+          currentUser={currentUser}
+          title="Ting's Journal"
+          subtitle="&quot;正在同步... 婷婷的心情坐标&quot;"
+          titleStyle={HER_JOURNAL_TITLE_STYLE}
+          accent="rose"
+          isAvatarShaking={isAvatarShaking === UserType.HER}
+          avatarShakeIntensity={avatarShakeIntensity}
+          onScroll={handleColumnScroll}
+          onHover={setHoveredSide}
+          onAvatarPressStart={handleAvatarPressStart}
+          onAvatarPressEnd={handleAvatarPressEnd}
+          onDelete={handleDelete}
+          onUpdate={handleUpdateMemory}
+          onOpenComposer={onOpenComposer}
+          scrollContainerRef={herColumnRef}
+          memoryItemRefs={memoryItemRefs}
+          jumpToDateKey={activeTab === UserType.HER ? jumpToDateKey : null}
+          onJumpHandled={onJumpHandled}
+          initialScrollTop={columnScrollTopRef.current[UserType.HER]}
+        />
+      )}
 
-      <JournalColumn
-        type={UserType.HIM}
-        activeTab={activeTab}
-        memories={hisMemories}
-        isLoading={isLoading}
-        currentUser={currentUser}
-        title="Kuan's Journal"
-        subtitle="&quot;独家索引：宽宽的每一份喜欢&quot;"
-        titleStyle={HIM_JOURNAL_TITLE_STYLE}
-        accent="sky"
-        isAvatarShaking={isAvatarShaking === UserType.HIM}
-        avatarShakeIntensity={avatarShakeIntensity}
-        onScroll={handleScroll}
-        onHover={setHoveredSide}
-        onAvatarPressStart={handleAvatarPressStart}
-        onAvatarPressEnd={handleAvatarPressEnd}
-        onDelete={handleDelete}
-        onUpdate={handleUpdateMemory}
-        onOpenComposer={onOpenComposer}
-        scrollContainerRef={himColumnRef}
-        memoryItemRefs={memoryItemRefs}
-        jumpToDateKey={jumpToDateKey}
-      />
+      {renderHimColumn && (
+        <JournalColumn
+          type={UserType.HIM}
+          activeTab={activeTab}
+          memories={hisMemories}
+          isLoading={isLoading}
+          currentUser={currentUser}
+          title="Kuan's Journal"
+          subtitle="&quot;独家索引：宽宽的每一份喜欢&quot;"
+          titleStyle={HIM_JOURNAL_TITLE_STYLE}
+          accent="sky"
+          isAvatarShaking={isAvatarShaking === UserType.HIM}
+          avatarShakeIntensity={avatarShakeIntensity}
+          onScroll={handleColumnScroll}
+          onHover={setHoveredSide}
+          onAvatarPressStart={handleAvatarPressStart}
+          onAvatarPressEnd={handleAvatarPressEnd}
+          onDelete={handleDelete}
+          onUpdate={handleUpdateMemory}
+          onOpenComposer={onOpenComposer}
+          scrollContainerRef={himColumnRef}
+          memoryItemRefs={memoryItemRefs}
+          jumpToDateKey={activeTab === UserType.HIM ? jumpToDateKey : null}
+          onJumpHandled={onJumpHandled}
+          initialScrollTop={columnScrollTopRef.current[UserType.HIM]}
+        />
+      )}
     </main>
   );
 });

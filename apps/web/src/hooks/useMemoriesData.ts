@@ -23,8 +23,11 @@ export const useMemoriesData = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        await seedDataIfEmpty();
-        const data = await getMemories();
+        let data = await getMemories();
+        if (data.length === 0) {
+          await seedDataIfEmpty();
+          data = await getMemories();
+        }
         if (!cancelled) {
           setMemories(data);
         }

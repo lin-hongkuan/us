@@ -5,6 +5,7 @@ import { ClickStarOverlay, dispatchStarPop } from './ClickStarOverlay';
 
 interface LoginPhaseProps {
   onChooseUser: (type: UserType) => void;
+  onPreloadJournal?: () => void;
 }
 
 const NOISE_OVERLAY_STYLE: React.CSSProperties = {
@@ -22,7 +23,7 @@ const LOGO_TEXTURE_STYLE: React.CSSProperties = {
   '--shadow-rgb': '168, 85, 247'
 } as React.CSSProperties;
 
-export const LoginPhase: React.FC<LoginPhaseProps> = ({ onChooseUser }) => {
+export const LoginPhase: React.FC<LoginPhaseProps> = ({ onChooseUser, onPreloadJournal }) => {
   const [daysTogether] = useState(() => {
     const startDate = new Date(START_DATE_STR);
     const today = new Date();
@@ -225,6 +226,9 @@ export const LoginPhase: React.FC<LoginPhaseProps> = ({ onChooseUser }) => {
         <div className="flex-1 w-full max-w-xs md:max-w-none">
           <div className="grid grid-cols-2 gap-6">
              <button 
+               onPointerEnter={onPreloadJournal}
+               onFocus={onPreloadJournal}
+               onTouchStart={onPreloadJournal}
                onClick={() => onChooseUser(UserType.HER)}
                data-sound="her"
                className="group relative aspect-[3/4] rounded-3xl bg-white dark:bg-slate-700 border border-white dark:border-slate-600 shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.3)] dark:hover:shadow-[0_20px_40px_-12px_rgba(251,113,133,0.2)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"
@@ -243,6 +247,9 @@ export const LoginPhase: React.FC<LoginPhaseProps> = ({ onChooseUser }) => {
              </button>
 
              <button 
+               onPointerEnter={onPreloadJournal}
+               onFocus={onPreloadJournal}
+               onTouchStart={onPreloadJournal}
                onClick={() => onChooseUser(UserType.HIM)}
                data-sound="him"
                className="group relative aspect-[3/4] rounded-3xl bg-white dark:bg-slate-700 border border-white dark:border-slate-600 shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.3)] dark:hover:shadow-[0_20px_40px_-12px_rgba(56,189,248,0.2)] hover:-translate-y-2 transition-all duration-500 flex flex-col items-center justify-center gap-4 overflow-hidden"

@@ -7,6 +7,7 @@ import { PresenceCard } from './PresenceCard';
 interface PresenceIndicatorProps {
   currentUser: UserType | null;
   darkMode?: boolean;
+  soundEnabled?: boolean;
 }
 
 const PRESENCE_ANIMATION_STYLES = `
@@ -136,6 +137,7 @@ const PRESENCE_ANIMATION_STYLES = `
 export const PresenceIndicator: React.FC<PresenceIndicatorProps> = React.memo(({
   currentUser,
   darkMode = false,
+  soundEnabled = true,
 }) => {
   const {
     available,
@@ -145,7 +147,7 @@ export const PresenceIndicator: React.FC<PresenceIndicatorProps> = React.memo(({
     showBurst,
     isGoodbye,
     dismiss,
-  } = usePresenceStatus(currentUser);
+  } = usePresenceStatus(currentUser, soundEnabled);
 
   if (!available || !currentUser) return null;
 

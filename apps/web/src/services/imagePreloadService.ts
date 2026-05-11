@@ -1,4 +1,8 @@
 const imageUrlCache = new Map<string, string>();
+const inFlightPreloads = new Map<string, Promise<void>>();
+const pendingPreloads: Array<() => void> = [];
+let activePreloads = 0;
+const MAX_ACTIVE_PRELOADS = 4;
 
 const requestIdle = (callback: () => void): void => {
   const requestIdleCallback = window.requestIdleCallback;
@@ -14,17 +18,39 @@ export const preloadImage = (url: string): Promise<void> => {
     return Promise.resolve();
   }
 
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      imageUrlCache.set(url, url);
-      resolve();
+  const existing = inFlightPreloads.get(url);
+  if (existing) return existing;
+
+  const runNext = () => {
+    if (activePreloads >= MAX_ACTIVE_PRELOADS) return;
+    const next = pendingPreloads.shift();
+    if (next) next();
+  };
+
+  const promise = new Promise<void>((resolve) => {
+    const start = () => {
+      activePreloads += 1;
+      const img = new Image();
+      const finish = () => {
+        activePreloads = Math.max(0, activePreloads - 1);
+        inFlightPreloads.delete(url);
+        resolve();
+        runNext();
+      };
+      img.onload = () => {
+        imageUrlCache.set(url, url);
+        finish();
+      };
+      img.onerror = finish;
+      img.src = url;
     };
-    img.onerror = () => {
-      resolve();
-    };
-    img.src = url;
+
+    pendingPreloads.push(start);
+    runNext();
   });
+
+  inFlightPreloads.set(url, promise);
+  return promise;
 };
 
 export const preloadImages = async (urls: string[]): Promise<void> => {

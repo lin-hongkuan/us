@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import { usePreferencesContext } from './preferencesContext';
 
 export type ClickSoundType = 'default' | 'her' | 'him' | 'action' | 'stamp';
 
@@ -34,8 +35,10 @@ const getAudioContext = (audioCtxRef: React.MutableRefObject<AudioContext | null
 
 export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const { soundEnabled } = usePreferencesContext();
 
   const playClickSound = useCallback((type: ClickSoundType = 'default') => {
+    if (!soundEnabled) return;
     const audioCtx = getAudioContext(audioCtxRef);
     if (!audioCtx) return;
 
@@ -91,9 +94,10 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       oscillator.start(now);
       oscillator.stop(now + 0.15);
     }
-  }, []);
+  }, [soundEnabled]);
 
   useEffect(() => {
+    if (!soundEnabled) return undefined;
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const soundElement = target.closest('[data-sound]');
@@ -102,9 +106,10 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     window.addEventListener('mousedown', handleClick, { passive: true });
     return () => window.removeEventListener('mousedown', handleClick);
-  }, [playClickSound]);
+  }, [playClickSound, soundEnabled]);
 
   const playRefreshSound = useCallback((progress: number) => {
+    if (!soundEnabled) return;
     const audioCtx = getAudioContext(audioCtxRef);
     if (!audioCtx) return;
 
@@ -122,9 +127,10 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
     oscillator.start(now);
     oscillator.stop(now + 0.08);
-  }, []);
+  }, [soundEnabled]);
 
   const playLoadCompleteSound = useCallback(() => {
+    if (!soundEnabled) return;
     const audioCtx = getAudioContext(audioCtxRef);
     if (!audioCtx) return;
 
@@ -145,9 +151,10 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     playNote(392, now, 0.1);
     playNote(523.25, now + 0.1, 0.12);
-  }, []);
+  }, [soundEnabled]);
 
   const playSuccessSound = useCallback(() => {
+    if (!soundEnabled) return;
     const audioCtx = getAudioContext(audioCtxRef);
     if (!audioCtx) return;
 
@@ -165,7 +172,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
     oscillator.start(now);
     oscillator.stop(now + 0.4);
-  }, []);
+  }, [soundEnabled]);
 
   const value = useMemo(() => ({ playClickSound, playRefreshSound, playLoadCompleteSound, playSuccessSound }), [
     playClickSound,

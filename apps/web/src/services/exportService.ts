@@ -16,6 +16,21 @@ const pad2 = (n: number) => `${n}`.padStart(2, '0');
 const buildFilename = (now: Date) =>
   `us-memories-${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}.json`;
 
+const buildExportPayload = (memories: Memory[], appVersion?: string): MemoryExportPayload => ({
+  version: 1,
+  exportedAt: Date.now(),
+  appVersion,
+  memories: [...memories].sort((a, b) => a.createdAt - b.createdAt),
+});
+
+/**
+ * 把所有回忆组装成规范的 JSON 字符串（带缩进），不触发下载。
+ * 用于“复制到剪贴板”等场景。
+ */
+export const buildMemoriesJsonString = (memories: Memory[], appVersion?: string): string => {
+  return JSON.stringify(buildExportPayload(memories, appVersion), null, 2);
+};
+
 /**
  * 把所有回忆打成一份 JSON，浏览器触发下载。
  * - 不依赖任何第三方库，仅使用 Blob + URL.createObjectURL
@@ -23,14 +38,7 @@ const buildFilename = (now: Date) =>
  * - 失败时抛错，调用方负责 toast / 上报
  */
 export const exportMemoriesAsJson = (memories: Memory[], appVersion?: string): void => {
-  const payload: MemoryExportPayload = {
-    version: 1,
-    exportedAt: Date.now(),
-    appVersion,
-    memories: [...memories].sort((a, b) => a.createdAt - b.createdAt),
-  };
-
-  const json = JSON.stringify(payload, null, 2);
+  const json = buildMemoriesJsonString(memories, appVersion);
   const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
   const url = URL.createObjectURL(blob);
 

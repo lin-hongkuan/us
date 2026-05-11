@@ -141,6 +141,7 @@ export const MemoryImageGallery: React.FC<MemoryImageGalleryProps> = React.memo(
 
   const currentImage = images[mainPreviewIndex];
   const expandedImage = expandedImageIndex !== null ? images[expandedImageIndex] : null;
+  const previewImageUrl = getResizedUrl(currentImage.url, isImageExpanded ? 1400 : 900);
 
   const handleRemoveCurrentImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -174,7 +175,8 @@ export const MemoryImageGallery: React.FC<MemoryImageGalleryProps> = React.memo(
     <div className="mb-4">
       <div className="relative rounded-xl overflow-hidden group/image mb-2 shadow-sm">
         <LazyImage
-          src={currentImage.url}
+          src={previewImageUrl}
+          fallbackSrc={currentImage.url}
           alt="Memory Main"
           className={`w-full transition-all duration-300 cursor-pointer ${isImageExpanded ? 'max-h-[75vh]' : 'max-h-64'}`}
           onClick={(e) => {

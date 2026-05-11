@@ -21,14 +21,26 @@ export default defineConfig(({ mode }) => {
       },
       // 【优化】代码分割配置
       build: {
+        modulePreload: {
+          polyfill: false,
+          resolveDependencies: (_url, deps) => deps.filter(dep => !dep.includes('supabase-')),
+        },
         rollupOptions: {
           output: {
-            manualChunks: {
-              'react-vendor': ['react', 'react-dom'],
-              'supabase': ['@supabase/supabase-js'],
-              'matter': ['matter-js'],
-              'date-fns': ['date-fns'],
-              'icons': ['lucide-react'],
+            manualChunks(id) {
+              if (!id.includes('node_modules')) return undefined;
+              if (
+                id.includes('/react/') ||
+                id.includes('/react-dom/') ||
+                id.includes('/scheduler/')
+              ) {
+                return 'react-vendor';
+              }
+              if (id.includes('/@supabase/')) return 'supabase';
+              if (id.includes('/matter-js/')) return 'matter';
+              if (id.includes('/date-fns/')) return 'date-fns';
+              if (id.includes('/@tauri-apps/')) return 'tauri';
+              return undefined;
             },
           },
         },

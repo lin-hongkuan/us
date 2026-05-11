@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserType, getAvatar } from '../types';
-import { useAppContext } from '../context/AppContext';
+import { useSoundContext } from '../context/audioContext';
 
 interface TransitionPhaseProps {
   currentUser: UserType | null;
@@ -19,7 +19,7 @@ export const TransitionPhase: React.FC<TransitionPhaseProps> = ({
   const retractTimeoutRef = useRef<number | null>(null);
   const transitionProgressRafRef = useRef<number | null>(null);
   const transitionEnteredAtRef = useRef<number>(Date.now());
-  const { playLoadCompleteSound } = useAppContext();
+  const { playLoadCompleteSound } = useSoundContext();
 
   const LOAD_COMPLETE_SOUND_MIN_MS = 500;
 

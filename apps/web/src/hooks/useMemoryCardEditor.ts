@@ -13,9 +13,10 @@ export interface DisplayImage {
 export const useMemoryCardEditor = (
   memory: Memory,
   onUpdate: (id: string, content: string, imageUrls?: string[] | null) => Promise<boolean>,
+  initialEditing = false,
 ) => {
   const { showToast } = useFeedbackContext();
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(initialEditing);
   const [isSaving, setIsSaving] = useState(false);
   const [editContent, setEditContent] = useState(memory.content);
   const [editImageUrls, setEditImageUrls] = useState<string[]>(getMemoryImageUrls(memory));
