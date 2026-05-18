@@ -247,7 +247,7 @@ const VirtualMemoryItem: React.FC<VirtualMemoryItemProps> = React.memo(({
       ref={setItemNode}
       className="memory-card-wrapper absolute left-0 right-0 md:pl-20 group animate-fadeInUp pt-6 pl-4 pr-4 overflow-visible"
       style={{
-        transform: `translate3d(0, ${top}px, 0)`,
+        top,
         animationDelay: `${Math.min(index, MAX_ENTRY_ANIM_INDEX) * 150}ms`,
         animationFillMode: 'both',
       }}
