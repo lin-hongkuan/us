@@ -141,7 +141,7 @@ export const MemoryImageGallery: React.FC<MemoryImageGalleryProps> = React.memo(
 
   const currentImage = images[mainPreviewIndex];
   const expandedImage = expandedImageIndex !== null ? images[expandedImageIndex] : null;
-  const previewImageUrl = getResizedUrl(currentImage.url, isImageExpanded ? 1400 : 900);
+  const previewImageUrl = getResizedUrl(currentImage.url, 900);
 
   const handleRemoveCurrentImage = (e: React.MouseEvent) => {
     e.stopPropagation();
