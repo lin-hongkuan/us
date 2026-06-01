@@ -1,6 +1,8 @@
 import { supabase } from './supabaseClient';
 
 const STORAGE_BUCKET = 'memory-images';
+const COMPRESSIBLE_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const MIN_COMPRESSION_SIZE_BYTES = 300 * 1024;
 
 export const extractStoragePathFromUrl = (imageUrl: string): string | null => {
   if (!imageUrl || imageUrl.startsWith('data:')) return null;
@@ -108,19 +110,46 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-export const uploadImage = async (file: File): Promise<string | null> => {
-  if (!supabase) {
-    return fileToBase64(file);
+const getExtensionForFile = (file: File): string => {
+  if (file.type === 'image/jpeg') return 'jpg';
+  if (file.type === 'image/png') return 'png';
+  if (file.type === 'image/webp') return 'webp';
+  if (file.type === 'image/gif') return 'gif';
+  return file.name.split('.').pop()?.toLowerCase() || 'jpg';
+};
+
+export const prepareImageForUpload = async (file: File): Promise<File> => {
+  if (!COMPRESSIBLE_IMAGE_TYPES.has(file.type) || file.size < MIN_COMPRESSION_SIZE_BYTES) {
+    return file;
   }
 
   try {
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const blob = await compressImageToBlob(file);
+    return new File([blob], file.name, {
+      type: blob.type || 'image/jpeg',
+      lastModified: file.lastModified,
+    });
+  } catch (e) {
+    console.warn('Image compression failed; uploading original file:', e);
+    return file;
+  }
+};
+
+export const uploadImage = async (file: File): Promise<string | null> => {
+  const uploadFile = await prepareImageForUpload(file);
+
+  if (!supabase) {
+    return fileToBase64(uploadFile);
+  }
+
+  try {
+    const ext = getExtensionForFile(uploadFile);
     const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
 
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(filename, file, {
-        contentType: file.type,
+      .upload(filename, uploadFile, {
+        contentType: uploadFile.type || 'application/octet-stream',
         cacheControl: '31536000',
       });
 
@@ -133,9 +162,22 @@ export const uploadImage = async (file: File): Promise<string | null> => {
     return urlData.publicUrl;
   } catch (e) {
     console.error('Image upload failed:', e);
-    console.warn('Falling back to base64 storage');
-    return fileToBase64(file);
+    return null;
   }
+};
+
+export const uploadImages = async (files: File[]): Promise<string[]> => {
+  const uploadedUrls: string[] = [];
+
+  for (const file of files) {
+    const url = await uploadImage(file);
+    if (!url) {
+      throw new Error(`Image upload failed: ${file.name}`);
+    }
+    uploadedUrls.push(url);
+  }
+
+  return uploadedUrls;
 };
 
 export const deleteImage = async (imageUrl: string): Promise<boolean> => {

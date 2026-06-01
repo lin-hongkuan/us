@@ -17,7 +17,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserType } from '../types';
 import { Send, X, ImagePlus, Calendar } from 'lucide-react';
-import { uploadImage } from '../services/storageService';
 import { useAppContext } from '../context/AppContext';
 import { MAX_MEMORY_IMAGES } from '../config/constants';
 import { formatImageValidationIssues, validateImageFiles } from '../services/imageValidation';
@@ -54,7 +53,7 @@ interface ComposerProps {
   /** 当前创建记忆的用户 */
   currentUser: UserType;
   /** 保存记忆时的回调函数 */
-  onSave: (content: string, imageUrls?: string[], customDate?: number) => Promise<void>;
+  onSave: (content: string, imageUrls?: string[], customDate?: number, imageFiles?: File[]) => Promise<void>;
   /** 关闭撰写器时的回调函数 */
   onClose: () => void;
 }
@@ -112,18 +111,7 @@ export const Composer: React.FC<ComposerProps> = ({ currentUser, onSave, onClose
 
     setIsProcessing(true);
     try {
-      const uploadedUrls: string[] = [];
-
-      // Upload all images
-      for (const file of imageFiles) {
-        const url = await uploadImage(file);
-        if (!url) {
-          throw new Error(`图片 ${file.name} 上传失败`);
-        }
-        uploadedUrls.push(url);
-      }
-
-      await onSave(text, uploadedUrls.length > 0 ? uploadedUrls : undefined, customDate ? new Date(customDate + 'T12:00:00').getTime() : undefined);
+      await onSave(text, undefined, customDate ? new Date(customDate + 'T12:00:00').getTime() : undefined, imageFiles);
       // 保存成功 → 清掉对应用户的草稿
       clearDraft(currentUser);
       // 回收 blob URL 后重置表单

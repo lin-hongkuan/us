@@ -12,6 +12,7 @@ vi.mock('./imageStorageService', () => ({
   compressImageToBlob: vi.fn(),
   fileToBase64: vi.fn(),
   uploadImage: vi.fn(),
+  uploadImages: vi.fn(),
 }));
 vi.mock('./imagePreloadService', () => ({
   scheduleImagePreload: vi.fn(),

@@ -105,14 +105,14 @@ export const JournalApp: React.FC<JournalAppProps> = ({ initialActiveTab }) => {
     window.localStorage.setItem(LAST_ACTIVE_TAB_KEY, activeTab);
   }, [activeTab]);
 
-  const handleSave = useCallback(async (content: string, imageUrls?: string[], customDate?: number) => {
+  const handleSave = useCallback(async (content: string, imageUrls?: string[], customDate?: number, imageFiles?: File[]) => {
     if (easterEggs.tryConsumeAsEasterEgg(content)) {
       setIsComposerOpen(false);
       return;
     }
 
     if (!currentUser) return;
-    const newMemory = await addMemory({ content, author: currentUser, imageUrls, customDate });
+    const newMemory = await addMemory({ content, author: currentUser, imageUrls, customDate, imageFiles });
     if (newMemory) {
       setIsComposerOpen(false);
       setShowStamp(true);

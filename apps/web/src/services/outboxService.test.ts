@@ -146,6 +146,42 @@ describe('outboxService', () => {
       expect(optimisticMemory.imageUrl).toBe('a.jpg');
     });
 
+    it('keeps offline image files in the persisted dto and only uses blob URLs for the optimistic memory', async () => {
+      await outbox.whenOutboxReady();
+
+      const originalCreateObjectURL = URL.createObjectURL;
+      const createObjectURL = vi.fn(() => 'blob:local-photo');
+      Object.defineProperty(URL, 'createObjectURL', {
+        configurable: true,
+        value: createObjectURL,
+      });
+
+      try {
+        const file = new File(['image-bytes'], 'photo.png', { type: 'image/png' });
+        const { entry, optimisticMemory } = outbox.enqueueWrite({
+          content: 'photo',
+          author: UserType.HER,
+          imageFiles: [file],
+        });
+        await flushMicrotasks();
+
+        expect(createObjectURL).toHaveBeenCalledWith(file);
+        expect(optimisticMemory.imageUrls).toEqual(['blob:local-photo']);
+        expect(optimisticMemory.imageUrl).toBe('blob:local-photo');
+        expect(entry.dto.imageFiles).toEqual([file]);
+        expect(entry.dto.imageUrls).toBeUndefined();
+
+        const persisted = cacheMock.__readStore();
+        expect(persisted[0].dto.imageFiles).toEqual([file]);
+        expect(persisted[0].dto.imageUrls).toBeUndefined();
+      } finally {
+        Object.defineProperty(URL, 'createObjectURL', {
+          configurable: true,
+          value: originalCreateObjectURL,
+        });
+      }
+    });
+
     it('customDate 优先于入队时间作为 optimisticMemory.createdAt', async () => {
       await outbox.whenOutboxReady();
       const customDate = Date.parse('2020-08-08T00:00:00Z');

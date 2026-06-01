@@ -21,7 +21,7 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { Memory, UserType, CreateMemoryDTO } from '../types';
 import { supabase } from './supabaseClient';
-import { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage } from './imageStorageService';
+import { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage, uploadImages } from './imageStorageService';
 import { scheduleImagePreload, schedulePriorityPreload } from './imagePreloadService';
 import { areMemoriesEqual, createMemoryInsertPayload, createMemoryUpdatePayload, getMemoriesImageUrls, getMemoryImageUrls, insertMemorySorted, mapRowToMemory, type MemoryRow } from './memoryMapper';
 import {
@@ -35,7 +35,7 @@ import {
   notifyCacheUpdate,
 } from './cacheService';
 
-export { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage };
+export { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage, uploadImages };
 
 // ==========================================
 // Realtime 实时订阅
@@ -299,7 +299,7 @@ const syncFromCloudInBackground = async (): Promise<void> => {
  * @returns Promise解析为创建的记忆或失败时为null
  */
 export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> => {
-  const effectiveTimestamp = dto.customDate || Date.now();
+  const effectiveTimestamp = dto.customDate ?? Date.now();
   const newEntryBase = createMemoryInsertPayload(dto, effectiveTimestamp);
 
   // Fallback：未配置 Supabase 时，仅写 IndexedDB（不再写 localStorage）

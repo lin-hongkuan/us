@@ -120,6 +120,7 @@ Agent 完成改动后，默认应尽量做到：
 
 - 不要破坏现有 cache-first 与本地兜底逻辑。
 - 不要忽略 IndexedDB / LocalStorage / 内存缓存之间的层级关系。
+- 新建回忆的离线图片应以 File/Blob 形式进入 IndexedDB outbox，不要为了入队转成 base64；联网 drain 前再压缩并上传 Storage。
 - 涉及 Supabase 改动时，要同时考虑 Database、Storage、Realtime 的联动。
 - 图片上传、回忆读写、presence 更新若失败，应尽量保留已有失败回退能力。
 - 修改数据结构时，要检查缓存键、序列化字段、上下游调用是否一起更新。

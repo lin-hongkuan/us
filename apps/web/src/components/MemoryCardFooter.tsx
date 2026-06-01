@@ -40,6 +40,8 @@ export const MemoryCardFooter: React.FC<MemoryCardFooterProps> = React.memo(({
           {isEditing ? (
             <>
               <button
+                type="button"
+                aria-label="取消编辑"
                 onClick={(e) => {
                   e.stopPropagation();
                   onCancelEdit();
@@ -48,9 +50,12 @@ export const MemoryCardFooter: React.FC<MemoryCardFooterProps> = React.memo(({
                 className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
                 title="取消"
               >
-                <X size={14} />
+                <X size={14} aria-hidden="true" />
               </button>
               <button
+                type="button"
+                aria-label="保存编辑"
+                aria-busy={isSaving}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSaveEdit();
@@ -59,12 +64,14 @@ export const MemoryCardFooter: React.FC<MemoryCardFooterProps> = React.memo(({
                 className={`p-2 rounded-full transition-colors ${isHer ? 'hover:bg-rose-50 dark:hover:bg-rose-900/30 text-rose-400 dark:text-rose-300 hover:text-rose-600 dark:hover:text-rose-400' : 'hover:bg-sky-50 dark:hover:bg-sky-900/30 text-sky-400 dark:text-sky-300 hover:text-sky-600 dark:hover:text-sky-400'} disabled:opacity-50`}
                 title="保存"
               >
-                {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                {isSaving ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <Check size={14} aria-hidden="true" />}
               </button>
             </>
           ) : (
             <>
               <button
+                type="button"
+                aria-label="编辑回忆"
                 onClick={(e) => {
                   e.stopPropagation();
                   onStartEdit();
@@ -73,9 +80,11 @@ export const MemoryCardFooter: React.FC<MemoryCardFooterProps> = React.memo(({
                 className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 transform hover:scale-110"
                 title="编辑回忆"
               >
-                <Edit2 size={14} />
+                <Edit2 size={14} aria-hidden="true" />
               </button>
               <button
+                type="button"
+                aria-label="删除回忆"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete();
@@ -84,7 +93,7 @@ export const MemoryCardFooter: React.FC<MemoryCardFooterProps> = React.memo(({
                 className="opacity-0 group-hover:opacity-100 transition-all duration-300 p-2 rounded-full hover:bg-rose-50 dark:hover:bg-rose-900/30 text-slate-300 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transform hover:scale-110"
                 title="删除回忆"
               >
-                <Trash2 size={14} />
+                <Trash2 size={14} aria-hidden="true" />
               </button>
             </>
           )}

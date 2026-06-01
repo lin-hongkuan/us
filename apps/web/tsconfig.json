@@ -14,6 +14,7 @@
       "node",
       "vite/client"
     ],
+    "baseUrl": ".",
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "moduleDetection": "force",
@@ -21,7 +22,7 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": [
-        "./*"
+        "src/*"
       ]
     },
     "allowImportingTsExtensions": true,

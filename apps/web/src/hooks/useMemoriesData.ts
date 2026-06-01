@@ -1,13 +1,44 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Memory, CreateMemoryDTO } from '../types';
-import { getMemories, saveMemory, seedDataIfEmpty, subscribeToMemoryChanges, unsubscribeFromMemoryChanges } from '../services/storageService';
+import { getMemories, saveMemory, seedDataIfEmpty, subscribeToMemoryChanges, unsubscribeFromMemoryChanges, uploadImages } from '../services/storageService';
 import { subscribeToCacheUpdates } from '../services/cacheService';
-import { insertMemorySorted } from '../services/memoryMapper';
+import { getMemoryImageUrls, insertMemorySorted } from '../services/memoryMapper';
 import { drainOutbox, enqueueWrite, getOutboxCount, whenOutboxReady } from '../services/outboxService';
 
 const isOnlineNow = (): boolean => {
   if (typeof navigator === 'undefined') return true;
   return typeof navigator.onLine === 'boolean' ? navigator.onLine : true;
+};
+
+const stripLocalImageFiles = (dto: CreateMemoryDTO): CreateMemoryDTO => {
+  const { imageFiles: _imageFiles, ...saveableDto } = dto;
+  return saveableDto;
+};
+
+const prepareDtoForSave = async (dto: CreateMemoryDTO): Promise<CreateMemoryDTO> => {
+  const saveableDto = stripLocalImageFiles(dto);
+  if (!dto.imageFiles || dto.imageFiles.length === 0) {
+    return saveableDto;
+  }
+
+  const uploadedUrls = await uploadImages(dto.imageFiles);
+  const existingUrls = saveableDto.imageUrls ?? (saveableDto.imageUrl ? [saveableDto.imageUrl] : []);
+
+  return {
+    ...saveableDto,
+    imageUrl: undefined,
+    imageUrls: [...existingUrls, ...uploadedUrls],
+  };
+};
+
+const revokeBlobImageUrls = (memory: Memory | undefined): void => {
+  if (!memory || typeof URL === 'undefined' || typeof URL.revokeObjectURL !== 'function') return;
+
+  for (const url of getMemoryImageUrls(memory)) {
+    if (url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+  }
 };
 
 export const useMemoriesData = () => {
@@ -66,12 +97,13 @@ export const useMemoriesData = () => {
     // 等 hydration 完成，否则 cache 还可能为空导致漏放
     await whenOutboxReady();
     if (getOutboxCount() === 0) return;
-    const result = await drainOutbox(saveMemory);
+    const result = await drainOutbox(async (dto) => saveMemory(await prepareDtoForSave(dto)));
     if (result.flushed.length === 0 && result.failed.length === 0) return;
 
     setMemories((prev) => {
       let next = prev;
       for (const { localId, saved } of result.flushed) {
+        revokeBlobImageUrls(next.find((m) => m.id === localId));
         // 删掉乐观条目，按时间序插入云端返回的真实 memory
         next = next.filter((m) => m.id !== localId);
         next = insertMemorySorted(next, saved);
@@ -100,7 +132,12 @@ export const useMemoriesData = () => {
       return optimisticMemory;
     }
 
-    const newMemory = await saveMemory(dto);
+    let newMemory: Memory | null = null;
+    try {
+      newMemory = await saveMemory(await prepareDtoForSave(dto));
+    } catch (e) {
+      console.error('Failed to upload images before save; enqueueing for retry:', e);
+    }
     if (newMemory) {
       setMemories((prev) => insertMemorySorted(prev, newMemory));
       return newMemory;

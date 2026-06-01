@@ -67,6 +67,26 @@ const generateId = (): string => {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 };
 
+const createObjectUrl = (file: File): string | null => {
+  if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+    return null;
+  }
+
+  return URL.createObjectURL(file);
+};
+
+const getOptimisticImageUrls = (dto: CreateMemoryDTO): string[] | undefined => {
+  if (dto.imageUrls && dto.imageUrls.length > 0) return dto.imageUrls;
+  if (dto.imageUrl) return [dto.imageUrl];
+  if (!dto.imageFiles || dto.imageFiles.length === 0) return undefined;
+
+  const objectUrls = dto.imageFiles
+    .map(createObjectUrl)
+    .filter((url): url is string => Boolean(url));
+
+  return objectUrls.length > 0 ? objectUrls : undefined;
+};
+
 export interface OptimisticEnqueueResult {
   entry: OutboxEntry;
   optimisticMemory: Memory;
@@ -90,13 +110,14 @@ export const enqueueWrite = (dto: CreateMemoryDTO): OptimisticEnqueueResult => {
   });
 
   const effectiveTimestamp = dto.customDate ?? enqueuedAt;
+  const optimisticImageUrls = getOptimisticImageUrls(dto);
   const optimisticMemory: Memory = {
     id: localId,
     content: dto.content,
     createdAt: effectiveTimestamp,
     author: dto.author as UserType,
-    imageUrl: dto.imageUrl || dto.imageUrls?.[0],
-    imageUrls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : undefined),
+    imageUrl: optimisticImageUrls?.[0],
+    imageUrls: optimisticImageUrls,
   };
 
   return { entry, optimisticMemory };
