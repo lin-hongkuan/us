@@ -52,11 +52,11 @@ export default defineConfig(({ mode }) => {
       plugins: [
         react(),
         {
-          name: 'inject-supabase-dns-prefetch',
+          name: 'inject-cloudflare-api-prefetch',
           transformIndexHtml(html) {
-            const supabaseUrl = env.VITE_SUPABASE_URL;
-            if (!supabaseUrl || supabaseUrl === 'YOUR_SUPABASE_URL' || !supabaseUrl.startsWith('http')) return html;
-            const origin = new URL(supabaseUrl).origin;
+            const apiBase = env.VITE_CLOUDFLARE_API_BASE_URL;
+            if (!apiBase || !apiBase.startsWith('http')) return html;
+            const origin = new URL(apiBase).origin;
             const tags = `<link rel="dns-prefetch" href="${origin}">\n    <link rel="preconnect" href="${origin}" crossorigin>`;
             return html.replace('<!-- Supabase DNS 预解析由 Vite 构建时注入（见 vite.config.ts htmlPlugin） -->', tags);
           },
@@ -74,12 +74,12 @@ export default defineConfig(({ mode }) => {
             maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3MB
             // 【优化】运行时缓存策略
             runtimeCaching: [
-              // Supabase API - NetworkFirst，3秒超时用缓存
+              // Cloudflare API - NetworkFirst，3秒超时用缓存
               {
-                urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+                urlPattern: ({ url }) => url.pathname.startsWith('/api/memories'),
                 handler: 'NetworkFirst',
                 options: {
-                  cacheName: 'supabase-api-cache',
+                  cacheName: 'cloudflare-api-cache',
                   networkTimeoutSeconds: 3,
                   expiration: {
                     maxEntries: 50,
@@ -90,12 +90,12 @@ export default defineConfig(({ mode }) => {
                   },
                 },
               },
-              // Supabase 图片存储 - CacheFirst，30天缓存
+              // Cloudflare R2 图片 - CacheFirst，30天缓存
               {
-                urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
+                urlPattern: ({ url }) => url.pathname.startsWith('/images/'),
                 handler: 'CacheFirst',
                 options: {
-                  cacheName: 'supabase-storage-cache',
+                  cacheName: 'cloudflare-images-cache',
                   expiration: {
                     maxEntries: 100,
                     maxAgeSeconds: 60 * 60 * 24 * 30, // 30天

@@ -1,29 +1,15 @@
 /**
- * ==========================================
  * 存储服务
- * ==========================================
  *
- * 此服务处理共享记忆日记的所有数据持久化。
- * 它提供统一的接口来存储和检索记忆，
- * 自动从Supabase（云端）回退到本地 IndexedDB。
- *
- * 功能特性：
- * - 通过Supabase进行云存储，未配置时回退到 IndexedDB（cacheService 提供）
- * - 图片上传和压缩工具
- * - 记忆CRUD操作（创建、读取、更新、删除）
- * - 演示用途的自动数据种子填充
- * - 数据库和应用模型之间的类型安全数据映射
- * - 【优化】三层缓存策略：内存 > IndexedDB > 云端
- * - 【优化】Cache-First 加载策略，毫秒级响应
- * - 【优化】Supabase Realtime 实时订阅，自动同步数据变化
+ * 统一处理共享记忆日记的数据持久化。当前云端后端为 Cloudflare Worker + D1 + R2，
+ * 本地仍保留内存缓存和 IndexedDB 兜底，维持原来的 cache-first 使用体验。
  */
 
-import { RealtimeChannel } from '@supabase/supabase-js';
 import { Memory, UserType, CreateMemoryDTO } from '../types';
-import { supabase } from './supabaseClient';
+import { createMemory, deleteMemoryRow, listMemories, updateMemoryRow } from './cloudflareClient';
 import { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage, uploadImages } from './imageStorageService';
 import { scheduleImagePreload, schedulePriorityPreload } from './imagePreloadService';
-import { areMemoriesEqual, createMemoryInsertPayload, createMemoryUpdatePayload, getMemoriesImageUrls, getMemoryImageUrls, insertMemorySorted, mapRowToMemory, type MemoryRow } from './memoryMapper';
+import { areMemoriesEqual, createMemoryInsertPayload, createMemoryUpdatePayload, getMemoriesImageUrls, insertMemorySorted, mapRowToMemory } from './memoryMapper';
 import {
   getMemoryCache,
   setMemoryCache,
@@ -38,206 +24,99 @@ import {
 export { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage, uploadImages };
 
 // ==========================================
-// Realtime 实时订阅
+// Cloudflare polling sync
 // ==========================================
 
-let realtimeChannel: RealtimeChannel | null = null;
-let isRealtimeSubscribed = false;
+let pollingTimer: ReturnType<typeof setInterval> | null = null;
+let isPollingSubscribed = false;
+const POLLING_INTERVAL = 10_000;
 
-const getRealtimeBaseMemories = async (): Promise<Memory[]> => {
-  const inMemory = getMemoryCache();
-  if (inMemory) return inMemory;
-  return (await getIndexedDBMemories()) || [];
+const applyCloudMemories = async (cloudMemories: Memory[]): Promise<void> => {
+  const cachedMemories = getMemoryCache();
+  const hasChanges = !areMemoriesEqual(cachedMemories, cloudMemories);
+  if (!hasChanges) return;
+
+  const oldImages = new Set(getMemoriesImageUrls(cachedMemories || []));
+  const newImages = getMemoriesImageUrls(cloudMemories).filter(url => !oldImages.has(url));
+
+  setMemoryCache(cloudMemories);
+  await setIndexedDBMemories(cloudMemories);
+  notifyCacheUpdate(cloudMemories);
+
+  if (newImages.length > 0) {
+    schedulePriorityPreload(newImages, 'high');
+  }
 };
 
-/** 将新记忆按 createdAt 降序插入到已排序列表中 */
-/**
- * 订阅记忆表的实时变化
- * 当其他用户添加、修改、删除记忆时，自动同步到本地
- */
 export const subscribeToMemoryChanges = (): void => {
-  if (!supabase || isRealtimeSubscribed) return;
+  if (isPollingSubscribed) return;
+  isPollingSubscribed = true;
 
-  isRealtimeSubscribed = true;
+  const poll = async () => {
+    try {
+      const rows = await listMemories();
+      await applyCloudMemories(rows.map(mapRowToMemory));
+    } catch (error) {
+      console.warn('Cloudflare memory polling failed:', error);
+    }
+  };
 
-  // 如果已存在channel先清理，防范并发调用遗留
-  if (realtimeChannel) {
-    supabase.removeChannel(realtimeChannel);
-  }
-
-  realtimeChannel = supabase
-    .channel('memories-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*', // 监听所有变化：INSERT, UPDATE, DELETE
-        schema: 'public',
-        table: 'memories'
-      },
-      async (payload) => {
-        console.log('Realtime update received:', payload.eventType);
-
-        const cachedMemories = await getRealtimeBaseMemories();
-        let updatedMemories: Memory[];
-
-        switch (payload.eventType) {
-          case 'INSERT': {
-            const newMemory = mapRowToMemory(payload.new as MemoryRow);
-            // 检查是否已存在（可能是自己刚添加的）
-            const exists = cachedMemories.some(m => m.id === newMemory.id);
-            if (!exists) {
-              updatedMemories = insertMemorySorted(cachedMemories, newMemory);
-              setMemoryCache(updatedMemories);
-              await addToIndexedDB(newMemory);
-              notifyCacheUpdate(updatedMemories);
-              // 预加载新图片
-              if (newMemory.imageUrls?.length || newMemory.imageUrl) {
-                scheduleImagePreload(getMemoryImageUrls(newMemory));
-              }
-            }
-            break;
-          }
-
-          case 'UPDATE': {
-            const updatedMemory = mapRowToMemory(payload.new as MemoryRow);
-            const oldMemory = cachedMemories.find(m => m.id === updatedMemory.id);
-
-            updatedMemories = cachedMemories.map(m =>
-              m.id === updatedMemory.id ? updatedMemory : m
-            );
-            setMemoryCache(updatedMemories);
-            await updateInIndexedDB(updatedMemory);
-            notifyCacheUpdate(updatedMemories);
-
-            // 检测图片变化，如果有新图片则预加载
-            if (oldMemory && updatedMemory.imageUrls) {
-              const oldUrls = new Set(getMemoryImageUrls(oldMemory));
-              const newUrls = getMemoryImageUrls(updatedMemory).filter(url => !oldUrls.has(url));
-              if (newUrls.length > 0) {
-                schedulePriorityPreload(newUrls, 'high');
-              }
-            }
-            break;
-          }
-
-          case 'DELETE': {
-            const deletedId = payload.old?.id;
-            if (deletedId) {
-              updatedMemories = cachedMemories.filter(m => m.id !== deletedId);
-              setMemoryCache(updatedMemories);
-              await removeFromIndexedDB(deletedId);
-              notifyCacheUpdate(updatedMemories);
-            }
-            break;
-          }
-        }
-      }
-    )
-    .subscribe((status) => {
-      console.log('Realtime subscription status:', status);
-      if (status === 'CHANNEL_ERROR') {
-        console.error('Failed to subscribe to realtime changes');
-        isRealtimeSubscribed = false;
-      }
-    });
+  pollingTimer = setInterval(poll, POLLING_INTERVAL);
+  void poll();
 };
 
-/**
- * 取消实时订阅
- */
 export const unsubscribeFromMemoryChanges = (): void => {
-  if (realtimeChannel && supabase) {
-    supabase.removeChannel(realtimeChannel);
-    realtimeChannel = null;
-    isRealtimeSubscribed = false;
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
   }
+  isPollingSubscribed = false;
 };
 
 // ==========================================
 // 本地存储回退
 // ==========================================
-//
-// 未配置 Supabase 时（开发/演示模式），完全走 IndexedDB（cacheService 提供原语），
-// 不再使用 localStorage 作为镜像，避免 ~5MB 配额限制。
 
-/** 取当前内存/IndexedDB 中的记忆列表，全部 fallback 路径共用 */
 const getLocalMemoriesAsync = async (): Promise<Memory[]> => {
   return getMemoryCache() ?? (await getIndexedDBMemories()) ?? [];
 };
 
 /**
- * 获取所有记忆
- * 【优化】Cache-First 策略：
- * 1. 优先返回内存缓存（毫秒级）
- * 2. 其次返回 IndexedDB 缓存（10ms级）
- * 3. 后台静默从云端同步最新数据
- *
- * @returns Promise解析为记忆数组
+ * 获取所有记忆。Cache-first：内存 → IndexedDB → Cloudflare；缓存命中后后台静默同步。
  */
 export const getMemories = async (): Promise<Memory[]> => {
-  // 1. 尝试从内存缓存获取（最快）
   const memoryFromCache = getMemoryCache();
   if (memoryFromCache && memoryFromCache.length > 0) {
-    // 后台静默同步云端数据
     syncFromCloudInBackground();
     return memoryFromCache;
   }
 
-  // 2. 尝试从 IndexedDB 获取（次快）
   const indexedDBCached = await getIndexedDBMemories();
   if (indexedDBCached && indexedDBCached.length > 0) {
-    // 更新内存缓存
     setMemoryCache(indexedDBCached);
-    // 预加载图片
     scheduleImagePreload(getMemoriesImageUrls(indexedDBCached));
-    // 后台静默同步云端数据
     syncFromCloudInBackground();
     return indexedDBCached;
   }
 
-  // 3. 未配置 Supabase 时直接返回空数组（IndexedDB 是 source of truth，
-  //    上一层已经查过；空就是空，不再有 localStorage 镜像可读）
-  if (!supabase) {
-    console.warn("Supabase not configured. Using IndexedDB only.");
-    return [];
-  }
-
-  // 4. 从云端获取（首次加载或缓存为空）
   try {
-    const { data, error } = await supabase
-      .from('memories')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    const memories = (data || []).map(mapRowToMemory);
-
-    // 更新所有缓存层
+    const memories = (await listMemories()).map(mapRowToMemory);
     setMemoryCache(memories);
     await setIndexedDBMemories(memories);
-
-    // 预加载图片
     scheduleImagePreload(getMemoriesImageUrls(memories));
-
     return memories;
   } catch (e) {
-    console.error("Failed to load memories from cloud", e);
+    console.error('Failed to load memories from Cloudflare', e);
     return [];
   }
 };
 
-/**
- * 后台静默同步云端数据
- * 不阻塞 UI，同步完成后通过事件通知更新
- */
 let isSyncing = false;
-const SYNC_TIMEOUT = 3000; // 3秒超时
 const MIN_SYNC_INTERVAL = 12_000;
 let lastSyncStartAt = 0;
 
 const syncFromCloudInBackground = async (): Promise<void> => {
-  if (!supabase || isSyncing) return;
+  if (isSyncing) return;
   const now = Date.now();
   if (now - lastSyncStartAt < MIN_SYNC_INTERVAL) return;
 
@@ -245,253 +124,103 @@ const syncFromCloudInBackground = async (): Promise<void> => {
   isSyncing = true;
 
   try {
-    // 使用 AbortController 实现超时
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), SYNC_TIMEOUT);
-
-    const { data, error } = await supabase
-      .from('memories')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .abortSignal(controller.signal);
-
-    clearTimeout(timeoutId);
-
-    if (error) {
-      // 检查是否是超时取消的请求
-      if ((error as any).name !== 'AbortError' && error.message !== 'AbortError') {
-        console.warn('Background sync failed:', error);
-      }
-      return;
-    }
-
-    const cloudMemories = (data || []).map(mapRowToMemory);
-    const cachedMemories = getMemoryCache();
-
-    // 【改进】使用深度比较检测数据变化
-    const hasChanges = !areMemoriesEqual(cachedMemories, cloudMemories);
-
-    if (hasChanges) {
-      // 更新缓存
-      setMemoryCache(cloudMemories);
-      await setIndexedDBMemories(cloudMemories);
-
-      // 触发 UI 更新事件
-      notifyCacheUpdate(cloudMemories);
-
-      // 预加载新图片
-      scheduleImagePreload(getMemoriesImageUrls(cloudMemories));
-    }
+    const cloudMemories = (await listMemories()).map(mapRowToMemory);
+    await applyCloudMemories(cloudMemories);
   } catch (e) {
-    // 静默失败，不影响用户体验
     console.warn('Background sync error:', e);
   } finally {
     isSyncing = false;
   }
 };
 
-/**
- * 保存新记忆
- * 创建新的记忆条目并保存到 Supabase 或 IndexedDB
- * 【优化】同时更新所有缓存层
- *
- * @param dto - 创建记忆的数据传输对象
- * @returns Promise解析为创建的记忆或失败时为null
- */
 export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> => {
   const effectiveTimestamp = dto.customDate ?? Date.now();
   const newEntryBase = createMemoryInsertPayload(dto, effectiveTimestamp);
 
-  // Fallback：未配置 Supabase 时，仅写 IndexedDB（不再写 localStorage）
-  if (!supabase) {
+  try {
+    const newMemory = mapRowToMemory(await createMemory(newEntryBase));
+    const cachedMemories = getMemoryCache() || [];
+    const updatedMemories = insertMemorySorted(cachedMemories, newMemory);
+    setMemoryCache(updatedMemories);
+    await addToIndexedDB(newMemory);
+    return newMemory;
+  } catch (e) {
+    console.error('Failed to save memory to Cloudflare; using IndexedDB fallback', e);
     const newMemory: Memory = {
       id: crypto.randomUUID(),
       content: dto.content,
       createdAt: effectiveTimestamp,
       author: dto.author,
       imageUrl: dto.imageUrl || (dto.imageUrls?.[0]),
-      imageUrls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : undefined)
+      imageUrls: dto.imageUrls || (dto.imageUrl ? [dto.imageUrl] : undefined),
     };
     const current = await getLocalMemoriesAsync();
     const updatedMemories = insertMemorySorted(current, newMemory);
     setMemoryCache(updatedMemories);
     await addToIndexedDB(newMemory);
-
     return newMemory;
-  }
-
-  try {
-    const { data, error } = await supabase
-      .from('memories')
-      .insert([newEntryBase])
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const newMemory = mapRowToMemory(data);
-
-    // 【优化】更新缓存
-    const cachedMemories = getMemoryCache() || [];
-    const updatedMemories = insertMemorySorted(cachedMemories, newMemory);
-    setMemoryCache(updatedMemories);
-    await addToIndexedDB(newMemory);
-
-    return newMemory;
-  } catch (e) {
-    console.error("Failed to save memory to cloud", e);
-    return null;
   }
 };
 
-/**
- * 更新现有记忆
- * 修改记忆内容和/或图片
- * 【优化】同时更新所有缓存层
- *
- * @param id - 要更新的记忆ID
- * @param content - 新内容
- * @param imageUrls - 新图片URL数组（可选，null表示删除图片）
- * @returns Promise解析为更新后的记忆或失败时为null
- */
 export const updateMemory = async (id: string, content: string, imageUrls?: string[] | null): Promise<Memory | null> => {
-  // Fallback：未配置 Supabase 时，仅改 IndexedDB（不再写 localStorage）
-  if (!supabase) {
-    const current = await getLocalMemoriesAsync();
-    const index = current.findIndex(m => m.id === id);
-    if (index !== -1) {
-      const next = current.slice();
-      next[index] = { ...next[index], content };
-      // Update imageUrls - if null, remove it; if undefined, keep existing
-      if (imageUrls === null) {
-        delete next[index].imageUrl;
-        delete next[index].imageUrls;
-      } else if (imageUrls !== undefined) {
-        next[index].imageUrls = imageUrls;
-        next[index].imageUrl = imageUrls[0];
-      }
-
-      // 更新缓存（内存 + IndexedDB）
-      setMemoryCache(next);
-      await updateInIndexedDB(next[index]);
-
-      return next[index];
-    }
-    return null;
-  }
-
   try {
-    const updateData = createMemoryUpdatePayload(content, imageUrls);
-
-    const { data, error } = await supabase
-      .from('memories')
-      .update(updateData)
-      .eq('id', id)
-      .select();
-
-    if (error) throw error;
-
-    if (!data || data.length === 0) {
-      console.warn("Update returned 0 rows. Possible RLS issue.");
-      return null;
-    }
-
-    const updatedMemory = mapRowToMemory(data[0]);
-
-    // 【优化】更新缓存
+    const updatedMemory = mapRowToMemory(await updateMemoryRow(id, createMemoryUpdatePayload(content, imageUrls)));
     const cachedMemories = getMemoryCache() || [];
     const updatedMemories = cachedMemories.map(m => m.id === id ? updatedMemory : m);
     setMemoryCache(updatedMemories);
     await updateInIndexedDB(updatedMemory);
-
     return updatedMemory;
   } catch (e) {
-    console.error("Failed to update memory", e);
-    return null;
-  }
-};
-
-/**
- * 删除记忆
- * 从 Supabase 或 IndexedDB 中删除指定的记忆
- * 【优化】同时更新所有缓存层
- *
- * @param id - 要删除的记忆ID
- * @returns Promise解析为成功布尔值
- */
-export const deleteMemory = async (id: string): Promise<boolean> => {
-  // Fallback：未配置 Supabase 时，仅改 IndexedDB（不再写 localStorage）
-  if (!supabase) {
+    console.error('Failed to update memory in Cloudflare; updating local cache only', e);
     const current = await getLocalMemoriesAsync();
-    const updated = current.filter(m => m.id !== id);
+    const index = current.findIndex(m => m.id === id);
+    if (index === -1) return null;
 
-    // 更新缓存（内存 + IndexedDB）
-    setMemoryCache(updated);
-    await removeFromIndexedDB(id);
+    const next = current.slice();
+    next[index] = { ...next[index], content };
+    if (imageUrls === null) {
+      delete next[index].imageUrl;
+      delete next[index].imageUrls;
+    } else if (imageUrls !== undefined) {
+      next[index].imageUrls = imageUrls;
+      next[index].imageUrl = imageUrls[0];
+    }
 
-    return true;
-  }
-
-  try {
-    const { error } = await supabase
-      .from('memories')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-
-    // 【优化】更新缓存
-    const cachedMemories = getMemoryCache() || [];
-    const updatedMemories = cachedMemories.filter(m => m.id !== id);
-    setMemoryCache(updatedMemories);
-    await removeFromIndexedDB(id);
-
-    return true;
-  } catch (e) {
-    console.error("Failed to delete memory", e);
-    return false;
+    setMemoryCache(next);
+    await updateInIndexedDB(next[index]);
+    return next[index];
   }
 };
 
-/**
- * 如果数据为空则填充种子数据
- * 为演示目的自动添加初始记忆数据
- */
-export const seedDataIfEmpty = async () => {
-  if (!supabase) {
-    // IndexedDB 为空时种入演示数据（不再写 localStorage）
-    const existing = await getIndexedDBMemories();
-    if (!existing || existing.length === 0) {
-      const initialData: Memory[] = [
-        {
-          id: '1',
-          content: "Welcome to Us. This is a local demo memory because Supabase keys are not configured yet.",
-          createdAt: Date.now(),
-          author: UserType.HER
-        }
-      ];
-      await setIndexedDBMemories(initialData);
-      setMemoryCache(initialData);
-    }
-  } else {
-    try {
-      const { count, error } = await supabase.from('memories').select('*', { count: 'exact', head: true });
+export const deleteMemory = async (id: string): Promise<boolean> => {
+  try {
+    await deleteMemoryRow(id);
+  } catch (e) {
+    console.error('Failed to delete memory from Cloudflare; removing local cache only', e);
+  }
 
-      if (!error && count === 0) {
-        const sampleData = [
-          {
-            content: "欢迎来到 Us！这是我们在云端的第一条共同记忆。",
-            author: UserType.HER,
-          },
-          {
-            content: "开始记录我们点点滴滴的旅程吧。",
-            author: UserType.HIM,
-          }
-        ];
-        await supabase.from('memories').insert(sampleData);
-      }
-    } catch (e) {
-      console.error("Auto-seed failed", e);
-    }
+  const cachedMemories = getMemoryCache() || (await getLocalMemoriesAsync());
+  const updatedMemories = cachedMemories.filter(m => m.id !== id);
+  setMemoryCache(updatedMemories);
+  await removeFromIndexedDB(id);
+  return true;
+};
+
+export const seedDataIfEmpty = async () => {
+  try {
+    const memories = await listMemories();
+    if (memories.length > 0) return;
+
+    const sampleData = [
+      createMemoryInsertPayload({ content: '欢迎来到 Us！这是我们在 Cloudflare 上的第一条共同记忆。', author: UserType.HER }, Date.now()),
+      createMemoryInsertPayload({ content: '开始记录我们点点滴滴的旅程吧。', author: UserType.HIM }, Date.now() + 1),
+    ];
+
+    const created = await Promise.all(sampleData.map(createMemory));
+    const mapped = created.map(mapRowToMemory);
+    setMemoryCache(mapped);
+    await setIndexedDBMemories(mapped);
+  } catch (e) {
+    console.error('Auto-seed failed', e);
   }
 };

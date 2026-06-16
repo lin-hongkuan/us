@@ -20,13 +20,15 @@
     "tauri": "tauri",
     "tauri:dev": "cross-env PATH=\"%USERPROFILE%\\.cargo\\bin;$PATH\" tauri dev --config apps/desktop/src-tauri/tauri.conf.json",
     "tauri:build": "cross-env PATH=\"%USERPROFILE%\\.cargo\\bin;$PATH\" tauri build --config apps/desktop/src-tauri/tauri.conf.json",
-    "tauri:icon": "tauri icon \"apps/desktop/app-icon.png\" -o apps/desktop/src-tauri/icons"
+    "tauri:icon": "tauri icon \"apps/desktop/app-icon.png\" -o apps/desktop/src-tauri/icons",
+    "cf:schema": "wrangler d1 execute us-memories --remote --file apps/worker/schema.sql",
+    "cf:deploy": "pnpm build && wrangler deploy",
+    "cf:migrate": "node scripts/migrate-supabase-to-cloudflare.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
-    "@supabase/supabase-js": "2.39.7",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/plugin-global-shortcut": "^2.3.1",
     "@tauri-apps/plugin-notification": "^2.3.3",
@@ -59,6 +61,8 @@
     "typescript-eslint": "^8.59.1",
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^4.1.5"
+    "vitest": "^4.1.5",
+    "@cloudflare/workers-types": "^4.20260616.1",
+    "wrangler": "^4.101.0"
   }
 }

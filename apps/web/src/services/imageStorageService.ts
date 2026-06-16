@@ -1,23 +1,17 @@
-import { supabase } from './supabaseClient';
+import { deleteImageKey, uploadImageFile } from './cloudflareClient';
 
-const STORAGE_BUCKET = 'memory-images';
 const COMPRESSIBLE_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MIN_COMPRESSION_SIZE_BYTES = 300 * 1024;
 
 export const extractStoragePathFromUrl = (imageUrl: string): string | null => {
-  if (!imageUrl || imageUrl.startsWith('data:')) return null;
+  if (!imageUrl || imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) return null;
 
   try {
-    const url = new URL(imageUrl);
-    const marker = '/storage/v1/object/public/';
+    const url = new URL(imageUrl, window.location.origin);
+    const marker = '/images/';
     const idx = url.pathname.indexOf(marker);
     if (idx === -1) return null;
-
-    const fullPath = decodeURIComponent(url.pathname.slice(idx + marker.length));
-    const [bucket, ...segments] = fullPath.split('/');
-    if (!bucket || bucket !== STORAGE_BUCKET || segments.length === 0) return null;
-
-    return segments.join('/');
+    return decodeURIComponent(url.pathname.slice(idx + marker.length));
   } catch {
     return null;
   }
@@ -110,14 +104,6 @@ export const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-const getExtensionForFile = (file: File): string => {
-  if (file.type === 'image/jpeg') return 'jpg';
-  if (file.type === 'image/png') return 'png';
-  if (file.type === 'image/webp') return 'webp';
-  if (file.type === 'image/gif') return 'gif';
-  return file.name.split('.').pop()?.toLowerCase() || 'jpg';
-};
-
 export const prepareImageForUpload = async (file: File): Promise<File> => {
   if (!COMPRESSIBLE_IMAGE_TYPES.has(file.type) || file.size < MIN_COMPRESSION_SIZE_BYTES) {
     return file;
@@ -138,31 +124,15 @@ export const prepareImageForUpload = async (file: File): Promise<File> => {
 export const uploadImage = async (file: File): Promise<string | null> => {
   const uploadFile = await prepareImageForUpload(file);
 
-  if (!supabase) {
-    return fileToBase64(uploadFile);
-  }
-
   try {
-    const ext = getExtensionForFile(uploadFile);
-    const filename = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${ext}`;
-
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .upload(filename, uploadFile, {
-        contentType: uploadFile.type || 'application/octet-stream',
-        cacheControl: '31536000',
-      });
-
-    if (error) throw error;
-
-    const { data: urlData } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(data.path);
-
-    return urlData.publicUrl;
+    return await uploadImageFile(uploadFile);
   } catch (e) {
     console.error('Image upload failed:', e);
-    return null;
+    try {
+      return await fileToBase64(uploadFile);
+    } catch {
+      return null;
+    }
   }
 };
 
@@ -181,20 +151,11 @@ export const uploadImages = async (files: File[]): Promise<string[]> => {
 };
 
 export const deleteImage = async (imageUrl: string): Promise<boolean> => {
-  if (!supabase || !imageUrl) return true;
-
-  const filePath = extractStoragePathFromUrl(imageUrl);
-  if (!filePath) return true;
+  if (!imageUrl || imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) return true;
 
   try {
-    const { error } = await supabase.storage
-      .from(STORAGE_BUCKET)
-      .remove([filePath]);
-
-    if (error) {
-      console.error('Failed to delete image:', error);
-      return false;
-    }
+    const key = extractStoragePathFromUrl(imageUrl) || imageUrl;
+    await deleteImageKey(key);
     return true;
   } catch (e) {
     console.error('Image deletion failed:', e);

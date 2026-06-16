@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "us-cloudflare",
+  "main": "apps/worker/src/index.ts",
+  "compatibility_date": "2026-06-16",
+  "assets": {
+    "directory": "apps/web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "routes": [
+    {
+      "pattern": "us.linhk.top/*",
+      "zone_name": "linhk.top"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "us-memories",
+      "database_id": "8f66eab1-9b2a-4ac8-9051-0d51a60af22f"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEMORY_IMAGES",
+      "bucket_name": "memory-images"
+    }
+  ]
+}
