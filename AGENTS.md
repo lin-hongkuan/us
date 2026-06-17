@@ -8,7 +8,7 @@
 - 仓库类型：单仓库（Web + Desktop）
 - Web：React 19 + Vite 6 + TypeScript + Tailwind CSS
 - Desktop：Tauri 2 + Rust
-- 数据能力：Supabase（Database / Storage / Realtime）
+- 数据能力：Cloudflare Worker + D1 + R2（API / Database / Object Storage）
 - 包管理：`pnpm`
 - 产品气质：浪漫、细腻、轻盈、柔和动画、情侣共享回忆
 
@@ -20,6 +20,7 @@
 - `apps/web/src/services/`：缓存、存储、在线状态等服务
 - `apps/web/src/config/`：常量与配置
 - `apps/web/src/theme/`：主题配置
+- `apps/worker/`：Cloudflare Worker API、D1 schema 与 R2 图片服务
 - `apps/desktop/src-tauri/`：Tauri 与 Rust 桌面端代码
 - `scripts/`：构建、导出、测试等辅助脚本
 - `doc/`：项目文档
@@ -44,7 +45,15 @@
 
 - `apps/web/src/services/cacheService.ts`
 - `apps/web/src/services/storageService.ts`
+- `apps/web/src/services/imageStorageService.ts`
 - `apps/web/src/services/presenceService.ts`
+- `apps/web/src/services/cloudflareClient.ts`
+
+### Cloudflare Worker 入口
+
+- `apps/worker/src/index.ts`
+- `apps/worker/schema.sql`
+- `wrangler.jsonc`
 
 ### Desktop / Tauri 入口
 
@@ -57,12 +66,18 @@
 优先使用 `pnpm`：
 
 - 安装依赖：`pnpm install`
-- Web 开发：`pnpm dev`
+- Web 开发（仅 Vite 前端）：`pnpm dev`
+- Web + Worker 本地联调：`pnpm cf:dev`
 - Web 构建：`pnpm build`
 - Web 预览：`pnpm preview`
+- Cloudflare D1 schema：`pnpm cf:schema`
+- Cloudflare 部署：`pnpm cf:deploy`
+- Supabase 到 Cloudflare 迁移：`pnpm cf:migrate`
 - Tauri 开发：`pnpm tauri:dev`
 - Tauri 构建：`pnpm tauri:build`
 - 生成 Tauri 图标：`pnpm tauri:icon`
+
+补充约定：`pnpm cf:dev` 会先初始化本地 D1 schema，再固定启动 Wrangler `8787` 与可避让端口的前端联调；`pnpm dev` 仅适合纯前端或 Tauri 依赖的 3000 端口开发。
 
 ## 5. Agent 默认工作方式
 
@@ -120,8 +135,9 @@ Agent 完成改动后，默认应尽量做到：
 
 - 不要破坏现有 cache-first 与本地兜底逻辑。
 - 不要忽略 IndexedDB / LocalStorage / 内存缓存之间的层级关系。
-- 新建回忆的离线图片应以 File/Blob 形式进入 IndexedDB outbox，不要为了入队转成 base64；联网 drain 前再压缩并上传 Storage。
-- 涉及 Supabase 改动时，要同时考虑 Database、Storage、Realtime 的联动。
+- 新建回忆的离线图片应以 File/Blob 形式进入 IndexedDB outbox，不要为了入队转成 base64；联网 drain 前再压缩并上传到 R2。
+- 当前后端以 Cloudflare Worker 为 API 边界，D1 存回忆与 presence，R2 存图片；涉及后端改动时，要同时检查 Worker 路由、D1 schema、R2 key/URL、前端缓存与失败回退。
+- `image_urls` 是回忆图片的主字段，按数组保存完整图片列表；`image_url` 仅作为旧数据/单图兼容字段，新增逻辑不得只写 `image_url` 或在 PATCH 时误清空 `image_urls`。
 - 图片上传、回忆读写、presence 更新若失败，应尽量保留已有失败回退能力。
 - 修改数据结构时，要检查缓存键、序列化字段、上下游调用是否一起更新。
 

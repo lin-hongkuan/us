@@ -19,6 +19,7 @@ describe('memoryMapper', () => {
       tags: ['a'],
       image_url: 'legacy.jpg',
       image_urls: ['one.jpg', 'two.jpg'],
+      updated_at: '2026-01-02T00:00:00.000Z',
     });
 
     expect(memory).toMatchObject({
@@ -38,8 +39,10 @@ describe('memoryMapper', () => {
       content: 'hello',
       author: UserType.HIM,
       created_at: '2026-01-02T00:00:00.000Z',
+      tags: [],
       image_url: 'legacy.jpg',
       image_urls: null,
+      updated_at: '2026-01-02T00:00:00.000Z',
     });
 
     expect(getMemoryImageUrls(memory)).toEqual(['legacy.jpg']);

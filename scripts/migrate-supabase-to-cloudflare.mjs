@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-const repoRoot = path.resolve(new URL('..', import.meta.url).pathname, '..');
-const supabaseUrl = (process.env.SUPABASE_URL || await fs.readFile('/tmp/us_supabase_url.txt', 'utf8')).trim().replace(/\/$/, '');
-const supabaseKey = (process.env.SUPABASE_ANON_KEY || await fs.readFile('/tmp/us_supabase_anon.txt', 'utf8')).trim();
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const tempDir = os.tmpdir();
+const dryRun = process.argv.includes('--dry-run');
+const readSecretFallback = async (envKey, filename) => {
+  if (process.env[envKey]) return process.env[envKey];
+  return fs.readFile(path.join(tempDir, filename), 'utf8');
+};
+
+const supabaseUrl = (await readSecretFallback('SUPABASE_URL', 'us_supabase_url.txt')).trim().replace(/\/$/, '');
+const supabaseKey = (await readSecretFallback('SUPABASE_ANON_KEY', 'us_supabase_anon.txt')).trim();
 const workerBaseUrl = (process.env.US_WORKER_BASE_URL || 'https://us.linhk.top').replace(/\/$/, '');
 
 const requestJson = async (url, options = {}) => {
@@ -63,9 +72,11 @@ const dataUrlToImage = (url) => {
 };
 
 const putR2Object = async ({ buffer, key, contentType, index, ext }) => {
-  const tmp = `/tmp/us-r2-${process.pid}-${index}.${ext || extFromContentType(contentType)}`;
+  const tmp = path.join(tempDir, `us-r2-${process.pid}-${index}.${ext || extFromContentType(contentType)}`);
   await fs.writeFile(tmp, buffer);
-  run(['r2', 'object', 'put', `memory-images/${key}`, '--remote', '--file', tmp, '--content-type', contentType || 'application/octet-stream']);
+  if (!dryRun) {
+    run(['r2', 'object', 'put', `memory-images/${key}`, '--remote', '--file', tmp, '--content-type', contentType || 'application/octet-stream']);
+  }
   await fs.unlink(tmp).catch(() => {});
   return `/images/${encodeURI(key)}`;
 };
@@ -119,7 +130,12 @@ for (const row of migrated) {
   statements.push(`INSERT INTO memories (id, content, author, created_at, tags, image_url, image_urls, updated_at) VALUES (${quoteSql(row.id)}, ${quoteSql(row.content)}, ${quoteSql(row.author)}, ${quoteSql(row.created_at)}, ${quoteSql(toJsonArray(row.tags))}, ${quoteSql(row.image_url)}, ${quoteSql(toJsonArray(row.image_urls))}, ${quoteSql(new Date().toISOString())});`);
 }
 const sql = statements.join('\n');
-await fs.writeFile('/tmp/us_d1_import.sql', sql);
-console.log('Importing into D1...');
-run(['d1', 'execute', 'us-memories', '--remote', '--file', '/tmp/us_d1_import.sql']);
-console.log(JSON.stringify({ success: true, memories: migrated.length, images: imageIndex, workerBaseUrl }));
+const sqlPath = path.join(tempDir, 'us_d1_import.sql');
+await fs.writeFile(sqlPath, sql);
+if (dryRun) {
+  console.log(JSON.stringify({ success: true, dryRun: true, memories: migrated.length, images: imageIndex, workerBaseUrl }));
+} else {
+  console.log('Importing into D1...');
+  run(['d1', 'execute', 'us-memories', '--remote', '--file', sqlPath]);
+  console.log(JSON.stringify({ success: true, memories: migrated.length, images: imageIndex, workerBaseUrl }));
+}

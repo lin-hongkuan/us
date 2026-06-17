@@ -7,6 +7,8 @@ export default defineConfig(({ mode }) => {
     const projectRoot = path.resolve(__dirname, '../..');
     const env = loadEnv(mode, projectRoot, '');
     const isTauri = !!process.env.TAURI_ENV_PLATFORM;
+    const devPort = Number(process.env.VITE_DEV_PORT || env.VITE_DEV_PORT || 3000);
+    const strictPort = (process.env.VITE_STRICT_PORT || env.VITE_STRICT_PORT || 'true') !== 'false';
     return {
       root: __dirname,
       envDir: projectRoot, // .env 在仓库根目录，必须显式指定
@@ -15,9 +17,19 @@ export default defineConfig(({ mode }) => {
       base: './', 
       clearScreen: false,
       server: {
-        port: 3000,
+        port: devPort,
         host: '0.0.0.0',
-        strictPort: true,
+        strictPort,
+        proxy: {
+          '/api': {
+            target: env.VITE_CLOUDFLARE_API_BASE_URL || 'http://127.0.0.1:8787',
+            changeOrigin: true,
+          },
+          '/images': {
+            target: env.VITE_CLOUDFLARE_API_BASE_URL || 'http://127.0.0.1:8787',
+            changeOrigin: true,
+          },
+        },
       },
       // 【优化】代码分割配置
       build: {

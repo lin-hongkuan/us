@@ -64,4 +64,5 @@ local-artifacts/
 # Legacy / dev build outputs (not used by current monorepo)
 dev-dist/
 apps/web/dev-dist/
+.wrangler/
 

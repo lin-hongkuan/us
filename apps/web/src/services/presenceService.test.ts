@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UserType } from '../types';
-import { resolvePartnerPresence } from './presenceService';
+import { refreshPresenceAvailability, resolvePartnerPresence } from './presenceService';
+
+vi.mock('./cloudflareClient', () => ({
+  clearPresence: vi.fn(),
+  heartbeatPresence: vi.fn(),
+  isApiAvailable: vi.fn(async () => true),
+}));
 
 describe('resolvePartnerPresence', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('detects the opposite user and ignores the current instance', () => {
     const result = resolvePartnerPresence({
       me: [{ user_type: UserType.HER, instance_id: 'me' }],
@@ -38,5 +48,9 @@ describe('resolvePartnerPresence', () => {
     }, UserType.HIM, 'him');
 
     expect(result).toEqual({ partnerOnline: true, partnerUser: UserType.HER });
+  });
+
+  it('reports availability from the api check', async () => {
+    await expect(refreshPresenceAvailability()).resolves.toBe(true);
   });
 });

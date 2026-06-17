@@ -1,5 +1,5 @@
 import { UserType } from '../types';
-import { clearPresence, heartbeatPresence } from './cloudflareClient';
+import { clearPresence, heartbeatPresence, isApiAvailable } from './cloudflareClient';
 
 /**
  * 在线状态服务：Cloudflare Worker polling heartbeat 版本。
@@ -29,6 +29,7 @@ let currentPresenceState: {
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 const HEARTBEAT_INTERVAL = 25_000;
 let listenersBound = false;
+let apiAvailable = true;
 
 const getInstanceId = (): string => {
   if (!instanceId) {
@@ -70,11 +71,13 @@ const sendHeartbeat = async (generation: number): Promise<void> => {
   if (!myUser || generation !== connectionGeneration) return;
 
   try {
-    const presence = await heartbeatPresence(myUser, getInstanceId());
+    const presence = await heartbeatPresence({ user_type: myUser, instance_id: getInstanceId() });
     if (generation === connectionGeneration) {
+      apiAvailable = true;
       setPartnerPresence(presence);
     }
   } catch (error) {
+    apiAvailable = false;
     console.warn('[Presence] heartbeat failed:', error);
   }
 };
@@ -91,7 +94,7 @@ const handleBeforeUnload = (): void => {
   const id = instanceId;
   if (!id) return;
   try {
-    void clearPresence(id);
+    void clearPresence({ instance_id: id });
   } catch (error) {
     console.warn('[Presence] beforeunload clear failed:', error);
   }
@@ -106,6 +109,7 @@ const handleVisibilityChange = (): void => {
 const bindGlobalListeners = (): void => {
   if (listenersBound) return;
   window.addEventListener('beforeunload', handleBeforeUnload);
+  window.addEventListener('pagehide', handleBeforeUnload);
   document.addEventListener('visibilitychange', handleVisibilityChange);
   listenersBound = true;
 };
@@ -113,6 +117,7 @@ const bindGlobalListeners = (): void => {
 const unbindGlobalListeners = (): void => {
   if (!listenersBound) return;
   window.removeEventListener('beforeunload', handleBeforeUnload);
+  window.removeEventListener('pagehide', handleBeforeUnload);
   document.removeEventListener('visibilitychange', handleVisibilityChange);
   listenersBound = false;
 };
@@ -136,6 +141,12 @@ export const resolvePartnerPresence = (
 };
 
 export const initPresence = async (userType: UserType): Promise<void> => {
+  apiAvailable = await isApiAvailable();
+  if (!apiAvailable) {
+    console.warn('[Presence] Cloudflare API unavailable, skip init');
+    return;
+  }
+
   const generation = connectionGeneration + 1;
   connectionGeneration = generation;
   stopHeartbeat();
@@ -186,11 +197,16 @@ export const cleanupPresence = async (): Promise<void> => {
 
   if (id) {
     try {
-      await clearPresence(id);
+      await clearPresence({ instance_id: id });
     } catch (error) {
       console.warn('[Presence] cleanup clear failed:', error);
     }
   }
 };
 
-export const isPresenceAvailable = (): boolean => true;
+export const isPresenceAvailable = (): boolean => apiAvailable;
+
+export const refreshPresenceAvailability = async (): Promise<boolean> => {
+  apiAvailable = await isApiAvailable();
+  return apiAvailable;
+};

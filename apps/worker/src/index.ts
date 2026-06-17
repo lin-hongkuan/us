@@ -1,18 +1,18 @@
+import {
+  isUserType,
+  normalizeStringArray,
+  type MemoryCreateBody,
+  type MemoryPatchBody,
+  type MemoryRowContract,
+  type PresenceClearBody,
+  type PresenceHeartbeatBody,
+} from '../../web/src/services/cloudflareApiContract';
+
 export interface Env {
   DB: D1Database;
   MEMORY_IMAGES: R2Bucket;
   ASSETS: Fetcher;
 }
-
-type MemoryRow = {
-  id: string;
-  content: string;
-  author: 'HER' | 'HIM';
-  created_at: string;
-  tags?: string[] | null;
-  image_url?: string | null;
-  image_urls?: string[] | null;
-};
 
 const json = (data: unknown, init: ResponseInit = {}) => new Response(JSON.stringify(data), {
   ...init,
@@ -33,25 +33,15 @@ const corsHeaders = () => ({
   'Access-Control-Allow-Headers': 'Content-Type,Accept',
 });
 
-const parseJsonArray = (value: unknown): string[] | null => {
-  if (Array.isArray(value)) return value.filter((x): x is string => typeof x === 'string');
-  if (typeof value !== 'string' || !value) return null;
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : null;
-  } catch {
-    return null;
-  }
-};
-
-const normalizeRow = (row: Record<string, unknown>): MemoryRow => ({
+const normalizeRow = (row: Record<string, unknown>): MemoryRowContract => ({
   id: String(row.id),
   content: String(row.content || ''),
   author: row.author === 'HIM' ? 'HIM' : 'HER',
   created_at: String(row.created_at),
-  tags: parseJsonArray(row.tags),
+  tags: normalizeStringArray(row.tags) || [],
   image_url: typeof row.image_url === 'string' ? row.image_url : null,
-  image_urls: parseJsonArray(row.image_urls),
+  image_urls: normalizeStringArray(row.image_urls) || [],
+  updated_at: typeof row.updated_at === 'string' ? row.updated_at : undefined,
 });
 
 const readBody = async <T>(request: Request): Promise<T> => {
@@ -72,7 +62,34 @@ const getMemory = async (env: Env, id: string) => {
   return row ? normalizeRow(row) : null;
 };
 
-const ensureAuthor = (author: unknown): 'HER' | 'HIM' => author === 'HIM' ? 'HIM' : 'HER';
+const ensureAuthor = (author: unknown): 'HER' | 'HIM' => {
+  if (!isUserType(author)) {
+    throw new Error('Invalid author');
+  }
+  return author;
+};
+
+const normalizeMemoryImages = (imageUrl: unknown, imageUrls: unknown): { imageUrl: string | null; imageUrls: string[] } => {
+  const normalizedUrls = normalizeStringArray(imageUrls);
+  if (normalizedUrls) {
+    return {
+      imageUrl: normalizedUrls[0] || null,
+      imageUrls: normalizedUrls,
+    };
+  }
+
+  if (typeof imageUrl === 'string' && imageUrl.length > 0) {
+    return {
+      imageUrl,
+      imageUrls: [imageUrl],
+    };
+  }
+
+  return {
+    imageUrl: null,
+    imageUrls: [],
+  };
+};
 
 const imageKeyFromUrlOrKey = (input: string): string => {
   try {
@@ -107,20 +124,27 @@ const handleApi = async (request: Request, env: Env, url: URL): Promise<Response
   }
 
   if (url.pathname === '/api/memories' && request.method === 'POST') {
-    const body = await readBody<Partial<MemoryRow>>(request);
+    const body = await readBody<MemoryCreateBody>(request);
     const id = crypto.randomUUID();
+    if (typeof body.content !== 'string' || body.content.trim().length === 0) {
+      return fail('Content is required');
+    }
+    if (!isUserType(body.author)) {
+      return fail('Invalid author');
+    }
     const createdAt = body.created_at || new Date().toISOString();
-    const imageUrls = parseJsonArray(body.image_urls) || (body.image_url ? [String(body.image_url)] : null);
+    const images = normalizeMemoryImages(body.image_url, body.image_urls);
+    const tags = normalizeStringArray(body.tags) || [];
     await env.DB.prepare(
       'INSERT INTO memories (id, content, author, created_at, tags, image_url, image_urls, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(
       id,
-      String(body.content || ''),
+      body.content,
       ensureAuthor(body.author),
       createdAt,
-      JSON.stringify(parseJsonArray(body.tags) || []),
-      imageUrls?.[0] || body.image_url || null,
-      JSON.stringify(imageUrls || []),
+      JSON.stringify(tags),
+      images.imageUrl,
+      JSON.stringify(images.imageUrls),
       new Date().toISOString(),
     ).run();
     return ok(await getMemory(env, id), { status: 201 });
@@ -130,17 +154,26 @@ const handleApi = async (request: Request, env: Env, url: URL): Promise<Response
   if (memoryMatch) {
     const id = decodeURIComponent(memoryMatch[1]);
     if (request.method === 'PATCH') {
-      const body = await readBody<Partial<MemoryRow>>(request);
+      const body = await readBody<MemoryPatchBody>(request);
       const existing = await getMemory(env, id);
       if (!existing) return fail('Memory not found', 404);
-      const imageUrls = body.image_urls === undefined ? existing.image_urls : parseJsonArray(body.image_urls);
-      const imageUrl = body.image_url === undefined ? (imageUrls?.[0] || existing.image_url || null) : body.image_url;
+      const hasImageUrl = Object.prototype.hasOwnProperty.call(body, 'image_url');
+      const hasImageUrls = Object.prototype.hasOwnProperty.call(body, 'image_urls');
+      const hasTags = Object.prototype.hasOwnProperty.call(body, 'tags');
+      const mergedImages = hasImageUrl || hasImageUrls
+        ? normalizeMemoryImages(
+            hasImageUrl ? body.image_url : existing.image_url,
+            hasImageUrls ? body.image_urls : existing.image_urls,
+          )
+        : { imageUrl: existing.image_url, imageUrls: existing.image_urls };
+      const nextTags = hasTags ? (normalizeStringArray(body.tags) || []) : existing.tags;
       await env.DB.prepare(
-        'UPDATE memories SET content = ?, image_url = ?, image_urls = ?, updated_at = ? WHERE id = ?'
+        'UPDATE memories SET content = ?, tags = ?, image_url = ?, image_urls = ?, updated_at = ? WHERE id = ?'
       ).bind(
         body.content === undefined ? existing.content : String(body.content),
-        imageUrl || null,
-        JSON.stringify(imageUrls || []),
+        JSON.stringify(nextTags),
+        mergedImages.imageUrl,
+        JSON.stringify(mergedImages.imageUrls),
         new Date().toISOString(),
         id,
       ).run();
@@ -174,8 +207,9 @@ const handleApi = async (request: Request, env: Env, url: URL): Promise<Response
   }
 
   if (url.pathname === '/api/presence' && request.method === 'POST') {
-    const body = await readBody<{ user_type?: string; instance_id?: string }>(request);
-    const userType = ensureAuthor(body.user_type);
+    const body = await readBody<PresenceHeartbeatBody>(request);
+    if (!isUserType(body.user_type)) return fail('Invalid user type');
+    const userType = body.user_type;
     const instanceId = body.instance_id || crypto.randomUUID();
     const now = Date.now();
     await env.DB.prepare(
@@ -189,7 +223,7 @@ const handleApi = async (request: Request, env: Env, url: URL): Promise<Response
   }
 
   if (url.pathname === '/api/presence' && request.method === 'DELETE') {
-    const body = await readBody<{ instance_id?: string }>(request);
+    const body = await readBody<PresenceClearBody>(request);
     if (body.instance_id) await env.DB.prepare('DELETE FROM presence WHERE instance_id = ?').bind(body.instance_id).run();
     return ok(null);
   }

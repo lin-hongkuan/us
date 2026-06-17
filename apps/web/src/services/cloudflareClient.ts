@@ -1,18 +1,33 @@
-import type { MemoryRow, MemoryInsertPayload, MemoryUpdatePayload } from './memoryMapper';
-import { UserType } from '../types';
+import type {
+  ImageUploadResult,
+  MemoryCreateBody,
+  MemoryPatchBody,
+  MemoryRowContract,
+  PresenceClearBody,
+  PresenceHeartbeatBody,
+  PresenceSnapshot,
+} from './cloudflareApiContract';
 
 export const API_BASE_URL = (import.meta.env.VITE_CLOUDFLARE_API_BASE_URL || '').replace(/\/$/, '');
+const IS_TEST = import.meta.env.MODE === 'test';
 
 const apiUrl = (path: string): string => {
   if (API_BASE_URL) return `${API_BASE_URL}${path}`;
   // Browser builds should use same-origin relative routes. Node/Vitest fetch requires absolute URLs.
-  if (typeof window !== 'undefined') return path;
+  if (typeof window !== 'undefined' && !IS_TEST) return path;
   return `http://127.0.0.1${path}`;
 };
 
 const parseJsonResponse = async <T>(response: Response): Promise<T> => {
   const text = await response.text();
-  const parsed = text ? JSON.parse(text) : null;
+  let parsed: { success?: boolean; data?: T; message?: string } | null = null;
+  if (text) {
+    try {
+      parsed = JSON.parse(text) as typeof parsed;
+    } catch {
+      throw new Error(`Cloudflare API returned invalid JSON: ${text.slice(0, 200)}`);
+    }
+  }
   if (!response.ok || !parsed?.success) {
     throw new Error(parsed?.message || `Cloudflare API request failed: ${response.status}`);
   }
@@ -21,29 +36,29 @@ const parseJsonResponse = async <T>(response: Response): Promise<T> => {
 
 export const isCloudflareConfigured = true;
 
-export const listMemories = async (): Promise<MemoryRow[]> => {
+export const listMemories = async (): Promise<MemoryRowContract[]> => {
   const response = await fetch(apiUrl('/api/memories'), {
     headers: { Accept: 'application/json' },
   });
-  return parseJsonResponse<MemoryRow[]>(response);
+  return parseJsonResponse<MemoryRowContract[]>(response);
 };
 
-export const createMemory = async (payload: MemoryInsertPayload): Promise<MemoryRow> => {
+export const createMemory = async (payload: MemoryCreateBody): Promise<MemoryRowContract> => {
   const response = await fetch(apiUrl('/api/memories'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(payload),
   });
-  return parseJsonResponse<MemoryRow>(response);
+  return parseJsonResponse<MemoryRowContract>(response);
 };
 
-export const updateMemoryRow = async (id: string, payload: MemoryUpdatePayload): Promise<MemoryRow> => {
+export const updateMemoryRow = async (id: string, payload: MemoryPatchBody): Promise<MemoryRowContract> => {
   const response = await fetch(apiUrl(`/api/memories/${encodeURIComponent(id)}`), {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(payload),
   });
-  return parseJsonResponse<MemoryRow>(response);
+  return parseJsonResponse<MemoryRowContract>(response);
 };
 
 export const deleteMemoryRow = async (id: string): Promise<void> => {
@@ -61,7 +76,7 @@ export const uploadImageFile = async (file: File): Promise<string> => {
     method: 'POST',
     body: form,
   });
-  const data = await parseJsonResponse<{ url: string }>(response);
+  const data = await parseJsonResponse<ImageUploadResult>(response);
   return data.url;
 };
 
@@ -74,20 +89,20 @@ export const deleteImageKey = async (keyOrUrl: string): Promise<void> => {
   await parseJsonResponse<null>(response);
 };
 
-export const heartbeatPresence = async (userType: UserType, instanceId: string): Promise<{ partnerOnline: boolean; partnerUser: UserType | null }> => {
+export const heartbeatPresence = async (body: PresenceHeartbeatBody): Promise<PresenceSnapshot> => {
   const response = await fetch(apiUrl('/api/presence'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ user_type: userType, instance_id: instanceId }),
+    body: JSON.stringify(body),
   });
-  return parseJsonResponse<{ partnerOnline: boolean; partnerUser: UserType | null }>(response);
+  return parseJsonResponse<PresenceSnapshot>(response);
 };
 
-export const clearPresence = async (instanceId: string): Promise<void> => {
+export const clearPresence = async (body: PresenceClearBody): Promise<void> => {
   const response = await fetch(apiUrl('/api/presence'), {
     method: 'DELETE',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ instance_id: instanceId }),
+    body: JSON.stringify(body),
   });
   await parseJsonResponse<null>(response);
 };

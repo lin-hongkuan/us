@@ -9,7 +9,7 @@ import { Memory, UserType, CreateMemoryDTO } from '../types';
 import { createMemory, deleteMemoryRow, listMemories, updateMemoryRow } from './cloudflareClient';
 import { deleteImage, extractStoragePathFromUrl, compressImage, compressImageToBlob, fileToBase64, uploadImage, uploadImages } from './imageStorageService';
 import { scheduleImagePreload, schedulePriorityPreload } from './imagePreloadService';
-import { areMemoriesEqual, createMemoryInsertPayload, createMemoryUpdatePayload, getMemoriesImageUrls, insertMemorySorted, mapRowToMemory } from './memoryMapper';
+import { areMemoriesEqual, createMemoryInsertPayload, createMemoryUpdatePayload, getMemoriesImageUrls, getMemoryImageUrls, insertMemorySorted, mapRowToMemory } from './memoryMapper';
 import {
   getMemoryCache,
   setMemoryCache,
@@ -163,16 +163,24 @@ export const saveMemory = async (dto: CreateMemoryDTO): Promise<Memory | null> =
 };
 
 export const updateMemory = async (id: string, content: string, imageUrls?: string[] | null): Promise<Memory | null> => {
+  const current = await getLocalMemoriesAsync();
+  const existing = current.find(m => m.id === id);
+
   try {
     const updatedMemory = mapRowToMemory(await updateMemoryRow(id, createMemoryUpdatePayload(content, imageUrls)));
     const cachedMemories = getMemoryCache() || [];
     const updatedMemories = cachedMemories.map(m => m.id === id ? updatedMemory : m);
     setMemoryCache(updatedMemories);
     await updateInIndexedDB(updatedMemory);
+
+    const removedUrls = existing
+      ? getMemoryImageUrls(existing).filter(url => !getMemoryImageUrls(updatedMemory).includes(url))
+      : [];
+    await Promise.all(removedUrls.map(url => deleteImage(url)));
+
     return updatedMemory;
   } catch (e) {
     console.error('Failed to update memory in Cloudflare; updating local cache only', e);
-    const current = await getLocalMemoriesAsync();
     const index = current.findIndex(m => m.id === id);
     if (index === -1) return null;
 
@@ -193,6 +201,9 @@ export const updateMemory = async (id: string, content: string, imageUrls?: stri
 };
 
 export const deleteMemory = async (id: string): Promise<boolean> => {
+  const current = await getLocalMemoriesAsync();
+  const existing = current.find(m => m.id === id);
+
   try {
     await deleteMemoryRow(id);
   } catch (e) {
@@ -203,6 +214,11 @@ export const deleteMemory = async (id: string): Promise<boolean> => {
   const updatedMemories = cachedMemories.filter(m => m.id !== id);
   setMemoryCache(updatedMemories);
   await removeFromIndexedDB(id);
+
+  if (existing) {
+    await Promise.all(getMemoryImageUrls(existing).map(url => deleteImage(url)));
+  }
+
   return true;
 };
 

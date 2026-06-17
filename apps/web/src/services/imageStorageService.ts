@@ -7,7 +7,8 @@ export const extractStoragePathFromUrl = (imageUrl: string): string | null => {
   if (!imageUrl || imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) return null;
 
   try {
-    const url = new URL(imageUrl, window.location.origin);
+    const base = typeof window !== 'undefined' ? window.location.origin : 'http://localhost';
+    const url = new URL(imageUrl, base);
     const marker = '/images/';
     const idx = url.pathname.indexOf(marker);
     if (idx === -1) return null;
@@ -154,7 +155,8 @@ export const deleteImage = async (imageUrl: string): Promise<boolean> => {
   if (!imageUrl || imageUrl.startsWith('data:') || imageUrl.startsWith('blob:')) return true;
 
   try {
-    const key = extractStoragePathFromUrl(imageUrl) || imageUrl;
+    const key = extractStoragePathFromUrl(imageUrl);
+    if (!key) return true;
     await deleteImageKey(key);
     return true;
   } catch (e) {

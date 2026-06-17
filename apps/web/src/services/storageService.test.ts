@@ -17,6 +17,17 @@ vi.mock('./imageStorageService', () => ({
 vi.mock('./imagePreloadService', () => ({
   scheduleImagePreload: vi.fn(),
 }));
+vi.mock('./cloudflareClient', () => ({
+  clearPresence: vi.fn(),
+  createMemory: vi.fn(),
+  deleteImageKey: vi.fn(),
+  deleteMemoryRow: vi.fn(),
+  heartbeatPresence: vi.fn(),
+  isApiAvailable: vi.fn(async () => true),
+  listMemories: vi.fn(async () => []),
+  updateMemoryRow: vi.fn(),
+  uploadImageFile: vi.fn(),
+}));
 
 // 用一个简单的内存版 cacheService 替代真实 IndexedDB 副作用。
 // 与之前不同的是：getIndexedDBMemories / addToIndexedDB / removeFromIndexedDB / updateInIndexedDB
@@ -100,6 +111,7 @@ describe('storageService (无 supabase 时的本地回退路径，使用 Indexed
     vi.resetModules();
     cacheMock = (await import('./cacheService')) as CacheMock;
     cacheMock.__reset();
+    vi.clearAllMocks();
     storage = await import('./storageService');
     // 提供一个稳定的 randomUUID（jsdom 环境下可能没有）
     if (!('randomUUID' in crypto)) {
@@ -199,6 +211,49 @@ describe('storageService (无 supabase 时的本地回退路径，使用 Indexed
       const result = await storage.updateMemory('not-exist', 'x');
       expect(result).toBeNull();
     });
+
+    it('content-only update preserves existing imageUrl and imageUrls on the Cloudflare path', async () => {
+      const existing = sample({
+        id: 'img',
+        content: 'old',
+        imageUrl: 'cover.jpg',
+        imageUrls: ['cover.jpg', 'detail.jpg'],
+      });
+      cacheMock.__seedIdb([existing]);
+      cacheMock.setMemoryCache([existing]);
+
+      const { updateMemoryRow } = await import('./cloudflareClient');
+      const { deleteImage } = await import('./imageStorageService');
+      const updateMemoryRowMock = vi.mocked(updateMemoryRow);
+      const deleteImageMock = vi.mocked(deleteImage);
+
+      updateMemoryRowMock.mockResolvedValueOnce({
+        id: existing.id,
+        content: 'new text',
+        author: existing.author,
+        created_at: new Date(existing.createdAt).toISOString(),
+        tags: [],
+        image_url: existing.imageUrl ?? null,
+        image_urls: existing.imageUrls ?? [],
+      });
+
+      const updated = await storage.updateMemory(existing.id, 'new text');
+
+      expect(updateMemoryRowMock).toHaveBeenCalledWith(existing.id, { content: 'new text' });
+      expect(updated).toMatchObject({
+        id: existing.id,
+        content: 'new text',
+        imageUrl: existing.imageUrl,
+        imageUrls: existing.imageUrls,
+      });
+      expect(cacheMock.__readIdb()[0]).toMatchObject({
+        id: existing.id,
+        content: 'new text',
+        imageUrl: existing.imageUrl,
+        imageUrls: existing.imageUrls,
+      });
+      expect(deleteImageMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('deleteMemory', () => {
@@ -217,6 +272,32 @@ describe('storageService (无 supabase 时的本地回退路径，使用 Indexed
       const ok = await storage.deleteMemory('ghost');
       expect(ok).toBe(true);
       expect(cacheMock.__readIdb()).toHaveLength(1);
+    });
+
+    it('Cloudflare delete remains compatible with image cleanup', async () => {
+      const existing = sample({
+        id: 'img',
+        imageUrl: 'cover.jpg',
+        imageUrls: ['cover.jpg', 'detail.jpg'],
+      });
+      cacheMock.__seedIdb([existing]);
+      cacheMock.setMemoryCache([existing]);
+
+      const { deleteMemoryRow } = await import('./cloudflareClient');
+      const { deleteImage } = await import('./imageStorageService');
+      const deleteMemoryRowMock = vi.mocked(deleteMemoryRow);
+      const deleteImageMock = vi.mocked(deleteImage);
+
+      deleteMemoryRowMock.mockResolvedValueOnce(undefined);
+
+      const ok = await storage.deleteMemory(existing.id);
+
+      expect(ok).toBe(true);
+      expect(deleteMemoryRowMock).toHaveBeenCalledWith(existing.id);
+      expect(deleteImageMock).toHaveBeenCalledTimes(2);
+      expect(deleteImageMock).toHaveBeenCalledWith('cover.jpg');
+      expect(deleteImageMock).toHaveBeenCalledWith('detail.jpg');
+      expect(cacheMock.__readIdb()).toHaveLength(0);
     });
   });
 });

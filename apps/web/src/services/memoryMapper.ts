@@ -1,28 +1,11 @@
 import { CreateMemoryDTO, Memory, UserType } from '../types';
+import type {
+  MemoryCreateBody as MemoryInsertPayload,
+  MemoryPatchBody as MemoryUpdatePayload,
+  MemoryRowContract as MemoryRow,
+} from './cloudflareApiContract';
 
-export interface MemoryRow {
-  id: string;
-  content: string;
-  author: string;
-  created_at: string;
-  tags?: string[];
-  image_url?: string | null;
-  image_urls?: string[] | null;
-}
-
-export interface MemoryInsertPayload {
-  content: string;
-  author: UserType;
-  image_url: string | null;
-  image_urls: string[] | null;
-  created_at: string;
-}
-
-export interface MemoryUpdatePayload {
-  content: string;
-  image_url?: string | null;
-  image_urls?: string[] | null;
-}
+export type { MemoryInsertPayload, MemoryRow, MemoryUpdatePayload };
 
 export const getMemoryImageUrls = (memory: Pick<Memory, 'imageUrl' | 'imageUrls'>): string[] => {
   return memory.imageUrls || (memory.imageUrl ? [memory.imageUrl] : []);

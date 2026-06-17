@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { UserType } from '../types';
 import {
   cleanupPresence,
   initPresence,
   isPresenceAvailable,
+  refreshPresenceAvailability,
   subscribeToPresence,
 } from '../services/presenceService';
 
@@ -32,6 +33,7 @@ interface AudioWindow extends Window {
 const randomItem = (items: string[]): string => items[Math.floor(Math.random() * items.length)];
 
 export const usePresenceStatus = (currentUser: UserType | null, soundEnabled = true) => {
+  const [available, setAvailable] = useState(() => isPresenceAvailable());
   const [partnerOnline, setPartnerOnline] = useState(false);
   const [partnerUser, setPartnerUser] = useState<UserType | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -46,8 +48,6 @@ export const usePresenceStatus = (currentUser: UserType | null, soundEnabled = t
   const hasPlayedSound = useRef(false);
   const wasOnlineRef = useRef(false);
   const lastPartnerUserRef = useRef<UserType | null>(null);
-  const available = useMemo(() => isPresenceAvailable(), []);
-
   const playHeartSound = useCallback(() => {
     if (!soundEnabled) return;
     const AudioContextClass = window.AudioContext || (window as AudioWindow).webkitAudioContext;
@@ -154,6 +154,10 @@ export const usePresenceStatus = (currentUser: UserType | null, soundEnabled = t
       lastPartnerUserRef.current = null;
     };
   }, [available, currentUser, playHeartSound]);
+
+  useEffect(() => {
+    void refreshPresenceAvailability().then(setAvailable).catch(() => setAvailable(false));
+  }, []);
 
   useEffect(() => {
     if ((partnerOnline || isGoodbye) && !isDismissed) {

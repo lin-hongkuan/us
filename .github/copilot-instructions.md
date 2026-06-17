@@ -17,6 +17,7 @@
 ## 基本约定
 
 - 包管理默认使用 `pnpm`
+- 本地完整联调默认使用 `pnpm cf:dev`，它会先初始化本地 D1，再同时启动 Vite 前端与 Cloudflare Worker；`pnpm dev` 只适合纯前端页面调试，不能代替完整联调
 - 修改前先阅读相关文件，避免靠猜测直接改
 - 优先复用现有组件、服务、上下文、常量
 - 不要轻易引入新依赖，除非收益明显
@@ -41,13 +42,17 @@
 
 - `apps/web/src/services/cacheService.ts`
 - `apps/web/src/services/storageService.ts`
+- `apps/web/src/services/imageStorageService.ts`
 - `apps/web/src/services/presenceService.ts`
+- `apps/web/src/services/cloudflareClient.ts`
 
 约定：
 
 - 不要破坏已有缓存优先级与离线体验
 - 不要忽略本地兜底逻辑
-- 涉及 Supabase 改动时，要考虑 Realtime、Storage、缓存、失败回退是否受影响
+- 当前云端后端是 Cloudflare Worker + D1 + R2，不要按 Supabase Realtime/Storage 的旧模型设计新逻辑
+- 涉及回忆、图片或 presence 改动时，要同时考虑 Worker API、D1 schema、R2 图片 key/URL、缓存、失败回退是否受影响
+- `image_urls` 是主图片字段，保存完整图片数组；`image_url` 只做旧数据/单图兼容，PATCH/同步逻辑不得因为兼容字段而覆盖或清空 `image_urls`
 
 ## Desktop / Tauri 端偏好
 
@@ -94,6 +99,10 @@
 - `apps/web/src/components/MainPhase.tsx`
 - `apps/web/src/components/Composer.tsx`
 - `apps/web/src/components/MemoryCard.tsx`
+- `apps/web/src/services/storageService.ts`
+- `apps/web/src/services/cloudflareClient.ts`
+- `apps/worker/src/index.ts`
+- `apps/worker/schema.sql`
 - `apps/desktop/src-tauri/src/main.rs`
 - `apps/desktop/src-tauri/src/lib.rs`
 
