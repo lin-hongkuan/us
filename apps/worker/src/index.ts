@@ -70,13 +70,6 @@ const SITE_CONFIG: SiteConfigContract = {
         group: '媒体服务',
         description: '漫画库 Web 入口。',
       },
-      {
-        id: 'image2',
-        name: 'chatgpt2api / image2',
-        url: 'https://image2.linhk.top/',
-        group: 'AI 服务',
-        description: '图片/API 兼容入口。',
-      },
     ],
   },
   faq: [
@@ -98,7 +91,7 @@ const SITE_CONFIG: SiteConfigContract = {
     },
     {
       question: '运行时间监控怎么看？',
-      answer: '设置页「关于」里会显示已配置服务的实时健康检查，包括主站、NewAPI、Halo、Komga 和 image2。',
+      answer: '设置页「关于」里会显示已配置服务的实时健康检查，包括主站、NewAPI、Halo 和 Komga。',
     },
     {
       question: '这些监控来自哪里？',
