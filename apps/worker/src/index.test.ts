@@ -255,4 +255,46 @@ describe('apps/worker request handlers', () => {
       message: 'Invalid user type',
     });
   });
+
+  it('returns configured uptime monitors and FAQ entries', async () => {
+    const { env } = createEnv();
+    const response = await worker.fetch(request('/api/site-config'), env);
+
+    expect(response.ok).toBe(true);
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        uptime: {
+          provider: expect.any(String),
+          monitors: expect.arrayContaining([
+            expect.objectContaining({ id: 'us-web', name: 'Us. 主站' }),
+            expect.objectContaining({ id: 'newapi', name: 'NewAPI' }),
+          ]),
+        },
+        faq: expect.arrayContaining([
+          expect.objectContaining({ question: '这个网站是做什么的？' }),
+          expect.objectContaining({ question: '运行时间监控怎么看？' }),
+        ]),
+      },
+    });
+  });
+
+  it('checks configured uptime targets', async () => {
+    const { env } = createEnv();
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('{}', { status: 200 }));
+
+    const response = await worker.fetch(request('/api/uptime'), env);
+
+    expect(response.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({
+      success: true,
+      data: {
+        provider: expect.any(String),
+        monitors: expect.arrayContaining([
+          expect.objectContaining({ id: 'us-web', status: 'up', statusCode: 200 }),
+        ]),
+      },
+    });
+  });
 });

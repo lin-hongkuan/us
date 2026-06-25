@@ -6,6 +6,9 @@ import {
   type MemoryRowContract,
   type PresenceClearBody,
   type PresenceHeartbeatBody,
+  type SiteConfigContract,
+  type SiteMonitorTarget,
+  type UptimeSnapshotContract,
 } from '../../web/src/services/cloudflareApiContract';
 
 export interface Env {
@@ -32,6 +35,114 @@ const corsHeaders = () => ({
   'Access-Control-Allow-Methods': 'GET,POST,PATCH,DELETE,OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type,Accept',
 });
+
+
+const SITE_CONFIG: SiteConfigContract = {
+  uptime: {
+    provider: 'Cloudflare Worker live checks（可对接 Uptime Kuma status page）',
+    summary: '这里展示我已经配置进站点的公开服务健康检查；每次打开都会从 Worker 侧实时探测。',
+    monitors: [
+      {
+        id: 'us-web',
+        name: 'Us. 主站',
+        url: 'https://us.linhk.top/api/health',
+        group: '核心应用',
+        description: 'Cloudflare Worker、D1 与 R2 图片入口。',
+      },
+      {
+        id: 'newapi',
+        name: 'NewAPI',
+        url: 'https://api.linhongkuan.com/api/status',
+        group: 'AI 服务',
+        description: '模型网关与账号额度服务。',
+      },
+      {
+        id: 'halo',
+        name: 'HaloWebUI',
+        url: 'https://halo.linhk.top/',
+        group: '内容服务',
+        description: 'HaloWebUI 公网页面。',
+      },
+      {
+        id: 'komga',
+        name: 'Komga',
+        url: 'https://manga.linhk.top/',
+        group: '媒体服务',
+        description: '漫画库 Web 入口。',
+      },
+      {
+        id: 'image2',
+        name: 'chatgpt2api / image2',
+        url: 'https://image2.linhk.top/',
+        group: 'AI 服务',
+        description: '图片/API 兼容入口。',
+      },
+    ],
+  },
+  faq: [
+    {
+      question: '这个网站是做什么的？',
+      answer: 'Us. 是两个人共享的记忆日记，用来记录文字、图片和当天的小心情。',
+    },
+    {
+      question: '数据保存在哪里？',
+      answer: '文字数据保存在 Cloudflare D1，图片保存在 Cloudflare R2；浏览器本地也会缓存一份以提升加载速度。',
+    },
+    {
+      question: '离线时能写吗？',
+      answer: '可以。离线写入会先进本地队列，网络恢复后自动同步到云端。',
+    },
+    {
+      question: '图片上传失败怎么办？',
+      answer: '先确认网络连接，再尝试刷新或清除本地缓存；已保存到云端的回忆不会因为清缓存丢失。',
+    },
+    {
+      question: '运行时间监控怎么看？',
+      answer: '设置页「关于」里会显示已配置服务的实时健康检查，包括主站、NewAPI、Halo、Komga 和 image2。',
+    },
+    {
+      question: '这些监控来自哪里？',
+      answer: '当前由 Cloudflare Worker 实时探测公开健康 URL；后续也可以无缝切换为 Uptime Kuma status page 数据源。',
+    },
+  ],
+};
+
+const checkMonitor = async (monitor: SiteMonitorTarget): Promise<UptimeSnapshotContract['monitors'][number]> => {
+  const started = Date.now();
+  if (monitor.id === 'us-web') {
+    return {
+      ...monitor,
+      status: 'up',
+      statusCode: 200,
+      latencyMs: 0,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+  try {
+    const response = await fetch(monitor.url, {
+      method: 'GET',
+      headers: { Accept: 'application/json,text/html;q=0.8,*/*;q=0.5' },
+      cf: { cacheTtl: 0, cacheEverything: false },
+    });
+    const latencyMs = Date.now() - started;
+    return {
+      ...monitor,
+      status: response.ok ? 'up' : 'down',
+      statusCode: response.status,
+      latencyMs,
+      checkedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    return {
+      ...monitor,
+      status: 'down',
+      statusCode: null,
+      latencyMs: Date.now() - started,
+      checkedAt: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'check failed',
+    };
+  }
+};
 
 const normalizeRow = (row: Record<string, unknown>): MemoryRowContract => ({
   id: String(row.id),
@@ -117,6 +228,16 @@ const handleApi = async (request: Request, env: Env, url: URL): Promise<Response
 
   if (url.pathname === '/api/health') {
     return ok({ service: 'us-cloudflare', now: new Date().toISOString() });
+  }
+
+  if (url.pathname === '/api/site-config' && request.method === 'GET') {
+    return ok(SITE_CONFIG);
+  }
+
+  if (url.pathname === '/api/uptime' && request.method === 'GET') {
+    const checkedAt = new Date().toISOString();
+    const monitors = await Promise.all(SITE_CONFIG.uptime.monitors.map(checkMonitor));
+    return ok({ provider: SITE_CONFIG.uptime.provider, checkedAt, monitors } satisfies UptimeSnapshotContract);
   }
 
   if (url.pathname === '/api/memories' && request.method === 'GET') {

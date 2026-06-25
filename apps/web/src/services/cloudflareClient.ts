@@ -6,6 +6,8 @@ import type {
   PresenceClearBody,
   PresenceHeartbeatBody,
   PresenceSnapshot,
+  SiteConfigContract,
+  UptimeSnapshotContract,
 } from './cloudflareApiContract';
 
 export const API_BASE_URL = (import.meta.env.VITE_CLOUDFLARE_API_BASE_URL || '').replace(/\/$/, '');
@@ -115,4 +117,19 @@ export const isApiAvailable = async (): Promise<boolean> => {
   } catch {
     return false;
   }
+};
+
+
+export const fetchSiteConfig = async (): Promise<SiteConfigContract> => {
+  const response = await fetch(apiUrl('/api/site-config'), {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<SiteConfigContract>(response);
+};
+
+export const fetchUptimeSnapshot = async (): Promise<UptimeSnapshotContract> => {
+  const response = await fetch(apiUrl('/api/uptime'), {
+    headers: { Accept: 'application/json' },
+  });
+  return parseJsonResponse<UptimeSnapshotContract>(response);
 };

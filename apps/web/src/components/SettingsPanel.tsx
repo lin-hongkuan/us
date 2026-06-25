@@ -9,6 +9,9 @@ import {
   ArrowUpRight,
   BellRing,
   CalendarDays,
+  ChevronDown,
+  CircleAlert,
+  CircleCheck,
   Check,
   ClipboardCopy,
   Command,
@@ -18,6 +21,7 @@ import {
   Heart,
   Info,
   Keyboard,
+  RefreshCw,
   LogOut,
   Monitor,
   Moon,
@@ -27,6 +31,7 @@ import {
   Trash2,
   Users,
   Volume2,
+  Wifi,
   WandSparkles,
   X,
   Zap,
@@ -36,6 +41,8 @@ import { useAppContext } from '../context/AppContext';
 import { type ThemeMode } from '../context/themeContext';
 import { type DefaultLandingTab } from '../context/preferencesContext';
 import { APP_UPDATE, Memory, UserType } from '../types';
+import { fetchSiteConfig, fetchUptimeSnapshot } from '../services/cloudflareClient';
+import type { SiteConfigContract, UptimeSnapshotContract } from '../services/cloudflareApiContract';
 
 // =============================================================================
 // Public API
@@ -57,7 +64,7 @@ interface SettingsPanelProps {
 // Sections & palettes
 // =============================================================================
 
-type SectionId = 'appearance' | 'experience' | 'data' | 'about';
+type SectionId = 'appearance' | 'experience' | 'data' | 'service' | 'about';
 type Tint = 'rose' | 'violet' | 'sky' | 'amber' | 'emerald';
 
 interface SectionMeta {
@@ -94,6 +101,14 @@ const SECTIONS: SectionMeta[] = [
     icon: Database,
     tint: 'sky',
     subtitle: '把回忆小心地备份下来，也让它们被看见。',
+  },
+  {
+    id: 'service',
+    label: '服务',
+    hint: '监控 · 问答',
+    icon: Wifi,
+    tint: 'emerald',
+    subtitle: '网站运行状态、服务监控和常见问题都放在这里。',
   },
   {
     id: 'about',
@@ -806,6 +821,174 @@ const DataSection: React.FC<DataSectionProps> = ({
   );
 };
 
+
+// =============================================================================
+// Service — uptime + FAQ
+// =============================================================================
+
+const statusLabel = (status: UptimeSnapshotContract['monitors'][number]['status']) => (
+  status === 'up' ? '正常' : '异常'
+);
+
+const UptimeCard: React.FC<{
+  siteConfig: SiteConfigContract | null;
+  uptime: UptimeSnapshotContract | null;
+  loading: boolean;
+  error: string | null;
+  onRefresh: () => void;
+}> = ({ siteConfig, uptime, loading, error, onRefresh }) => {
+  const monitors = uptime?.monitors ?? siteConfig?.uptime.monitors.map((monitor) => ({
+    ...monitor,
+    status: 'down' as const,
+    statusCode: null,
+    latencyMs: null,
+    checkedAt: '',
+  })) ?? [];
+  const upCount = uptime?.monitors.filter((monitor) => monitor.status === 'up').length ?? 0;
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-100/80 bg-white/80 p-4 shadow-[0_12px_40px_-28px_rgba(15,23,42,0.3)] dark:border-slate-700/60 dark:bg-slate-800/60 sm:p-5">
+      <div className="flex items-start gap-3">
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ring-1 ${TINT_ICON.emerald}`}>
+          <Wifi size={18} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">运行时间</h4>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600 dark:bg-emerald-900/25 dark:text-emerald-300">
+              {uptime ? `${upCount}/${uptime.monitors.length} 正常` : '已配置监控'}
+            </span>
+          </div>
+          <p className="mt-0.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+            {siteConfig?.uptime.summary ?? '正在读取服务监控配置…'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={loading}
+          data-sound="action"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition hover:bg-white hover:text-slate-800 disabled:opacity-50 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800"
+          aria-label="刷新运行时间监控"
+        >
+          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {error && (
+        <div className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800/50 dark:bg-amber-900/20 dark:text-amber-200">
+          {error}
+        </div>
+      )}
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {monitors.map((monitor) => {
+          const isUp = monitor.status === 'up';
+          const StatusIcon = isUp ? CircleCheck : CircleAlert;
+          return (
+            <a
+              key={monitor.id}
+              href={monitor.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group rounded-2xl border border-slate-100/80 bg-white/70 p-3 transition hover:-translate-y-0.5 hover:bg-white dark:border-slate-700/60 dark:bg-slate-900/35 dark:hover:bg-slate-900/60"
+            >
+              <div className="flex items-start gap-2.5">
+                <StatusIcon size={17} className={isUp ? 'mt-0.5 text-emerald-500' : 'mt-0.5 text-amber-500'} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="truncate text-xs font-semibold text-slate-700 dark:text-slate-100 sm:text-sm">{monitor.name}</p>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${isUp ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/25 dark:text-emerald-300' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/25 dark:text-amber-300'}`}>
+                      {statusLabel(monitor.status)}
+                    </span>
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">{monitor.description}</p>
+                  <p className="mt-1 text-[10px] text-slate-400 dark:text-slate-500">
+                    {monitor.group} · {monitor.statusCode ?? '—'} · {monitor.latencyMs == null ? '待检测' : `${monitor.latencyMs}ms`}
+                  </p>
+                </div>
+              </div>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const FaqCard: React.FC<{ entries: SiteConfigContract['faq'] }> = ({ entries }) => {
+  const [openIndex, setOpenIndex] = useState(0);
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-slate-100/80 bg-white/80 p-4 shadow-[0_12px_40px_-28px_rgba(15,23,42,0.3)] dark:border-slate-700/60 dark:bg-slate-800/60 sm:p-5">
+      <div className="flex items-center gap-2.5">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 ${TINT_ICON.sky}`}>
+          <Info size={16} />
+        </span>
+        <div>
+          <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-100">常见问答</h4>
+          <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">同步、图片、隐私和监控说明。</p>
+        </div>
+      </div>
+      <div className="mt-3 divide-y divide-slate-100/80 dark:divide-slate-700/60">
+        {entries.map((entry, index) => {
+          const open = index === openIndex;
+          return (
+            <div key={entry.question} className="py-2 first:pt-0 last:pb-0">
+              <button
+                type="button"
+                onClick={() => setOpenIndex(open ? -1 : index)}
+                className="flex w-full items-center justify-between gap-3 text-left"
+              >
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-100 sm:text-sm">{entry.question}</span>
+                <ChevronDown size={15} className={`shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
+              {open && (
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  {entry.answer}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+const ServiceSection: React.FC = () => {
+  const [siteConfig, setSiteConfig] = useState<SiteConfigContract | null>(null);
+  const [uptime, setUptime] = useState<UptimeSnapshotContract | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [config, snapshot] = await Promise.all([
+        fetchSiteConfig(),
+        fetchUptimeSnapshot(),
+      ]);
+      setSiteConfig(config);
+      setUptime(snapshot);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '读取服务配置失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  return (
+    <div className="space-y-3">
+      <UptimeCard siteConfig={siteConfig} uptime={uptime} loading={loading} error={error} onRefresh={refresh} />
+      <FaqCard entries={siteConfig?.faq ?? []} />
+    </div>
+  );
+};
+
 // =============================================================================
 // About — ticket-stub release card + github + logout
 // =============================================================================
@@ -1094,6 +1277,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
             onOpenHeatmap={handleOpenHeatmap}
           />
         );
+      case 'service':
+        return <ServiceSection />;
       case 'about':
         return (
           <AboutSection

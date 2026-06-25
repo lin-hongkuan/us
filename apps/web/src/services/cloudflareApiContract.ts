@@ -52,6 +52,42 @@ export interface PresenceClearBody {
   instance_id: string;
 }
 
+export interface SiteMonitorTarget {
+  id: string;
+  name: string;
+  url: string;
+  group: string;
+  description: string;
+}
+
+export interface FaqEntry {
+  question: string;
+  answer: string;
+}
+
+export interface SiteConfigContract {
+  uptime: {
+    provider: string;
+    summary: string;
+    monitors: SiteMonitorTarget[];
+  };
+  faq: FaqEntry[];
+}
+
+export interface UptimeMonitorSnapshot extends SiteMonitorTarget {
+  status: 'up' | 'down';
+  statusCode: number | null;
+  latencyMs: number | null;
+  checkedAt: string;
+  error?: string;
+}
+
+export interface UptimeSnapshotContract {
+  provider: string;
+  checkedAt: string;
+  monitors: UptimeMonitorSnapshot[];
+}
+
 export const isUserType = (value: unknown): value is UserType => {
   return value === UserType.HER || value === UserType.HIM;
 };
